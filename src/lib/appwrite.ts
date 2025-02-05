@@ -1,0 +1,58 @@
+import 'server-only'
+
+import {
+    Account,
+    Client,
+    Databases,
+    Storage,
+    Users
+} from "node-appwrite";
+import { cookies } from 'next/headers';
+import { AUTH_COOKIE } from './constants';
+
+export async function createSessionClient() {
+    const cookieStore = await cookies()
+
+    const client = new Client()
+        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!)
+
+    const session = await cookieStore.get(AUTH_COOKIE)
+
+    if (!session) {
+        throw new Error("Unauthorized")
+    }
+
+    client.setSession(session.value);
+
+    return {
+        get account() {
+            return new Account(client);
+        },
+        get databases() {
+            return new Databases(client);
+        },
+        get storage() {
+            return new Storage(client);
+        },
+    };
+}
+
+export async function createAdminClient() {
+    const client = new Client()
+        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!)
+        .setKey(process.env.NEXT_APPWRITE_KEY!);
+
+    return {
+        get account() {
+            return new Account(client);
+        },
+        get users() {
+            return new Users(client);
+        },
+        get databases() {
+            return new Databases(client);
+        },
+    };
+}

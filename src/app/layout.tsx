@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google"
 import "./globals.css";
+import { cn } from "@/lib/utils";
+import { Toaster } from "@/components/ui/sonner";
+import ReactQueryProvider from "@/components/providers/react-query-provider";
+import NextTopLoader from "nextjs-toploader"
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -25,9 +22,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={cn(inter.className, "antialiased")}
       >
-        {children}
+        <NextTopLoader showSpinner={false} />
+        <ReactQueryProvider>
+          <Toaster />
+          <main className="flex flex-col min-h-screen">
+            <NuqsAdapter>
+              {children}
+            </NuqsAdapter>
+          </main>
+        </ReactQueryProvider>
       </body>
     </html>
   );
