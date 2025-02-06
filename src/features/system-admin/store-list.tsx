@@ -1,11 +1,11 @@
 import React from 'react';
 
-const AllStoresPage = () => {
+function AllStoresList() {
     return (
-        <div className=''>
+        <div>
             All stires
         </div>
     );
 }
 
-export default AllStoresPage;
+export default AllStoresList;

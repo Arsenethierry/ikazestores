@@ -31,7 +31,7 @@ const data = {
             items: [
                 {
                     title: "All stores",
-                    url: "/admin/all-stores",
+                    url: "/admin/stores",
                 },
                 {
                     title: "Starred",

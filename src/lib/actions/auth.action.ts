@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { AUTH_COOKIE } from "../constants";
 import { DATABASE_ID, USER_DATA_ID } from "../env-config";
 import { ID, Query } from "node-appwrite";
-import { SignInParams, SignUpParams } from "@/features/auth/types";
+import { SignInParams, SignUpParams } from "../types";
 
 export async function getLoggedInUser() {
     try {

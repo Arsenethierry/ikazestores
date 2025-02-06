@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { logInAction } from "@/lib/actions/auth.action";
-import { SignInParams } from "../types";
+import { SignInParams } from "@/lib/types";
 
 export const userKeys = {
     current: ["currentUser"] as const,

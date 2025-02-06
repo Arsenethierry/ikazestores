@@ -9,9 +9,12 @@ import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import { getLoggedInUser } from '@/lib/actions/auth.action';
 import LogoutButton from '@/features/auth/components/logout-button';
+import { hasLabelAccess } from '@/hooks/use-has-label-permission';
 
 export default async function MarketplaceNavbar() {
     const user = await getLoggedInUser();
+
+    const isSytemAdmin = hasLabelAccess(user, ['superAdmin'])
 
     return (
         <>
@@ -106,7 +109,9 @@ export default async function MarketplaceNavbar() {
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Sys Admin</Link>
+                    {isSytemAdmin && (
+                        <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Sys Admin</Link>
+                    )}
                 </div>
             </div>
 
