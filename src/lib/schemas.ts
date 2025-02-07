@@ -19,3 +19,11 @@ export const createPhysicalStoreFormSchema = z.object({
     storeBanner: z.custom<File[]>().optional(),
     storeLogo: z.custom<File[]>().optional()
 });
+
+export const createVirtualStoreFormSchema = z.object({
+    storeName: z.string().min(1).max(255),
+    desccription: z.string().max(255).optional(),
+    storeBio: z.string().max(255).optional(),
+    storeBanner: z.custom<File[]>().optional(),
+    storeLogo: z.custom<File[]>().optional()
+});

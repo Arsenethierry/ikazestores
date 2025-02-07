@@ -1,4 +1,5 @@
 import { convertFileToUrl } from "@/lib/utils";
+import { Upload } from "lucide-react";
 import Image from "next/image";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
@@ -29,12 +30,7 @@ export const FileUploader = ({ files, onChange, caption }: FileUploaderProps) =>
                 />
             ) : (
                 <>
-                    <Image
-                        src="/assets/icons/upload.svg"
-                        width={40}
-                        height={40}
-                        alt="upload"
-                    />
+                    <Upload />
                     <div className="file-upload_label">
                         <p className="text-[14px] leading-[18px] font-normal">
                             <span className="text-green-500">Click to upload </span>

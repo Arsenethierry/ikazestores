@@ -1,5 +1,5 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { SystemAdminSidebar } from "@/features/system-admin/app-sidebar";
+import { SystemAdminSidebar } from "@/features/stores/app-sidebar";
 
 export default async function SytemAdminLayout({
     children,
@@ -10,12 +10,12 @@ export default async function SytemAdminLayout({
         <SidebarProvider>
             <SystemAdminSidebar />
             <SidebarInset>
-                <header className='flex h-16 shrink-0 items-center gap-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b'>
+                <header className='sticky top-0 bg-muted z-20 flex h-16 shrink-0 items-center gap-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b'>
                     <div className="flex items-center gap-2 px-4">
                         <SidebarTrigger className='-ml-1' />
                     </div>
                 </header>
-                <div className="main-container py-5">
+                <div className="main-container py-5 xl:py-10">
                     {children}
                 </div>
             </SidebarInset>

@@ -1,4 +1,4 @@
-import { CreatePhysicalStoreForm } from '@/features/system-admin/components/create-physical-store-form';
+import CreateStoresTabs from '@/features/stores/components/create-stores-tabs';
 import { hasLabelAccess } from '@/hooks/use-has-label-permission';
 import { getLoggedInUser } from '@/lib/actions/auth.action';
 import { redirect } from 'next/navigation';
@@ -11,7 +11,7 @@ async function CreateNewStorePage() {
     const isSytemAdmin = hasLabelAccess(user, ['superAdmin'])
     if (!isSytemAdmin) redirect("/");
 
-    return <CreatePhysicalStoreForm currentUser={user} />
+    return <CreateStoresTabs currentUser={user} />;
 }
 
 export default CreateNewStorePage;

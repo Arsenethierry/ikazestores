@@ -17,17 +17,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCreatePhysicalStore } from "../mutations/use-create-physical-store";
 import ErrorAlert from "@/components/error-alert";
-import { Models } from "node-appwrite";
 import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { FileUploader } from "@/components/file-uploader";
 import { createPhysicalStoreFormSchema } from "@/lib/schemas";
+import { CurrentUserType } from "@/lib/types";
 
-interface CreatePhysicalStoreFormProps {
-    currentUser: Models.User<Models.Preferences>
-}
-
-export function CreatePhysicalStoreForm({ currentUser }: CreatePhysicalStoreFormProps) {
+export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
     const { mutate, isPending, error } = useCreatePhysicalStore()
     const form = useForm<z.infer<typeof createPhysicalStoreFormSchema>>({
         resolver: zodResolver(createPhysicalStoreFormSchema),
@@ -61,9 +57,9 @@ export function CreatePhysicalStoreForm({ currentUser }: CreatePhysicalStoreForm
 
 
     return (
-        <Card className="max-w-4xl">
+        <Card>
             <CardHeader>
-                <CardTitle>Create a new store</CardTitle>
+                <CardTitle>Create a physical store</CardTitle>
             </CardHeader>
             <CardContent>
                 {error && <ErrorAlert errorMessage={error?.message} />}

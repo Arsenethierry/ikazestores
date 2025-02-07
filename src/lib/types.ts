@@ -1,3 +1,4 @@
+import { Models } from "node-appwrite";
 
 export type SignInParams = {
     email: string;
@@ -17,4 +18,16 @@ export type CreatePhysicalStoreParams = {
     desccription?: string;
     storeBio?: string;
     storeBanner?: FormData | undefined;
+}
+
+export type CreateVirtualStoreParams = {
+    ownerId: string;
+    storeName: string;
+    desccription?: string;
+    storeBio?: string;
+    storeBanner?: FormData | undefined;
+}
+
+export type CurrentUserType = {
+    currentUser: Models.User<Models.Preferences>
 }
