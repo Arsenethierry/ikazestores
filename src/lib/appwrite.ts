@@ -9,13 +9,14 @@ import {
 } from "node-appwrite";
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE } from './constants';
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID } from './env-config';
 
 export async function createSessionClient() {
     const cookieStore = await cookies()
 
     const client = new Client()
-        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!)
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID)
 
     const session = await cookieStore.get(AUTH_COOKIE)
 
@@ -40,8 +41,8 @@ export async function createSessionClient() {
 
 export async function createAdminClient() {
     const client = new Client()
-        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!)
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID)
         .setKey(process.env.NEXT_APPWRITE_KEY!);
 
     return {

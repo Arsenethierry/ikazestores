@@ -16,4 +16,5 @@ export type CreatePhysicalStoreParams = {
     storeName: string;
     desccription?: string;
     storeBio?: string;
+    storeBanner?: FormData | undefined;
 }

@@ -19,12 +19,9 @@ import { useCreatePhysicalStore } from "../mutations/use-create-physical-store";
 import ErrorAlert from "@/components/error-alert";
 import { Models } from "node-appwrite";
 import { Loader } from "lucide-react";
-
-const formSchema = z.object({
-    "storeName": z.string().min(1).max(255),
-    "desccription": z.string().max(255).optional(),
-    "storeBio": z.string().max(255).optional()
-});
+import CustomFormField, { FormFieldType } from "@/components/custom-field";
+import { FileUploader } from "@/components/file-uploader";
+import { createPhysicalStoreFormSchema } from "@/lib/schemas";
 
 interface CreatePhysicalStoreFormProps {
     currentUser: Models.User<Models.Preferences>
@@ -32,8 +29,8 @@ interface CreatePhysicalStoreFormProps {
 
 export function CreatePhysicalStoreForm({ currentUser }: CreatePhysicalStoreFormProps) {
     const { mutate, isPending, error } = useCreatePhysicalStore()
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+    const form = useForm<z.infer<typeof createPhysicalStoreFormSchema>>({
+        resolver: zodResolver(createPhysicalStoreFormSchema),
         defaultValues: {
             storeName: "",
             desccription: "",
@@ -41,8 +38,25 @@ export function CreatePhysicalStoreForm({ currentUser }: CreatePhysicalStoreForm
         },
     })
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        mutate({ ...values, ownerId: currentUser.$id })
+    function onSubmit(values: z.infer<typeof createPhysicalStoreFormSchema>) {
+        let formData;
+        if (values.storeBanner && values.storeBanner.length > 0) {
+            const blobFile = new Blob([values.storeBanner[0]], {
+                type: values.storeBanner[0].type,
+            });
+
+            formData = new FormData();
+            formData.append("blobFile", blobFile);
+            formData.append("fileName", values.storeBanner[0].name);
+        };
+
+        mutate({
+            ...values,
+            ownerId: currentUser.$id,
+            storeBanner: values.storeBanner
+                ? formData
+                : undefined,
+        })
     }
 
 
@@ -104,6 +118,28 @@ export function CreatePhysicalStoreForm({ currentUser }: CreatePhysicalStoreForm
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
+                            )}
+                        />
+                        <CustomFormField
+                            fieldType={FormFieldType.SKELETON}
+                            control={form.control}
+                            name="storeBanner"
+                            label="Store banner Ratio 4:1 (2000 x 500 px)"
+                            renderSkeleton={(field) => (
+                                <FormControl>
+                                    <FileUploader files={field.value} onChange={field.onChange} caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)" />
+                                </FormControl>
+                            )}
+                        />
+                        <CustomFormField
+                            fieldType={FormFieldType.SKELETON}
+                            control={form.control}
+                            name="storeLogo"
+                            label="Shop logo(Ratio 1:1)"
+                            renderSkeleton={(field) => (
+                                <FormControl>
+                                    <FileUploader files={field.value} onChange={field.onChange} caption="SVG, PNG, JPG or GIF (Ratio 1:1)" />
+                                </FormControl>
                             )}
                         />
                         <div className="flex justify-between items-center">

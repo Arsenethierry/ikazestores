@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { signupSchema } from '../schemas';
+import { signupSchema } from '../../../lib/schemas';
 import { useSignup } from '../mutations/use-signup';
 import { Separator } from '@/components/ui/separator';
 import { GoogleLogo } from '@/components/icons';

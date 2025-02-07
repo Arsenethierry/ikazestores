@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { GoogleLogo } from '@/components/icons';
-import { loginSchema } from '../schemas';
+import { loginSchema } from '../../../lib/schemas';
 import { useLogin } from '../mutations/use-login';
 import ErrorAlert from '@/components/error-alert';
 
