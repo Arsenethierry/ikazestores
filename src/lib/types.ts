@@ -25,9 +25,24 @@ export type CreateVirtualStoreParams = {
     storeName: string;
     desccription?: string;
     storeBio?: string;
-    storeBanner?: FormData | undefined;
+    storeBanner?: FormData[] | undefined;
 }
 
 export type CurrentUserType = {
     currentUser: Models.User<Models.Preferences>
 }
+
+export type ImageDimensionConstraints = {
+    width?: number;
+    height?: number;
+    ratio?: number;
+    tolerance?: number;
+};
+
+export type VirtualStoreTypes = {
+    store: Models.Document & {
+        bannerUrls: string[],
+        storeName: string,
+        bannerIds: string[],
+    };
+};

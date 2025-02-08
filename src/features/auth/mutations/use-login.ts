@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { logInAction } from "@/lib/actions/auth.action";
 import { SignInParams } from "@/lib/types";
@@ -14,6 +14,9 @@ export const userKeys = {
 };
 
 export const useLogin = () => {
+    const searchParams = useSearchParams();
+    const redirectUrl = searchParams.get('redirectUrl')
+
     const queryClient = useQueryClient();
     const router = useRouter();
 
@@ -21,7 +24,11 @@ export const useLogin = () => {
         mutationFn: (data: SignInParams) => logInAction(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: userKeys.current });
-            router.refresh();
+            if (redirectUrl) {
+                router.push(redirectUrl.toString())
+            }
+
+            router.push('/')
         },
         onError: () => {
             toast.error("Failed to login")

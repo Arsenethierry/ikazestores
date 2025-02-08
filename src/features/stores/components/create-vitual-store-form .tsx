@@ -22,8 +22,10 @@ import { FileUploader } from "@/components/file-uploader";
 import { createVirtualStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType } from "@/lib/types";
 import { useCreateVirtualStore } from "../mutations/use-create-virtual-store";
+import { MultiImageUploader } from "@/components/multiple-images-uploader";
 
 export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
+
     const { mutate, isPending, error } = useCreateVirtualStore()
     const form = useForm<z.infer<typeof createVirtualStoreFormSchema>>({
         resolver: zodResolver(createVirtualStoreFormSchema),
@@ -35,23 +37,19 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
     })
 
     function onSubmit(values: z.infer<typeof createVirtualStoreFormSchema>) {
-        let formData;
-        if (values.storeBanner && values.storeBanner.length > 0) {
-            const blobFile = new Blob([values.storeBanner[0]], {
-                type: values.storeBanner[0].type,
-            });
 
-            formData = new FormData();
+        const formDataArray = values.storeBanner?.map(file => {
+            const blobFile = new Blob([file], {type: file.type});
+            const formData = new FormData();
             formData.append("blobFile", blobFile);
-            formData.append("fileName", values.storeBanner[0].name);
-        };
+            formData.append("fileName", file.name);
+            return formData
+        })
 
         mutate({
             ...values,
             ownerId: currentUser.$id,
-            storeBanner: values.storeBanner
-                ? formData
-                : undefined,
+            storeBanner: formDataArray
         })
     }
 
@@ -123,7 +121,12 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
                             label="Store banner Ratio 4:1 (2000 x 500 px)"
                             renderSkeleton={(field) => (
                                 <FormControl>
-                                    <FileUploader files={field.value} onChange={field.onChange} caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)" />
+                                    <MultiImageUploader
+                                        files={field.value}
+                                        onChange={field.onChange}
+                                        caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)"
+                                        maxFiles={5}
+                                    />
                                 </FormControl>
                             )}
                         />

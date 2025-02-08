@@ -10,10 +10,9 @@ function LogoutButton() {
     const { data: user, isLoading } = useCurrentUser();
     const { mutate: logout, isPending } = useLogout();
 
-    if(isLoading) return <SpinningLoader />;
+    if (isLoading) return <SpinningLoader />;
     if (!user) return null;
 
-console.log("cccc",user)
     return (
         <Button
             onClick={() => logout()}

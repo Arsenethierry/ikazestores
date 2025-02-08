@@ -2,6 +2,7 @@ import { buttonVariants } from '@/components/ui/button';
 import AllStoresList from '@/features/stores/store-list';
 import { hasLabelAccess } from '@/hooks/use-has-label-permission';
 import { getLoggedInUser } from '@/lib/actions/auth.action';
+import { getAllVirtualStores } from '@/lib/actions/vitual-store.action';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -10,8 +11,10 @@ import React from 'react';
 const AllStoresPage = async () => {
     const user = await getLoggedInUser();
 
-    if (!user) redirect("/sign-in")
+    if (!user) redirect("/sign-in?redirectUrl=/admin/stores")
     if (!hasLabelAccess(user, ['superAdmin'])) redirect("/");
+
+    const stores = await getAllVirtualStores()
 
     return (
         <div className='space-y-5'>
@@ -26,7 +29,7 @@ const AllStoresPage = async () => {
                     <Plus /> Create New Store
                 </Link>
             </section>
-            <AllStoresList />
+            <AllStoresList store={stores.documents} />
         </div>
     );
 }

@@ -15,7 +15,6 @@ import { GoogleLogo } from '@/components/icons';
 import { loginSchema } from '../../../lib/schemas';
 import { useLogin } from '../mutations/use-login';
 import ErrorAlert from '@/components/error-alert';
-
 interface SignInCardProps {
     isModal?: boolean;
 }

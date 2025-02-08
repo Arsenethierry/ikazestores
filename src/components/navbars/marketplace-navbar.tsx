@@ -110,7 +110,7 @@ export default async function MarketplaceNavbar() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     {isSytemAdmin && (
-                        <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Sys Admin</Link>
+                        <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Admin</Link>
                     )}
                 </div>
             </div>

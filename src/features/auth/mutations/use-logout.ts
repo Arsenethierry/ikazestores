@@ -7,7 +7,7 @@ export const useLogout = () => {
     const router = useRouter();
 
     const mutate = useMutation({
-        mutationFn: async () => logoutCurrentUser,
+        mutationFn: async () => await logoutCurrentUser(),
         onSuccess: () => {
             toast.success("You are logged out");
             router.refresh();

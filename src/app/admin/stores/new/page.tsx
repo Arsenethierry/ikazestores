@@ -7,7 +7,7 @@ import React from 'react';
 async function CreateNewStorePage() {
     const user = await getLoggedInUser();
 
-    if (!user) redirect("/sign-in")
+    if (!user) redirect("/sign-in?redirectUrl=/admin/stores/new")
     const isSytemAdmin = hasLabelAccess(user, ['superAdmin'])
     if (!isSytemAdmin) redirect("/");
 
