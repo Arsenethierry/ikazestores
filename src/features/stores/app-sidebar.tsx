@@ -15,6 +15,8 @@ import {
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { NavMain } from "./nav-main-sidebar";
 import { NavUser } from "./sidebar-userbutton";
+import SpinningLoader from "@/components/spinning-loader";
+import { useCurrentUser } from "../auth/queries/use-get-current-user";
 
 const data = {
     user: {
@@ -129,6 +131,7 @@ const data = {
 }
 
 export function SystemAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+    const { data: user, isPending } = useCurrentUser();
     return (
         <Sidebar collapsible="icon" {...props}>
             <SidebarHeader>
@@ -149,7 +152,10 @@ export function SystemAdminSidebar({ ...props }: React.ComponentProps<typeof Sid
                 <NavMain items={data.navMain} />
             </SidebarContent>
             <SidebarFooter>
-                <NavUser user={data.user} />
+                {isPending || !user
+                    ? <SpinningLoader />
+                    : <NavUser currentUser={user} />
+                }
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

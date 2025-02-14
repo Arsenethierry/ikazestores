@@ -39,7 +39,7 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
     function onSubmit(values: z.infer<typeof createVirtualStoreFormSchema>) {
 
         const formDataArray = values.storeBanner?.map(file => {
-            const blobFile = new Blob([file], {type: file.type});
+            const blobFile = new Blob([file], { type: file.type });
             const formData = new FormData();
             formData.append("blobFile", blobFile);
             formData.append("fileName", file.name);
@@ -55,7 +55,7 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
 
 
     return (
-        <Card>
+        <Card className="border-t-0 rounded-t-none">
             <CardHeader>
                 <CardTitle>Create a virtual store</CardTitle>
             </CardHeader>

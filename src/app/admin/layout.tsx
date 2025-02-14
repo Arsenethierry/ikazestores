@@ -6,6 +6,7 @@ export default async function SytemAdminLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+
     return (
         <SidebarProvider>
             <SystemAdminSidebar />

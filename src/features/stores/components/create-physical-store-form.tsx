@@ -57,7 +57,7 @@ export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
 
 
     return (
-        <Card>
+        <Card className="border-t-0 rounded-t-none">
             <CardHeader>
                 <CardTitle>Create a physical store</CardTitle>
             </CardHeader>

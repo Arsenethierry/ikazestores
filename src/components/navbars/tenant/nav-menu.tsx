@@ -11,10 +11,9 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { NavigationMenuProps } from "@radix-ui/react-navigation-menu";
-import { LucideIcon } from "lucide-react";
+import { Bell, Boxes, LucideIcon, Rocket, Shuffle, Store, Warehouse } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import { foods, travelMenuItems } from "./config";
 
 export const NavMenu = (props: NavigationMenuProps) => (
     <NavigationMenu {...props}>
@@ -24,41 +23,79 @@ export const NavMenu = (props: NavigationMenuProps) => (
                     <Link href="#">Home</Link>
                 </Button>
             </NavigationMenuItem>
+
             <NavigationMenuItem>
                 <NavigationMenuTrigger className="text-[15px] font-normal">
-                    Food
+                    For Sellers
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                        {foods.map((food) => (
-                            <ListItem
-                                key={food.title}
-                                title={food.title}
-                                icon={food.icon}
-                                href="#"
-                            >
-                                {food.description}
-                            </ListItem>
-                        ))}
+                    <ul className="grid w-[400px] gap-1 p-4 md:w-[500px] lg:w-[600px] grid-cols-2">
+                        <ListItem
+                            title="Physical Stores"
+                            icon={Warehouse}
+                            href="/physical-stores"
+                        >
+                            Monetize your existing space & inventory. Get featured across virtual stores.
+                        </ListItem>
+                        <ListItem
+                            title="Virtual Stores"
+                            icon={Store}
+                            href="/virtual-stores"
+                        >
+                            Start with zero inventory. Curate products & earn on every sale.
+                        </ListItem>
+                        <ListItem
+                            title="Product Network"
+                            icon={Boxes}
+                            href="/products"
+                        >
+                            Global inventory network with automated order fulfillment
+                        </ListItem>
+                        <ListItem
+                            title="Commission System"
+                            icon={Shuffle}
+                            href="/commissions"
+                        >
+                            Transparent revenue sharing between physical and virtual stores
+                        </ListItem>
                     </ul>
                 </NavigationMenuContent>
             </NavigationMenuItem>
+
             <NavigationMenuItem>
                 <NavigationMenuTrigger className="text-[15px] font-normal">
-                    Travel
+                    How It Works
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                        {travelMenuItems.map((menuItem) => (
-                            <ListItem
-                                key={menuItem.title}
-                                title={menuItem.title}
-                                icon={menuItem.icon}
-                                href="#"
-                            >
-                                {menuItem.description}
-                            </ListItem>
-                        ))}
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] lg:w-[600px] grid-cols-2">
+                        <ListItem
+                            title="1. Import Products"
+                            icon={Rocket}
+                            href="/guide"
+                        >
+                            Virtual stores select items from physical store catalogs
+                        </ListItem>
+                        <ListItem
+                            title="2. Sell Anywhere"
+                            icon={Store}
+                            href="/guide"
+                        >
+                            Market products through your customized storefront
+                        </ListItem>
+                        <ListItem
+                            title="3. Automated Fulfillment"
+                            icon={Shuffle}
+                            href="/guide"
+                        >
+                            Orders automatically routed to physical stores
+                        </ListItem>
+                        <ListItem
+                            title="4. Real-time Updates"
+                            icon={Bell}
+                            href="/guide"
+                        >
+                            Instant notifications when your imported products sell
+                        </ListItem>
                     </ul>
                 </NavigationMenuContent>
             </NavigationMenuItem>
