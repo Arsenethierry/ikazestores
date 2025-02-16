@@ -4,12 +4,14 @@ import { ID, InputFile } from "node-appwrite";
 import { createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { CreateVirtualStoreParams } from "../types";
+import { AppwriteRollback } from "./rollback";
 
 
 export const createVirtualStoreAction = async (formData: CreateVirtualStoreParams) => {
     const { storeBanner, ...storeData } = formData;
+    const { databases, storage } = await createSessionClient();
+    const rollback = new AppwriteRollback(storage, databases);
     try {
-        const { databases, storage } = await createSessionClient();
 
         const fileDetails = await Promise.all(
             storeBanner?.map(async (banner) => {
@@ -22,7 +24,7 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
                     ID.unique(),
                     inputFile
                 );
-
+                await rollback.trackFile(STORE_BUCKET_ID, file.$id)
                 return {
                     id: file.$id,
                     name: file.name,
@@ -42,10 +44,12 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
                 bannerUrls: fileDetails.map(file => file.url)
             }
         );
+        await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
 
         return newVirtualStore
     } catch (error) {
-        console.error(error);
+        console.error("Error creating virtual store, rolling back:", error);
+        await rollback.rollback();
         throw error;
     }
 }
@@ -74,6 +78,20 @@ export const getImagePreview = async () => {
         )
         return imagePreview
     } catch (error) {
+        throw error
+    }
+}
+
+export const deleteVirtualStore = async (VirtualStoreId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        await databases.deleteDocument(
+            DATABASE_ID,
+            VIRTUAL_STORE_ID,
+            VirtualStoreId
+        );
+    } catch (error) {
+        console.log(`error deleting virtual store: ${error}`)
         throw error
     }
 }

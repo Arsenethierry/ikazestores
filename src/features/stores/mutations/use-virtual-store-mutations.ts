@@ -1,0 +1,40 @@
+import { createVirtualStoreAction, deleteVirtualStore } from "@/lib/actions/vitual-store.action";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+export const useCreateVirtualStore = () => {
+    const router = useRouter();
+
+    const mutate = useMutation({
+        mutationFn: createVirtualStoreAction,
+        onSuccess: () => {
+            toast.success("Store created successfully")
+            router.push("/admin/stores");
+        },
+        onError: () => {
+            toast.error("Something went wrong")
+        }
+    });
+
+    return mutate;
+}
+
+export const useDeleteVirtualStore = () => {
+    const queryClient = useQueryClient();
+    const router = useRouter();
+
+    const mutate = useMutation({
+        mutationFn: deleteVirtualStore,
+        onSuccess: () => {
+            toast.success("Store deleted successfully")
+            router.refresh();
+            queryClient.invalidateQueries({ queryKey: ["virtualStores"]});
+        },
+        onError: () => {
+            toast.error("Something went wrong")
+        }
+    });
+
+    return mutate;
+}

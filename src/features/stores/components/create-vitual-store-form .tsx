@@ -21,8 +21,8 @@ import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { FileUploader } from "@/components/file-uploader";
 import { createVirtualStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType } from "@/lib/types";
-import { useCreateVirtualStore } from "../mutations/use-create-virtual-store";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
+import { useCreateVirtualStore } from "../mutations/use-virtual-store-mutations";
 
 export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
 

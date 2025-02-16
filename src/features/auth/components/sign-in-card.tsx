@@ -15,11 +15,17 @@ import { GoogleLogo } from '@/components/icons';
 import { loginSchema } from '../../../lib/schemas';
 import { useLogin } from '../mutations/use-login';
 import ErrorAlert from '@/components/error-alert';
+import { useRouter, useSearchParams } from 'next/navigation';
 interface SignInCardProps {
     isModal?: boolean;
 }
 
 export const SignInCard = ({ isModal = false }: SignInCardProps) => {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    const redirectUrl = searchParams.get('redirectUrl')
+
     const { mutate, isPending, error } = useLogin();
 
     const form = useForm<z.infer<typeof loginSchema>>({
@@ -31,7 +37,16 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
     });
 
     const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-        mutate(values);
+        mutate(values, {
+            onSuccess: () => {
+                if (redirectUrl) {
+                    router.push(redirectUrl)
+                } else {
+                    router.push("/")
+                }
+            }
+        });
+
     }
 
     return (
@@ -40,7 +55,7 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
             isModal && "py-5"
         )}>
             <Card className={cn(
-                "w-full md:w-[487px] shadow-none space-y-6",
+                "w-[487px] shadow-none space-y-6",
                 isModal && "border-none shadow-none"
             )}>
                 <CardHeader className='flex items-center justify-center text-center'>

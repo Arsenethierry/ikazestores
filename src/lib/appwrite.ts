@@ -5,6 +5,7 @@ import {
     Client,
     Databases,
     Storage,
+    Teams,
     Users
 } from "node-appwrite";
 import { cookies } from 'next/headers';
@@ -36,6 +37,9 @@ export async function createSessionClient() {
         get storage() {
             return new Storage(client);
         },
+        get teams() {
+            return new Teams(client);
+        }
     };
 }
 
