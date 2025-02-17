@@ -10,7 +10,6 @@ import { useCurrentUser } from './queries/use-get-current-user';
 
 export const UserButton = () => {
     const { data: user, isPending } = useCurrentUser();
-console.log("dddd: " + JSON.stringify(user));
 
     if (isPending) {
         return (

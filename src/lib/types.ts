@@ -17,7 +17,7 @@ export type CreatePhysicalStoreParams = {
     storeName: string;
     desccription?: string;
     storeBio?: string;
-    storeBanner?: FormData | undefined;
+    storeBanner?: File[];
 }
 
 export type CreateVirtualStoreParams = {
@@ -25,7 +25,7 @@ export type CreateVirtualStoreParams = {
     storeName: string;
     desccription?: string;
     storeBio?: string;
-    storeBanner?: FormData[] | undefined;
+    storeBanner?: File[];
 }
 
 export type CurrentUserType = {
@@ -39,10 +39,6 @@ export type ImageDimensionConstraints = {
     tolerance?: number;
 };
 
-export type VirtualStoreTypes = {
-    store: Models.Document & {
-        bannerUrls: string[],
-        storeName: string,
-        bannerIds: string[],
-    };
+export type StoreTypes = {
+    store: Models.Document;
 };

@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCreatePhysicalStore } from "../mutations/use-create-physical-store";
+import { useCreatePhysicalStore } from "../mutations/use-physical-store-mutations";
 import ErrorAlert from "@/components/error-alert";
 import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { FileUploader } from "@/components/file-uploader";
 import { createPhysicalStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType } from "@/lib/types";
+import { MultiImageUploader } from "@/components/multiple-images-uploader";
 
 export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
     const { mutate, isPending, error } = useCreatePhysicalStore()
@@ -35,23 +36,9 @@ export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
     })
 
     function onSubmit(values: z.infer<typeof createPhysicalStoreFormSchema>) {
-        let formData;
-        if (values.storeBanner && values.storeBanner.length > 0) {
-            const blobFile = new Blob([values.storeBanner[0]], {
-                type: values.storeBanner[0].type,
-            });
-
-            formData = new FormData();
-            formData.append("blobFile", blobFile);
-            formData.append("fileName", values.storeBanner[0].name);
-        };
-
         mutate({
             ...values,
             ownerId: currentUser.$id,
-            storeBanner: values.storeBanner
-                ? formData
-                : undefined,
         })
     }
 
@@ -123,7 +110,12 @@ export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
                             label="Store banner Ratio 4:1 (2000 x 500 px)"
                             renderSkeleton={(field) => (
                                 <FormControl>
-                                    <FileUploader files={field.value} onChange={field.onChange} caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)" />
+                                    <MultiImageUploader
+                                        files={field.value}
+                                        onChange={field.onChange}
+                                        caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)"
+                                        maxFiles={5}
+                                    />
                                 </FormControl>
                             )}
                         />

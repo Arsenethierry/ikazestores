@@ -37,20 +37,14 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
     })
 
     function onSubmit(values: z.infer<typeof createVirtualStoreFormSchema>) {
-
-        const formDataArray = values.storeBanner?.map(file => {
-            const blobFile = new Blob([file], { type: file.type });
-            const formData = new FormData();
-            formData.append("blobFile", blobFile);
-            formData.append("fileName", file.name);
-            return formData
-        })
-
-        mutate({
-            ...values,
-            ownerId: currentUser.$id,
-            storeBanner: formDataArray
-        })
+        try {
+            mutate({
+                ...values,
+                ownerId: currentUser.$id
+            })
+        } catch (error) {
+            console.log(error)
+        }
     }
 
 

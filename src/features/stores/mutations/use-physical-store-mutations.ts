@@ -1,13 +1,13 @@
-import { createVirtualStoreAction, deleteVirtualStore } from "@/lib/actions/vitual-store.action";
+import { createPhysicalStoreAction, deletePhysicalStore } from "@/lib/actions/physical-store.action";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-export const useCreateVirtualStore = () => {
+export const useCreatePhysicalStore = () => {
     const router = useRouter();
 
     const mutate = useMutation({
-        mutationFn: createVirtualStoreAction,
+        mutationFn: createPhysicalStoreAction,
         onSuccess: () => {
             toast.success("Store created successfully")
             router.push("/admin/stores");
@@ -20,17 +20,17 @@ export const useCreateVirtualStore = () => {
     return mutate;
 }
 
-export const useDeleteVirtualStore = () => {
+export const useDeletePhysicalStore = () => {
     const queryClient = useQueryClient();
     const router = useRouter();
 
     const mutate = useMutation({
         mutationFn: ([virtualStoreId, bannerIds]: [virtualStoreId: string, bannerIds: string[]]) =>
-            deleteVirtualStore(virtualStoreId, bannerIds),
+            deletePhysicalStore(virtualStoreId, bannerIds),
         onSuccess: () => {
             toast.success("Store deleted successfully")
             router.refresh();
-            queryClient.invalidateQueries({ queryKey: ["virtualStores"] });
+            queryClient.invalidateQueries({ queryKey: ["physicalStores"] });
         },
         onError: () => {
             toast.error("Something went wrong")

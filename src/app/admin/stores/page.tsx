@@ -1,8 +1,10 @@
 import { buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StoreCard } from '@/features/stores/components/store-card';
 import { hasLabelAccess } from '@/hooks/use-has-label-permission';
 import { getLoggedInUser } from '@/lib/actions/auth.action';
+import { getAllPshyicalStores } from '@/lib/actions/physical-store.action';
 import { getAllVirtualStores } from '@/lib/actions/vitual-store.action';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +17,8 @@ const AllStoresPage = async () => {
     if (!user) redirect("/sign-in?redirectUrl=/admin/stores")
     if (!hasLabelAccess(user, ['superAdmin'])) redirect("/");
 
-    const stores = await getAllVirtualStores();
+    const virtualStores = await getAllVirtualStores();
+    const physicalStores = await getAllPshyicalStores();
 
     return (
         <div className='space-y-5'>
@@ -49,18 +52,35 @@ const AllStoresPage = async () => {
                 </TabsList>
                 <TabsContent key={"virtualStores"} value={"virtualStores"}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-                        {stores.documents.map((store) => (
-                            <StoreCard key={store.$id} store={store} />
-                        ))}
+                        {virtualStores.total > 0 ? virtualStores.documents.map((store) => (
+                            <StoreCard
+                                key={store.$id}
+                                store={store}
+                                storeType='virtual'
+                            />
+                        )) : (
+                            <Card className='py-10'>
+                                <p className='font-medium text-xl text-center'>No Virtual Stores.</p>
+                            </Card>
+                        )}
                     </div>
                 </TabsContent>
                 <TabsContent key={"physicalStores"} value={"physicalStores"}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-                        Physical stres
+                        {physicalStores.total > 0 ? physicalStores.documents.map((store) => (
+                            <StoreCard
+                                key={store.$id}
+                                store={store}
+                                storeType='physical'
+                            />
+                        )) : (
+                            <Card className='py-10'>
+                                <p className='font-medium text-xl text-center'>No Physical Stores.</p>
+                            </Card>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
-            {/* <AllStoresList store={stores.documents} /> */}
         </div>
     );
 }

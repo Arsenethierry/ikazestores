@@ -12,9 +12,12 @@ import {
 import { useConfirm } from "@/hooks/use-confirm";
 import { Bolt, Ellipsis, Trash } from "lucide-react";
 import { useDeleteVirtualStore } from "../mutations/use-virtual-store-mutations";
+import { useDeletePhysicalStore } from "../mutations/use-physical-store-mutations";
+import { StoreTypes } from "@/lib/types";
 
-export const StoreQuickActions = ({ storeId }: { storeId: string }) => {
+export const StoreQuickActions = ({ store }: StoreTypes) => {
     const { mutate: deleteVirtualStore } = useDeleteVirtualStore();
+    const { mutate: deletePhysicalStore } = useDeletePhysicalStore();
 
     const [DeleteDialog, confirmDelete] = useConfirm(
         "Delete Store",
@@ -22,11 +25,16 @@ export const StoreQuickActions = ({ storeId }: { storeId: string }) => {
         "destructive"
     );
 
+
     const handleDeleteStore = async () => {
         const ok = await confirmDelete();
 
         if (!ok) return;
-        deleteVirtualStore(storeId)
+        if(store.storeType === 'virtualStore') {
+            deleteVirtualStore([store.$id, store.bannerIds])
+        } else if(store.storeType === 'physicalStore') {
+            deletePhysicalStore([store.$id, store.bannerIds])
+        }
     }
 
     return (
