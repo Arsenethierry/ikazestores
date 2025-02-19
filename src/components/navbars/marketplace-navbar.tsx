@@ -1,18 +1,21 @@
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { CircleUser, Heart, Settings, ShoppingCart, User } from 'lucide-react';
+import { CircleUser, Heart, LayoutDashboard, Settings, ShoppingCart, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
-import { getLoggedInUser } from '@/lib/actions/auth.action';
 import LogoutButton from '@/features/auth/components/logout-button';
 import { getAuthState } from '@/lib/user-label-permission';
 
 export default async function MarketplaceNavbar() {
-    const user = await getLoggedInUser();
-    const { isSystemAdmin } = await getAuthState();
+    const {
+        isSystemAdmin,
+        isAuthenticated,
+        isVirtualStoreOwner,
+        isPhysicalStoreOwner
+    } = await getAuthState();
 
     return (
         <>
@@ -65,17 +68,27 @@ export default async function MarketplaceNavbar() {
                     </Link>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant={'ghost'} className='text-white font-medium cursor-pointer inline-flex w-max'>
-                                <CircleUser className='h-4 m-auto' />
-                                <span>My account</span>
-                            </Button>
+                            {isAuthenticated ? (
+                                <Button variant={'ghost'} className='text-white font-medium cursor-pointer inline-flex w-max'>
+                                    <CircleUser className='h-4 m-auto' />
+                                    <span>My account</span>
+                                </Button>
+                            ) : (
+                                <Button variant={'ghost'} className='text-white cursor-pointer inline-flex w-max'>
+                                    <CircleUser />
+                                    <div className='flex flex-col text-xs items-start'>
+                                        <span>My account</span>
+                                        <span className='font-extralight text-xs'>Login / Register</span>
+                                    </div>
+                                </Button>
+                            )}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-56">
                             <DropdownMenuLabel>My Account</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
                                 <>
-                                    {user ? <>
+                                    {isAuthenticated ? <>
                                         <DropdownMenuItem>
                                             <User />
                                             <span>Profile</span>
@@ -86,6 +99,14 @@ export default async function MarketplaceNavbar() {
                                             <span>Settings</span>
                                             <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                                         </DropdownMenuItem>
+                                        {isPhysicalStoreOwner || isVirtualStoreOwner && (
+                                            <DropdownMenuItem className='cursor-pointer w-full'>
+                                                <Link href={'/admin'} className='w-full font-medium cursor-pointer inline-flex'>
+                                                    <LayoutDashboard className='h-4 my-auto' />
+                                                    <span>Dashboard</span>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem>
                                             <LogoutButton />
                                         </DropdownMenuItem>

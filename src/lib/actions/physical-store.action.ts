@@ -1,6 +1,6 @@
 "use server";
 
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PHYSICAL_STORE_ID, STORE_BUCKET_ID } from "../env-config";
 import { CreatePhysicalStoreParams } from "../types";
@@ -90,5 +90,24 @@ export const deletePhysicalStore = async (physicalStoreId: string, bannerIds: st
     } catch (error) {
         console.log(`error deleting physical store: ${error}`)
         throw error
+    }
+}
+
+export const getAllPshyicalStoresByOwnerId = async (ownerId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        
+        const stores = await databases.listDocuments(
+            DATABASE_ID,
+            PHYSICAL_STORE_ID,
+            [
+                Query.equal("ownerId", ownerId)
+            ]
+        );
+
+        return stores;
+    } catch (error) {
+        console.log("getAllPshyicalStoresByOwnerId: ", error);
+        return null;
     }
 }

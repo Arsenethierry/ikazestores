@@ -4,10 +4,10 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 
 const SysAdminPage = async () => {
-    const {isAuthenticated, isSystemAdmin} = await getAuthState()
+    const { isAuthenticated, isSystemAdmin, isPhysicalStoreOwner, isVirtualStoreOwner} = await getAuthState();
 
     if (!isAuthenticated) redirect("/sign-in?redirectUrl=/admin")
-    if (!isSystemAdmin) redirect("/");
+    if (!isSystemAdmin && !isPhysicalStoreOwner && !isVirtualStoreOwner) redirect("/");
 
     return (
         <>

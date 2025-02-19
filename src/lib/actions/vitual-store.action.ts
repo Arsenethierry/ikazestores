@@ -116,3 +116,22 @@ export const getVirtualStoreByDomain = async (domain: string) => {
         throw error
     }
 }
+
+export const getAllVirtualStoresByOwnerId = async (ownerId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        
+        const stores = await databases.listDocuments(
+            DATABASE_ID,
+            VIRTUAL_STORE_ID,
+            [
+                Query.equal("ownerId", ownerId)
+            ]
+        );
+
+        return stores;
+    } catch (error) {
+        console.log("getAllVirtualStoresByOwnerId: ", error);
+        return null;
+    }
+}

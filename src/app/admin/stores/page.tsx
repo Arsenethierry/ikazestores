@@ -2,8 +2,8 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StoreCard } from '@/features/stores/components/store-card';
-import { getAllPshyicalStores } from '@/lib/actions/physical-store.action';
-import { getAllVirtualStores } from '@/lib/actions/vitual-store.action';
+import { getAllPshyicalStores, getAllPshyicalStoresByOwnerId } from '@/lib/actions/physical-store.action';
+import { getAllVirtualStores, getAllVirtualStoresByOwnerId } from '@/lib/actions/vitual-store.action';
 import { getAuthState } from '@/lib/user-label-permission';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -11,13 +11,24 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 
 const AllStoresPage = async () => {
-    const { isAuthenticated, isSystemAdmin } = await getAuthState()
+    const {
+        isAuthenticated,
+        isSystemAdmin,
+        isPhysicalStoreOwner,
+        isVirtualStoreOwner,
+        user
+    } = await getAuthState();
 
-    if (!isAuthenticated) redirect("/sign-in?redirectUrl=/admin")
-    if (!isSystemAdmin) redirect("/");
+    if (!isAuthenticated || !user) redirect("/sign-in?redirectUrl=/admin")
+    if (!isSystemAdmin && !isPhysicalStoreOwner && !isVirtualStoreOwner) redirect("/");
 
-    const virtualStores = await getAllVirtualStores();
-    const physicalStores = await getAllPshyicalStores();
+    const virtualStores = isSystemAdmin
+        ? await getAllVirtualStores()
+        : await getAllVirtualStoresByOwnerId(user.$id);
+
+    const physicalStores = isSystemAdmin
+        ? await getAllPshyicalStores()
+        : await getAllPshyicalStoresByOwnerId(user.$id)
 
     return (
         <div className='space-y-5'>
@@ -51,7 +62,7 @@ const AllStoresPage = async () => {
                 </TabsList>
                 <TabsContent key={"virtualStores"} value={"virtualStores"}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-                        {virtualStores.total > 0 ? virtualStores.documents.map((store) => (
+                        {virtualStores && virtualStores.total > 0 ? virtualStores.documents.map((store) => (
                             <StoreCard
                                 key={store.$id}
                                 store={store}
