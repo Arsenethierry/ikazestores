@@ -3,7 +3,7 @@ import { StoreTypes } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
-import { StoreQuickActions } from './store-actions';
+import { StoreQuickActions } from './store-action-button';
 
 export const StoreCard = ({ store }: StoreTypes) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?

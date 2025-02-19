@@ -21,11 +21,10 @@ export async function createSessionClient() {
 
     const session = await cookieStore.get(AUTH_COOKIE)
 
-    if (!session) {
-        throw new Error("Unauthorized")
+    if (session) {
+        client.setSession(session.value);
     }
 
-    client.setSession(session.value);
 
     return {
         get account() {

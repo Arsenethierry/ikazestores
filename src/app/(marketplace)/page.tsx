@@ -1,11 +1,10 @@
-import { getLoggedInUser } from "@/lib/actions/auth.action";
+import { getAllVirtualStores } from "@/lib/actions/vitual-store.action";
 
 export default async function Home() {
-  const user = await getLoggedInUser();
-
+  const virtualStores = await getAllVirtualStores();
   return (
     <div className="p-2">
-      user: {JSON.stringify(user)}
+      virtualStores: {JSON.stringify(virtualStores, undefined, 2)}
     </div>
   );
 }

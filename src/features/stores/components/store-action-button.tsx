@@ -14,8 +14,11 @@ import { Bolt, Ellipsis, Trash } from "lucide-react";
 import { useDeleteVirtualStore } from "../mutations/use-virtual-store-mutations";
 import { useDeletePhysicalStore } from "../mutations/use-physical-store-mutations";
 import { StoreTypes } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export const StoreQuickActions = ({ store }: StoreTypes) => {
+    const router = useRouter();
+
     const { mutate: deleteVirtualStore } = useDeleteVirtualStore();
     const { mutate: deletePhysicalStore } = useDeletePhysicalStore();
 
@@ -37,6 +40,10 @@ export const StoreQuickActions = ({ store }: StoreTypes) => {
         }
     }
 
+    const handleNavigateStore = () => {
+        router.push(``)
+    }
+
     return (
         <DropdownMenu>
             <DeleteDialog />
@@ -56,6 +63,10 @@ export const StoreQuickActions = ({ store }: StoreTypes) => {
                     <DropdownMenuItem>
                         <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
                         Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleNavigateStore}>
+                        <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
+                        Go to store
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={handleDeleteStore}

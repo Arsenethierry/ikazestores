@@ -4,17 +4,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { CircleUser, Heart, Settings, ShoppingCart, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
-// import LogoutButton from '@/features/auth/components/logout-button';
 import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import { getLoggedInUser } from '@/lib/actions/auth.action';
 import LogoutButton from '@/features/auth/components/logout-button';
-import { hasLabelAccess } from '@/hooks/use-has-label-permission';
+import { getAuthState } from '@/lib/user-label-permission';
 
 export default async function MarketplaceNavbar() {
     const user = await getLoggedInUser();
-
-    const isSytemAdmin = hasLabelAccess(user, ['superAdmin'])
+    const { isSystemAdmin } = await getAuthState();
 
     return (
         <>
@@ -109,7 +107,7 @@ export default async function MarketplaceNavbar() {
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    {isSytemAdmin && (
+                    {isSystemAdmin && (
                         <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Admin</Link>
                     )}
                 </div>

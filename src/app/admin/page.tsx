@@ -1,13 +1,13 @@
 import ProductsRefPage from '@/components/teams-reference-component';
-import { getLoggedInUser } from '@/lib/actions/auth.action';
+import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
 const SysAdminPage = async () => {
-    const user = await getLoggedInUser();
+    const {isAuthenticated, isSystemAdmin} = await getAuthState()
 
-    if (!user) redirect("/sign-in?redirectUrl=/admin")
-    if (!user.labels.includes("superAdmin")) redirect("/");
+    if (!isAuthenticated) redirect("/sign-in?redirectUrl=/admin")
+    if (!isSystemAdmin) redirect("/");
 
     return (
         <>

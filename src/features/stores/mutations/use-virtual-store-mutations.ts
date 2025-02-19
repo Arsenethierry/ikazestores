@@ -32,8 +32,9 @@ export const useDeleteVirtualStore = () => {
             router.refresh();
             queryClient.invalidateQueries({ queryKey: ["virtualStores"] });
         },
-        onError: () => {
-            toast.error("Something went wrong")
+        onError: (error) => {
+            const errorMessage = error instanceof Error ? error.message : "Something went wrong"
+            toast.error(`${errorMessage}`)
         }
     });
 

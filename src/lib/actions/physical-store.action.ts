@@ -5,6 +5,8 @@ import { createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PHYSICAL_STORE_ID, STORE_BUCKET_ID } from "../env-config";
 import { CreatePhysicalStoreParams } from "../types";
 import { AppwriteRollback } from "./rollback";
+import { updateUserLabels } from "./user-labels";
+import { UserRole } from "../constants";
 
 export const createPhysicalStoreAction = async (formData: CreatePhysicalStoreParams) => {
     const { storeBanner, ...storeData } = formData;
@@ -44,6 +46,7 @@ export const createPhysicalStoreAction = async (formData: CreatePhysicalStorePar
             }
         );
         await rollback.trackDocument(PHYSICAL_STORE_ID, newPhysicalStore.$id)
+        await updateUserLabels(storeData.ownerId, [UserRole.PHYSICAL_STORE_OWNER])
 
         return newPhysicalStore
     } catch (error) {
@@ -63,7 +66,8 @@ export const getAllPshyicalStores = async () => {
 
         return allPhysicalStores
     } catch (error) {
-        throw error
+        console.log(error)
+        return null;
     }
 }
 
@@ -77,7 +81,7 @@ export const deletePhysicalStore = async (physicalStoreId: string, bannerIds: st
                     bannerId
                 )
             })
-        )
+        );
         await databases.deleteDocument(
             DATABASE_ID,
             PHYSICAL_STORE_ID,

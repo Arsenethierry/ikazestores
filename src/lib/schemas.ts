@@ -16,14 +16,15 @@ export const createPhysicalStoreFormSchema = z.object({
     storeName: z.string().min(1).max(255),
     desccription: z.string().max(255).optional(),
     storeBio: z.string().max(255).optional(),
-    storeBanner: z.custom<File[]>().optional(),
-    storeLogo: z.custom<File[]>().optional()
+    storeBanner: z.custom<File[]>(),
+    storeLogo: z.custom<File>()
 });
 
 export const createVirtualStoreFormSchema = z.object({
     storeName: z.string().min(1).max(255),
     desccription: z.string().max(255).optional(),
     storeBio: z.string().max(255).optional(),
-    storeBanner: z.custom<File[]>().optional(),
-    storeLogo: z.custom<File[]>().optional()
+    storeDomain: z.string().min(2).max(50),
+    storeBanner: z.custom<File[]>(),
+    storeLogo: z.custom<File>()
 });

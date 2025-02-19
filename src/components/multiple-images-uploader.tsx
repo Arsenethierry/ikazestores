@@ -60,7 +60,7 @@ export const MultiImageUploader = ({
 
             <div className="flex flex-wrap gap-4">
                 {files && files.map((file, index) => (
-                    <div key={index} className="relative bg-slate-600">
+                    <div key={index} className="relative">
                         <TooltipProvider delayDuration={0}>
                             <Tooltip>
                                 <TooltipTrigger asChild>

@@ -1,77 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseSubdomain } from "./features/stores/store-domain-helper";
+import { MAIN_DOMAIN } from "./lib/env-config";
+import { getVirtualStoreByDomain } from "./lib/actions/vitual-store.action";
+
+const PROTECTED_SUBDOMAINS = ["www", "admin", "api", "dashboard"];
 
 export async function middleware(request: NextRequest) {
     try {
-        const hostname = request.headers.get("host")!;
+        const hostname = request.headers.get("host");
 
-        const isLocalDevelopment = hostname.includes("localhost:3000");
-        let subdomains: string[];
-        let subdomain: string | undefined;
-
-        if (isLocalDevelopment) {
-            subdomains = hostname.split(".");
-            subdomain = subdomains.length > 1 ? subdomains[0] : undefined;
-        } else {
-            subdomains = hostname.split(".").slice(0, -2);
-            subdomain = subdomains[0]?.includes("www") ? subdomains[1] : subdomains[0];
+        if (!hostname) {
+            throw new Error("No hostname found in request");
         }
 
-        // ✅ **Rewrite paths for subdomains (e.g., `sell.localhost:3000`)**
-        if (subdomains.includes("mystore")) {
-            return NextResponse.rewrite(new URL(`/mystore${request.nextUrl.pathname}`, request.url));
+        const { isLocalhost, subdomain } = parseSubdomain(hostname);
+
+        if(!subdomain || hostname === `www.${MAIN_DOMAIN}` || hostname === MAIN_DOMAIN) {
+            return NextResponse.next();
         }
 
-        // ✅ **Multi-Tenancy Store Handling**
-        if (
-            (subdomains.length > 0 &&
-                !(hostname === "www.ikazehub.com" || hostname === "ikazehub.com")) ||
-            isLocalDevelopment
-        ) {
-            if (!hostname.includes(".vercel.app") || isLocalDevelopment) {
-                if (!subdomain) {
-                    return NextResponse.next();
-                }
-
-                try {
-                    console.log(`Querying database for subdomain: ${subdomain}`);
-                    const store = { total: 1 }; // Replace with actual store lookup
-
-                    if (store && store.total > 0) {
-                        const rewrittenPath = `/store/${subdomain}${request.nextUrl.pathname}`;
-                        console.log(`Valid company found. Rewriting path: ${rewrittenPath}`);
-                        return NextResponse.rewrite(new URL(rewrittenPath, request.url));
-                    } else {
-                        console.log(`No company found for subdomain: ${subdomain}`);
-                        return new NextResponse(
-                            JSON.stringify({ message: `Invalid subdomain(${subdomain}) or store not found` }),
-                            { status: 404, headers: { "Content-Type": "application/json" } }
-                        );
-                    }
-                } catch (error) {
-                    console.error(`Error processing subdomain ${subdomain}:`, error);
-                    return new NextResponse(
-                        JSON.stringify({ message: "An error occurred while processing your request", error }),
-                        { status: 500, headers: { "Content-Type": "application/json" } }
-                    );
-                }
-            } else {
-                return NextResponse.next();
-            }
+        if(PROTECTED_SUBDOMAINS.includes(subdomain)) {
+            return new NextResponse(
+                JSON.stringify({ message: "This subdomain is reserved" }),
+                { status: 403, headers: { "Content-Type": "application/json" } }  
+            )
         }
 
-        return NextResponse.next();
+        // Skip verification for development on Vercel
+        if (!isLocalhost && hostname.includes(".vercel.app")) {
+            return NextResponse.next();
+        }
+
+        const stores = await getVirtualStoreByDomain(subdomain);
+
+        if(stores && stores.total > 0 && stores.documents[0]) {
+            const rewrittenUrl = new URL(`/store/${subdomain}${request.nextUrl.pathname}`, request.url);
+            return NextResponse.rewrite(rewrittenUrl);
+        }
+        // Store not found
+        return NextResponse.rewrite(new URL("/store-not-found", request.url));
+
     } catch (error) {
         console.error("Middleware error:", error);
-        const url = request.nextUrl.clone();
-        url.host = process.env.MAIN_DOMAIN!;
-        url.pathname = "/error";
-        return NextResponse.redirect(url);
+        
+        // Redirect to error page on main domain
+        const errorUrl = new URL("/error", `${MAIN_DOMAIN}`);
+        return NextResponse.redirect(errorUrl);
     }
 }
 
-// ✅ **Apply middleware only to non-static and non-API routes**
 export const config = {
     matcher: [
-        '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
     ],
 };

@@ -18,11 +18,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorAlert from "@/components/error-alert";
 import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
-import { FileUploader } from "@/components/file-uploader";
+import { SingleImageUploader } from "@/components/file-uploader";
 import { createVirtualStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { useCreateVirtualStore } from "../mutations/use-virtual-store-mutations";
+import { MAIN_DOMAIN } from "@/lib/env-config";
+import { useEffect } from "react";
 
 export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
 
@@ -33,20 +35,32 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
             storeName: "",
             desccription: "",
             storeBio: "",
+            storeDomain: ""
         },
-    })
+    });
+
+    const { watch, setValue } = form;
+    const storeName = watch('storeName');
+
+    useEffect(() => {
+        if (storeName) {
+            const sanitizedName = storeName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            setValue('storeDomain', `${sanitizedName}.${MAIN_DOMAIN}`);
+        }
+    }, [storeName, setValue]);
 
     function onSubmit(values: z.infer<typeof createVirtualStoreFormSchema>) {
+        const sanitizedDomain = values.storeDomain.split('.')[0];
         try {
             mutate({
                 ...values,
-                ownerId: currentUser.$id
+                ownerId: currentUser.$id,
+                subDomain: sanitizedDomain
             })
         } catch (error) {
             console.log(error)
         }
     }
-
 
     return (
         <Card className="border-t-0 rounded-t-none">
@@ -66,6 +80,25 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
                                     <FormLabel>Store Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="Placeholder" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Description
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="storeDomain"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>website url</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder="example.ikazestores.com"
+                                            type="text"
+                                            {...field} />
                                     </FormControl>
                                     <FormDescription>
                                         Description
@@ -131,7 +164,13 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
                             label="Shop logo(Ratio 1:1)"
                             renderSkeleton={(field) => (
                                 <FormControl>
-                                    <FileUploader files={field.value} onChange={field.onChange} caption="SVG, PNG, JPG or GIF (Ratio 1:1)" />
+                                    <SingleImageUploader
+                                        file={field.value}
+                                        onChange={field.onChange}
+                                        caption="SVG, PNG, JPG or GIF (Ratio 1:1)"
+                                        imageHeight={100}
+                                        imageWidth={100}
+                                    />
                                 </FormControl>
                             )}
                         />

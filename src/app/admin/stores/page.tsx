@@ -2,20 +2,19 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StoreCard } from '@/features/stores/components/store-card';
-import { hasLabelAccess } from '@/hooks/use-has-label-permission';
-import { getLoggedInUser } from '@/lib/actions/auth.action';
 import { getAllPshyicalStores } from '@/lib/actions/physical-store.action';
 import { getAllVirtualStores } from '@/lib/actions/vitual-store.action';
+import { getAuthState } from '@/lib/user-label-permission';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
 const AllStoresPage = async () => {
-    const user = await getLoggedInUser();
+    const { isAuthenticated, isSystemAdmin } = await getAuthState()
 
-    if (!user) redirect("/sign-in?redirectUrl=/admin/stores")
-    if (!hasLabelAccess(user, ['superAdmin'])) redirect("/");
+    if (!isAuthenticated) redirect("/sign-in?redirectUrl=/admin")
+    if (!isSystemAdmin) redirect("/");
 
     const virtualStores = await getAllVirtualStores();
     const physicalStores = await getAllPshyicalStores();
@@ -56,7 +55,6 @@ const AllStoresPage = async () => {
                             <StoreCard
                                 key={store.$id}
                                 store={store}
-                                storeType='virtual'
                             />
                         )) : (
                             <Card className='py-10'>
@@ -67,11 +65,10 @@ const AllStoresPage = async () => {
                 </TabsContent>
                 <TabsContent key={"physicalStores"} value={"physicalStores"}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-                        {physicalStores.total > 0 ? physicalStores.documents.map((store) => (
+                        {physicalStores && physicalStores.total > 0 ? physicalStores.documents.map((store) => (
                             <StoreCard
                                 key={store.$id}
                                 store={store}
-                                storeType='physical'
                             />
                         )) : (
                             <Card className='py-10'>

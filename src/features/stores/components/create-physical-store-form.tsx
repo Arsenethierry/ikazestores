@@ -19,10 +19,10 @@ import { useCreatePhysicalStore } from "../mutations/use-physical-store-mutation
 import ErrorAlert from "@/components/error-alert";
 import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
-import { FileUploader } from "@/components/file-uploader";
 import { createPhysicalStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
+import { SingleImageUploader } from "@/components/file-uploader";
 
 export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
     const { mutate, isPending, error } = useCreatePhysicalStore()
@@ -126,7 +126,13 @@ export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
                             label="Shop logo(Ratio 1:1)"
                             renderSkeleton={(field) => (
                                 <FormControl>
-                                    <FileUploader files={field.value} onChange={field.onChange} caption="SVG, PNG, JPG or GIF (Ratio 1:1)" />
+                                    <SingleImageUploader
+                                        file={field.value}
+                                        onChange={field.onChange}
+                                        caption="SVG, PNG, JPG or GIF (Ratio 1:1)"
+                                        imageHeight={100}
+                                        imageWidth={100}
+                                    />
                                 </FormControl>
                             )}
                         />

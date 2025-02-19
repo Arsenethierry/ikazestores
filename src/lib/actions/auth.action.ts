@@ -63,7 +63,7 @@ export async function signUpAction(formData: SignUpParams) {
     await databases.createDocument(
         DATABASE_ID,
         USER_DATA_ID,
-        ID.unique(),
+        newAcc.$id,
         {
             fullName: username,
             email,
@@ -90,8 +90,8 @@ export const logoutCurrentUser = async () => {
     try {
         const { account } = await createSessionClient();
         const currentUser = await account.get();
-        
-        if(!currentUser) throw new Error("No current user");
+
+        if (!currentUser) throw new Error("No current user");
 
         await account.deleteSession("current");
 
@@ -101,5 +101,22 @@ export const logoutCurrentUser = async () => {
 
     } catch (error) {
         throw error;
+    }
+}
+
+export const getUserData = async (userId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+
+        const userData = await databases.getDocument(
+            DATABASE_ID,
+            USER_DATA_ID,
+            userId
+        );
+
+        return userData
+    } catch (error) {
+        console.log("getUserData: ",error);
+        return null;
     }
 }

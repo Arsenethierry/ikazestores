@@ -1,18 +1,20 @@
 "use server";
 
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { CreateVirtualStoreParams } from "../types";
 import { AppwriteRollback } from "./rollback";
+import { updateUserLabels } from "./user-labels";
+import { UserRole } from "../constants";
 
 export const createVirtualStoreAction = async (formData: CreateVirtualStoreParams) => {
-    const { storeBanner, ...storeData } = formData;
+    const { storeBanner, storeLogo, ...storeData } = formData;
     const { databases, storage } = await createSessionClient();
     const rollback = new AppwriteRollback(storage, databases);
     try {
 
-        const fileDetails = await Promise.all(
+        const bannerImagesUploaded = await Promise.all(
             storeBanner?.map(async (file) => {
                 const fileId = ID.unique();
 
@@ -21,7 +23,7 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
                     fileId,
                     file
                 );
-                await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id)
+                await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id);
                 return {
                     id: uploadedFile.$id,
                     name: uploadedFile.name,
@@ -30,6 +32,14 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
             }) || []
         );
 
+        const storeLogoUploaded = await storage.createFile(
+            STORE_BUCKET_ID,
+            ID.unique(),
+            storeLogo!
+        );
+
+        await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
+
         const newVirtualStore = await databases.createDocument(
             DATABASE_ID,
             VIRTUAL_STORE_ID,
@@ -37,13 +47,17 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
             {
                 storeName: storeData.storeName,
                 ownerId: storeData.ownerId,
-                bannerIds: fileDetails.map(file => file.id),
-                bannerUrls: fileDetails.map(file => file.url),
-                storeType: 'virtualStore'
+                bannerIds: bannerImagesUploaded.map(file => file.id),
+                bannerUrls: bannerImagesUploaded.map(file => file.url),
+                storeLogoId: storeLogoUploaded.$id,
+                storeLogoIdUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
+                storeType: 'virtualStore',
+                subDomain: storeData.subDomain
             }
         );
         await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
-
+        await updateUserLabels(storeData.ownerId, [UserRole.VIRTUAL_STORE_OWNER])
+        
         return newVirtualStore
     } catch (error) {
         console.error("Error creating virtual store, rolling back:", error);
@@ -61,20 +75,6 @@ export const getAllVirtualStores = async () => {
         );
 
         return allVirtualStores
-    } catch (error) {
-        throw error
-    }
-}
-
-export const getImagePreview = async () => {
-    try {
-        const { storage } = await createSessionClient();
-
-        const imagePreview = await storage.getFilePreview(
-            STORE_BUCKET_ID,
-            "67a73b260016ae2fb675"
-        )
-        return imagePreview
     } catch (error) {
         throw error
     }
@@ -98,6 +98,21 @@ export const deleteVirtualStore = async (VirtualStoreId: string, bannerIds: stri
         );
     } catch (error) {
         console.log(`error deleting virtual store: ${error}`)
+        throw error
+    }
+}
+
+export const getVirtualStoreByDomain = async (domain: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const stores = await databases.listDocuments(
+            DATABASE_ID,
+            VIRTUAL_STORE_ID,
+            [Query.equal("subDomain", domain)]
+        );
+
+        return stores
+    } catch (error) {
         throw error
     }
 }

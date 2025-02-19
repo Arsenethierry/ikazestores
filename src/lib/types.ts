@@ -18,6 +18,7 @@ export type CreatePhysicalStoreParams = {
     desccription?: string;
     storeBio?: string;
     storeBanner?: File[];
+    storeLogo?: File;
 }
 
 export type CreateVirtualStoreParams = {
@@ -26,10 +27,12 @@ export type CreateVirtualStoreParams = {
     desccription?: string;
     storeBio?: string;
     storeBanner?: File[];
+    storeLogo?: File;
+    subDomain: string;
 }
 
 export type CurrentUserType = {
-    currentUser: Models.User<Models.Preferences>
+    currentUser: Models.User<Models.Preferences> | null;
 }
 
 export type ImageDimensionConstraints = {
@@ -42,3 +45,5 @@ export type ImageDimensionConstraints = {
 export type StoreTypes = {
     store: Models.Document;
 };
+
+export type UserRoleType = 'physicalStoreOwner' | 'virtualStoreOwner' | 'buyer' | 'sysAdmin';
