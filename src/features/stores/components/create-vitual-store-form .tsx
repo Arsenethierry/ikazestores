@@ -25,6 +25,7 @@ import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { useCreateVirtualStore } from "../mutations/use-virtual-store-mutations";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
 
@@ -38,7 +39,6 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
             storeDomain: ""
         },
     });
-
     const { watch, setValue } = form;
     const storeName = watch('storeName');
 
@@ -52,6 +52,10 @@ export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
     function onSubmit(values: z.infer<typeof createVirtualStoreFormSchema>) {
         const sanitizedDomain = values.storeDomain.split('.')[0];
         try {
+            if (!currentUser) {
+                toast.error("Something went wrong, try again");
+                return;
+            }
             mutate({
                 ...values,
                 ownerId: currentUser.$id,

@@ -1,7 +1,7 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SystemAdminSidebar } from "@/features/stores/app-sidebar";
 
-export default async function SytemAdminLayout({
+export default async function AdminLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;

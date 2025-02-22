@@ -22,10 +22,10 @@ function CreateStoresTabs({ currentUser }: CurrentUserType) {
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="virtualStore">
-                    <CreateVirtualStoreForm currentUser={currentUser} />
+                    {currentUser && <CreateVirtualStoreForm currentUser={currentUser} />}
                 </TabsContent>
                 <TabsContent value="physicalStore">
-                    <CreatePhysicalStoreForm currentUser={currentUser} />
+                    {currentUser && <CreatePhysicalStoreForm currentUser={currentUser} />}
                 </TabsContent>
             </Tabs>
         </div>

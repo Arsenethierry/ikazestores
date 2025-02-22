@@ -4,18 +4,27 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { StoreQuickActions } from './store-action-button';
+import { getStoreSubdomainUrl } from '@/lib/domain-utils';
+import { Badge } from '@/components/ui/badge';
 
-export const StoreCard = ({ store }: StoreTypes) => {
+export const StoreCard = ({ store, currentUser }: StoreTypes) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?
         store.bannerUrls[0] :
         store.bannerUrls[0];
 
+    const isStoreOwner = currentUser && currentUser?.$id === store.ownerId
+    
     return (
-        <Card className="relative overflow-hidden hover:shadow-lg transition-shadow">
-            <div className='bg-muted-foreground text-white rounded-full border-2 w-fit absolute z-30 top-1 right-2'>
-                <StoreQuickActions store={store} />
-            </div>
-            <Link href={`/stores/${store.$id}`}>
+        <Card className="relative overflow-hidden hover:shadow-lg transition-shadow max-w-[350px]">
+            {isStoreOwner && (
+                <div className='flex items-center gap-2 absolute z-30 top-1 right-2 w-fit'>
+                    <Badge className='h-full'>{store?.storeType}</Badge>
+                    <span className='bg-muted-foreground text-white rounded-full border-2'>
+                        <StoreQuickActions store={store} currentUser={currentUser}/>
+                    </span>
+                </div>
+            )}
+            <Link href={store?.subDomain ? getStoreSubdomainUrl({ subdomain: store.subDomain }) : ''} target='_blank'>
                 <CardHeader className="p-0">
                     {primaryBannerUrl ? (
                         <div className="relative h-48 w-full">

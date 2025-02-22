@@ -11,9 +11,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
-import slide1 from "../../public/images/slide-1-1920x620.jpg"
-import slide2 from "../../public/images/slide-2-1920x620.jpg"
-import slide3 from "../../public/images/slide-3-1920x620.jpg"
 
 export function StoreCarousel() {
     const [api, setApi] = useState<CarouselApi>();
@@ -25,11 +22,11 @@ export function StoreCarousel() {
     );
 
     const images = [
-        slide1,
-        slide2,
-        slide3,
-        slide1,
-        slide3,
+        "https://images.pexels.com/photos/5872364/pexels-photo-5872364.jpeg",
+        "https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg",
+        "https://images.pexels.com/photos/5872176/pexels-photo-5872176.jpeg",
+        "https://images.pexels.com/photos/7987589/pexels-photo-7987589.jpeg",
+        "https://images.pexels.com/photos/5625011/pexels-photo-5625011.jpeg",
     ];
 
     useEffect(() => {

@@ -23,6 +23,7 @@ import { createPhysicalStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { SingleImageUploader } from "@/components/file-uploader";
+import { toast } from "sonner";
 
 export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
     const { mutate, isPending, error } = useCreatePhysicalStore()
@@ -36,6 +37,10 @@ export function CreatePhysicalStoreForm({ currentUser }: CurrentUserType) {
     })
 
     function onSubmit(values: z.infer<typeof createPhysicalStoreFormSchema>) {
+        if (!currentUser) {
+            toast.error("Something went wrong, try again");
+            return;
+        }
         mutate({
             ...values,
             ownerId: currentUser.$id,

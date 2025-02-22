@@ -145,7 +145,7 @@ export default async function MarketplaceNavbar() {
                 <div className='flex gap-3 items-center'>
                     <NavigationMenuCategories />
                     <Link href={'/sell'} target='_blank' className='hover:underline hover:text-white/80'>Start selling</Link>
-                    <Link href={'/explore-stores'} target='_blank' className='hover:underline hover:text-white/80'>Explore</Link>
+                    <Link href={'/explore-stores'} className='hover:underline hover:text-white/80'>Explore</Link>
                 </div>
             </div>
         </>

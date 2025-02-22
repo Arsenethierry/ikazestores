@@ -1,4 +1,4 @@
-import { StoreCarousel } from '@/components/store-carousel';
+import { StoreCarousel } from '@/features/stores/components/store-carousel';
 import { Separator } from '@/components/ui/separator';
 import { Truck } from 'lucide-react';
 import Image from 'next/image';

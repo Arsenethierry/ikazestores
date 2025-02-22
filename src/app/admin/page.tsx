@@ -3,7 +3,7 @@ import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
-const SysAdminPage = async () => {
+const AdminPage = async () => {
     const { isAuthenticated, isSystemAdmin, isPhysicalStoreOwner, isVirtualStoreOwner} = await getAuthState();
 
     if (!isAuthenticated) redirect("/sign-in?redirectUrl=/admin")
@@ -16,4 +16,4 @@ const SysAdminPage = async () => {
     );
 }
 
-export default SysAdminPage;
+export default AdminPage;

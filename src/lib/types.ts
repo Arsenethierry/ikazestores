@@ -42,7 +42,7 @@ export type ImageDimensionConstraints = {
     tolerance?: number;
 };
 
-export type StoreTypes = {
+export interface StoreTypes extends CurrentUserType {
     store: Models.Document;
 };
 
