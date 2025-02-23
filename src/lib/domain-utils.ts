@@ -10,6 +10,13 @@ interface UrlOptions {
     includeWWW?: boolean;
 }
 
+interface DomainInfo {
+    isSubdomain: boolean;
+    isMainDomain: boolean;
+    subdomain: string | null;
+    hostname: string;
+}
+
 export const getStoreSubdomainUrl = ({
     subdomain,
     path = '',
@@ -67,4 +74,49 @@ export const extractSubdomain = (url: string): string | null => {
     } catch {
         return null;
     }
+};
+
+export const checkDomain = (hostname: string): DomainInfo => {
+    // Handle empty hostname
+    if (!hostname) {
+        return {
+            isSubdomain: false,
+            isMainDomain: false,
+            subdomain: null,
+            hostname: ''
+        };
+    }
+
+    // Development environment (localhost)
+    if (IS_DEVELOPMENT) {
+        const parts = hostname.split('.');
+        return {
+            isSubdomain: parts.length > 1,
+            isMainDomain: parts.length === 1 || hostname === MAIN_DOMAIN,
+            subdomain: parts.length > 1 ? parts[0] : null,
+            hostname
+        };
+    }
+
+    // Production environment
+    const isWWW = hostname.startsWith('www.');
+    const domainWithoutWWW = isWWW ? hostname.slice(4) : hostname;
+    const parts = domainWithoutWWW.split('.');
+
+    return {
+        isSubdomain: parts.length > 2 || (isWWW && parts.length > 1),
+        isMainDomain: domainWithoutWWW === MAIN_DOMAIN || hostname === `www.${MAIN_DOMAIN}`,
+        subdomain: extractSubdomain(`http://${hostname}`),
+        hostname
+    };
+};
+
+export const isMainDomain = (hostname: string): boolean => {
+    const { isMainDomain } = checkDomain(hostname);
+    return isMainDomain;
+};
+
+export const isTenantSubdomain = (hostname: string): boolean => {
+    const { isSubdomain } = checkDomain(hostname);
+    return isSubdomain;
 };

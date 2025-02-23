@@ -4,7 +4,6 @@ import { getAllVirtualStores } from "@/lib/actions/vitual-store.action";
 
 export default async function Home() {
   const virtualStores = await getAllVirtualStores();
-  console.log(virtualStores)
   return (
     <div className="space-y-5">
       <StoreCarousel />

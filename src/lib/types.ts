@@ -32,7 +32,7 @@ export type CreateVirtualStoreParams = {
 }
 
 export type CurrentUserType = {
-    currentUser: Models.User<Models.Preferences> | null;
+    currentUser?: Models.User<Models.Preferences> | null;
 }
 
 export type ImageDimensionConstraints = {

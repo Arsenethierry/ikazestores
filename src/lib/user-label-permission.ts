@@ -55,6 +55,5 @@ export const getAuthState = async () => {
         isVirtualStoreOwner: auth.roles.includes(UserRole.VIRTUAL_STORE_OWNER),
         isPhysicalStoreOwner: auth.roles.includes(UserRole.PHYSICAL_STORE_OWNER),
         isBuyer: auth.roles.includes(UserRole.BUYER),
-        isStoreOwner: auth.roles
     };
 };

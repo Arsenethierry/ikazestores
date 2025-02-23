@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 
 async function CreateNewStorePage() {
-    const {isAuthenticated, isSystemAdmin, user} = await getAuthState();
+    const { isSystemAdmin, user } = await getAuthState();
 
-    if (!isAuthenticated && !user) redirect("/sign-in?redirectUrl=/admin/stores/new")
+    if (!user) redirect("/sign-in?redirectUrl=/admin/stores/new")
     if (!isSystemAdmin) redirect("/");
 
     return <CreateStoresTabs currentUser={user} />;

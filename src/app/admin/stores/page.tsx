@@ -7,28 +7,21 @@ import { getAllVirtualStores, getAllVirtualStoresByOwnerId } from '@/lib/actions
 import { getAuthState } from '@/lib/user-label-permission';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import React from 'react';
 
 const AllStoresPage = async () => {
     const {
-        isAuthenticated,
         isSystemAdmin,
-        isPhysicalStoreOwner,
-        isVirtualStoreOwner,
         user
     } = await getAuthState();
 
-    if (!isAuthenticated || !user) redirect("/sign-in?redirectUrl=/admin")
-    if (!isSystemAdmin && !isPhysicalStoreOwner && !isVirtualStoreOwner) redirect("/");
-
     const virtualStores = isSystemAdmin
         ? await getAllVirtualStores()
-        : await getAllVirtualStoresByOwnerId(user.$id);
+        : await getAllVirtualStoresByOwnerId(user!.$id);
 
     const physicalStores = isSystemAdmin
         ? await getAllPshyicalStores()
-        : await getAllPshyicalStoresByOwnerId(user.$id)
+        : await getAllPshyicalStoresByOwnerId(user!.$id)
 
     return (
         <div className='space-y-5'>
@@ -39,7 +32,10 @@ const AllStoresPage = async () => {
                     </h3>
                     <p className='text-sm text-muted-foreground'>This is a shops list.</p>
                 </div>
-                <Link href={"/admin/stores/new"} className={buttonVariants()}>
+                <Link
+                    href={isSystemAdmin ? "/admin/stores/new" : "/sell/new-store"}
+                    className={buttonVariants()}
+                >
                     <Plus /> Create New Store
                 </Link>
             </section>

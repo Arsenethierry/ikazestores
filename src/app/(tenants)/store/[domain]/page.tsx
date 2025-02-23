@@ -7,6 +7,7 @@ import React from 'react';
 import productSample from '../../../../../public/images/logo2.png'
 
 function page() {
+        
     return (
         <>
             <StoreCarousel />

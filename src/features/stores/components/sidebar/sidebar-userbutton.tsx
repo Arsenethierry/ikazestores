@@ -29,12 +29,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { CurrentUserType } from "@/lib/types"
-import LogoutButton from "../auth/components/logout-button"
+import LogoutButton from "@/features/auth/components/logout-button"
 
 export function NavUser({
   currentUser: user,
 }: CurrentUserType) {
   const { isMobile } = useSidebar();
+
+  if(!user) return;
 
   return (
     <SidebarMenu>

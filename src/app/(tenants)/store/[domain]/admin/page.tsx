@@ -1,8 +1,9 @@
 
-export default function Page() {
+export default async function Page() {
+
     return (
         <>
-        Store admini
+            Store admini
         </>
     )
 }

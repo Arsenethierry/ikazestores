@@ -1,12 +1,16 @@
 import { Logo } from "./logo";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, LayoutDashboard } from "lucide-react";
 import { NavigationSheet } from "./navigation-sheet";
 import { NavMenu } from "./nav-menu";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { getAuthState } from "@/lib/user-label-permission";
 
-export const TenantStoreNavbar = () => {
-  
+export const TenantStoreNavbar = async () => {
+  const {
+    isVirtualStoreOwner,
+    isAuthenticated
+  } = await getAuthState();
   return (
     <div className="sticky top-0 z-50 bg-muted">
       <nav className="h-16 bg-background border-b">
@@ -19,9 +23,20 @@ export const TenantStoreNavbar = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href={"/sign-in"} className={buttonVariants()}>
-              Get Started <ArrowUpRight />
-            </Link>
+            {isVirtualStoreOwner && (
+              <>
+                <Link href={"/admin"} className={buttonVariants()}>
+                  <LayoutDashboard /> Dashboard
+                </Link>
+              </>
+            )}
+            {!isAuthenticated && (
+              <>
+                <Link href={"/sign-in"} className={buttonVariants()}>
+                  Get Started <ArrowUpRight />
+                </Link>
+              </>
+            )}
 
             {/* Mobile Menu */}
             <div className="md:hidden">
