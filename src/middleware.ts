@@ -12,7 +12,6 @@ const PROTECTED_SUBDOMAINS = ["www", "admin", "api", "dashboard"];
 const PROTECTED_ROUTES = {
     '/admin': {
         roles: [UserRole.SYS_ADMIN, UserRole.PHYSICAL_STORE_OWNER, UserRole.VIRTUAL_STORE_OWNER],
-        redirectTo: '/sign-in?redirectUrl=/admin'
     }
 } as any;
 
@@ -48,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
             // Redirect to login if not authenticated
             if (!auth.isAuthenticated) {
-                const signInUrl = new URL(authConfig.redirectTo, request.url);
+                const signInUrl = new URL(`/sign-in?redirectUrl=${path}`, request.url);
                 return NextResponse.redirect(signInUrl);
             }
 

@@ -7,27 +7,49 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { ProductSchema } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DollarSign } from "lucide-react";
+import { CircleAlert, DollarSign } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useAction } from "next-safe-action/hooks";
+import { createNewProduct } from "../actions";
+import { toast } from "sonner";
+import { useStoreId } from "../use-store-id";
+import CustomFormField, { FormFieldType } from "@/components/custom-field";
+import { MultiImageUploader } from "@/components/multiple-images-uploader";
 
 export default function ProductForm() {
+    const storeId = useStoreId();
+
     const form = useForm<z.infer<typeof ProductSchema>>({
         resolver: zodResolver(ProductSchema),
         defaultValues: {
             title: "",
             description: "",
             price: 0,
+            storeId
         },
         mode: "onChange",
     });
 
     const searchParams = useSearchParams();
-    const editMode = searchParams.get("id");
+    const editMode = searchParams.get("storeId");
+
+    const { execute, isPending, result } = useAction(createNewProduct, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data?.success)
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
 
     function onSubmit(values: z.infer<typeof ProductSchema>) {
-        console.log("onSubmit", values);
+        execute(values);
     }
 
     return (
@@ -40,6 +62,15 @@ export default function ProductForm() {
                         : "Add new product"
                     }
                 </CardDescription>
+                {result.serverError && (
+                    <div className="rounded-md border border-red-500/50 px-4 py-3 text-red-600">
+                        <p className="text-sm">
+                            <CircleAlert className="me-3 -mt-0.5 inline-flex opacity-60" size={16} aria-hidden="true" />
+                            {result.serverError}
+                        </p>
+                    </div>
+                )}
+
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -97,10 +128,27 @@ export default function ProductForm() {
                             )}
                         />
 
+                        <CustomFormField
+                            fieldType={FormFieldType.SKELETON}
+                            control={form.control}
+                            name="images"
+                            label="product images (Ratio 1:1 (500 x 500 px)) max 5"
+                            renderSkeleton={(field) => (
+                                <FormControl>
+                                    <MultiImageUploader
+                                        files={field.value}
+                                        onChange={field.onChange}
+                                        caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)"
+                                        maxFiles={5}
+                                    />
+                                </FormControl>
+                            )}
+                        />
+
                         <Button
                             className="w-full"
                             disabled={
-                                // status === "executing" ||
+                                isPending ||
                                 !form.formState.isValid ||
                                 !form.formState.isDirty
                             }
