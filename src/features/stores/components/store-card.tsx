@@ -24,7 +24,7 @@ export const StoreCard = ({ store, currentUser }: StoreTypes) => {
                     </span>
                 </div>
             )}
-            <Link href={store?.subDomain ? getStoreSubdomainUrl({ subdomain: store.subDomain }) : ''} target='_blank'>
+            <Link href={store?.subDomain ? getStoreSubdomainUrl({ subdomain: store.subDomain }) : `/admin/stores/${store.$id}`} target={store?.subDomain ? '_blank' : '_parent'}>
                 <CardHeader className="p-0">
                     {primaryBannerUrl ? (
                         <div className="relative h-48 w-full">

@@ -40,6 +40,8 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
 
         await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
 
+        await updateUserLabels(storeData.ownerId, [UserRole.VIRTUAL_STORE_OWNER])
+
         const newVirtualStore = await databases.createDocument(
             DATABASE_ID,
             VIRTUAL_STORE_ID,
@@ -56,7 +58,6 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
             }
         );
         await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
-        await updateUserLabels(storeData.ownerId, [UserRole.VIRTUAL_STORE_OWNER])
         
         return newVirtualStore
     } catch (error) {

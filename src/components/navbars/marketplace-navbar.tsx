@@ -99,7 +99,7 @@ export default async function MarketplaceNavbar() {
                                             <span>Settings</span>
                                             <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                                         </DropdownMenuItem>
-                                        {isPhysicalStoreOwner || isVirtualStoreOwner && (
+                                        {(isPhysicalStoreOwner || isVirtualStoreOwner) && (
                                             <DropdownMenuItem className='cursor-pointer w-full'>
                                                 <Link href={'/admin'} className='w-full font-medium cursor-pointer inline-flex'>
                                                     <LayoutDashboard className='h-4 my-auto' />

@@ -130,3 +130,14 @@ body {
 .file-upload_label {
   @apply flex flex-col justify-center gap-2 text-center;
 }
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

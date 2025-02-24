@@ -33,6 +33,8 @@ export const createPhysicalStoreAction = async (formData: CreatePhysicalStorePar
             }) || []
         );
 
+        await updateUserLabels(storeData.ownerId, [UserRole.PHYSICAL_STORE_OWNER])
+
         const newPhysicalStore = await databases.createDocument(
             DATABASE_ID,
             PHYSICAL_STORE_ID,
@@ -46,7 +48,6 @@ export const createPhysicalStoreAction = async (formData: CreatePhysicalStorePar
             }
         );
         await rollback.trackDocument(PHYSICAL_STORE_ID, newPhysicalStore.$id)
-        await updateUserLabels(storeData.ownerId, [UserRole.PHYSICAL_STORE_OWNER])
 
         return newPhysicalStore
     } catch (error) {
