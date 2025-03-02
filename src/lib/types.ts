@@ -47,3 +47,10 @@ export interface StoreTypes extends CurrentUserType {
 };
 
 export type UserRoleType = 'physicalStoreOwner' | 'virtualStoreOwner' | 'buyer' | 'sysAdmin';
+
+export type DocumentType = Models.Document
+
+export type AppwriteDocumentResponse = {
+    total: number;
+    documents: DocumentType;
+  };

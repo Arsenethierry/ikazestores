@@ -16,7 +16,7 @@ export const authMiddleware = createMiddleware().define(async ({ next }) => {
     const session = await cookieStore.get(AUTH_COOKIE)
 
     if (!session) {
-        throw new Error("Please login to perform this action");
+        throw new Error("Access denied");
     }
 
     client.setSession(session.value);
@@ -28,3 +28,9 @@ export const authMiddleware = createMiddleware().define(async ({ next }) => {
     const user = await account.get();
     return next({ ctx: { user, databases, storage } });
 });
+
+export const physicalStoreOwnerMiddleware = createMiddleware()
+    .define(async ({ ctx, next }) => {
+        console.log("ctx", ctx)
+        return next();
+    });

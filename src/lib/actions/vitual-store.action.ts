@@ -48,7 +48,7 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
             ID.unique(),
             {
                 storeName: storeData.storeName,
-                ownerId: storeData.ownerId,
+                owner: storeData.ownerId,
                 bannerIds: bannerImagesUploaded.map(file => file.id),
                 bannerUrls: bannerImagesUploaded.map(file => file.url),
                 storeLogoId: storeLogoUploaded.$id,
@@ -126,7 +126,7 @@ export const getAllVirtualStoresByOwnerId = async (ownerId: string) => {
             DATABASE_ID,
             VIRTUAL_STORE_ID,
             [
-                Query.equal("ownerId", ownerId)
+                Query.equal("owner", ownerId)
             ]
         );
 

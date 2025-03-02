@@ -43,3 +43,14 @@ export const ProductSchema = z.object({
     storeId: z.string(),
     images: z.custom<File[]>(),
 })
+
+export const VirtualProductSchema = z.object({
+    originalProductId: z.string(),
+    purchasePrice: z.coerce
+        .number({ invalid_type_error: "Price must be a number" })
+        .positive({ message: "Price must be a positive number" }),
+    sellingPrice: z.coerce
+        .number({ invalid_type_error: "Price must be a number" })
+        .positive({ message: "Price must be a positive number" }),
+    storeId: z.string(),
+})

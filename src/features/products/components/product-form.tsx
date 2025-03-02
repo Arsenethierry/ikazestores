@@ -12,7 +12,7 @@ import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAction } from "next-safe-action/hooks";
-import { createNewProduct } from "../actions";
+import { createNewProduct } from "../actions/original-products-actions";
 import { toast } from "sonner";
 import { useStoreId } from "../use-store-id";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
