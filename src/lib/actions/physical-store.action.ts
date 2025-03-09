@@ -94,10 +94,26 @@ export const deletePhysicalStore = async (physicalStoreId: string, bannerIds: st
     }
 }
 
+export const getPhysicalStoreById = async (storeId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+
+        const store = await databases.getDocument(
+            DATABASE_ID,
+            PHYSICAL_STORE_ID,
+            storeId
+        );
+
+        return store;
+    } catch (error) {
+        console.log("getAllPshyicalStoresByOwnerId: ", error);
+        return null;
+    }
+}
 export const getAllPshyicalStoresByOwnerId = async (ownerId: string) => {
     try {
         const { databases } = await createSessionClient();
-        
+
         const stores = await databases.listDocuments(
             DATABASE_ID,
             PHYSICAL_STORE_ID,

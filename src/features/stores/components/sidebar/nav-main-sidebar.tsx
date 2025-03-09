@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { AdminDashboardType } from "@/lib/types"
 
 export function NavMain({
     items,
+    adminType
 }: {
     items: {
         title: string
@@ -32,18 +34,19 @@ export function NavMain({
             title: string
             url: string
         }[]
-    }[]
+    }[],
+    adminType: AdminDashboardType
 }) {
     const router = useRouter();
 
     return (
         <SidebarGroup>
-            <SidebarGroupLabel>System Admin</SidebarGroupLabel>
+            <SidebarGroupLabel>{adminType}</SidebarGroupLabel>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => router.push("/admin")} tooltip={"Dashboard"}>
+                    <SidebarMenuButton onClick={() => router.push('/admin')} tooltip={"Admin Dashboard"}>
                         <LayoutDashboard />
-                        <span className="uppercase font-medium">Dashboard</span>
+                        <span className="uppercase font-medium">Admin Panel</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 {items.map((item) => (

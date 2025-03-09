@@ -8,15 +8,29 @@ import { NavMain } from "./nav-main-sidebar";
 import SpinningLoader from "@/components/spinning-loader";
 import { useCurrentUser } from "../../../auth/queries/use-get-current-user";
 import { LayoutDashboard } from "lucide-react";
-import { sidebarLinks } from "./sidebar-links";
 import { NavUser } from "./sidebar-userbutton";
+import { SidebarSkeleton } from "./sidebar-skeleton";
+import { AdminDashboardType } from "@/lib/types";
+import { getSidebarLinks } from "./sidebar-links";
+import { useParams } from "next/navigation";
 
 interface AdminSidebarProps extends React.ComponentProps<typeof Sidebar> {
-    isSubdomain: boolean;
+    adminType: AdminDashboardType
 }
 
-export function AdminSidebar({ isSubdomain = false, ...props }: AdminSidebarProps) {
+export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
     const { data: user, isPending } = useCurrentUser();
+    const { storeId } = useParams<{ storeId: string; }>()
+
+    if (isPending) return <SidebarSkeleton />;
+
+    const sidebarLinks = adminType === 'physicalStoreAdmin'
+        ? getSidebarLinks(storeId).physicalStoreAdmin
+        : adminType === 'systemAdmin'
+            ? getSidebarLinks(storeId).systemAdmin
+            : adminType === 'virtualStoreAdmin'
+                ? getSidebarLinks(storeId).virtualStoreAdmin
+                : []
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -36,7 +50,8 @@ export function AdminSidebar({ isSubdomain = false, ...props }: AdminSidebarProp
             </SidebarHeader>
             <SidebarContent>
                 <NavMain
-                    items={isSubdomain ? sidebarLinks.virtualStoreAdmin : sidebarLinks.systemAdmin}
+                    items={sidebarLinks}
+                    adminType={adminType}
                 />
             </SidebarContent>
             <SidebarFooter>

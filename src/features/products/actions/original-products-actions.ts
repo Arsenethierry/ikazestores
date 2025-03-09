@@ -70,8 +70,8 @@ export const getOriginalProducts = action
                 DATABASE_ID,
                 ORIGINAL_PRODUCT_ID,
                 [
-                    Query.orderDesc('$updatedAt'),
-                    Query.limit(10)
+                    Query.orderDesc('$updatedAt')
+                    // Query.limit(15)
                 ]
             )
 

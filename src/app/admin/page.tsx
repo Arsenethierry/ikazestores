@@ -1,12 +1,27 @@
-import ProductsRefPage from '@/components/teams-reference-component';
-import React from 'react';
+import { getAllPshyicalStoresByOwnerId } from '@/lib/actions/physical-store.action';
+import { getAllVirtualStoresByOwnerId } from '@/lib/actions/vitual-store.action';
+import { getAuthState } from '@/lib/user-label-permission';
+import { redirect } from 'next/navigation';
 
-const AdminPage = async () => {
-    return (
-        <>
-            <ProductsRefPage />
-        </>
-    );
+export default async function AdminEntry() {
+    const {
+        isVirtualStoreOwner,
+        isPhysicalStoreOwner,
+        user,
+        isAuthenticated
+    } = await getAuthState();
+
+    if (!isAuthenticated || !user) redirect("/sign-in");
+
+    const stores = isVirtualStoreOwner
+        ? await getAllVirtualStoresByOwnerId(user.$id)
+        : isPhysicalStoreOwner
+            ? await getAllPshyicalStoresByOwnerId(user.$id)
+            : null
+
+    if (!stores || stores.total === 0) {
+        redirect("/admin/stores/create")
+    } else {
+        redirect(`/admin/stores/${stores.documents[0].$id}`)
+    }
 }
-
-export default AdminPage;

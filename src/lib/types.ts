@@ -31,9 +31,7 @@ export type CreateVirtualStoreParams = {
     subDomain: string;
 }
 
-export type CurrentUserType = {
-    currentUser?: Models.User<Models.Preferences> | null;
-}
+export type CurrentUserType = Models.User<Models.Preferences> | null;
 
 export type ImageDimensionConstraints = {
     width?: number;
@@ -42,7 +40,7 @@ export type ImageDimensionConstraints = {
     tolerance?: number;
 };
 
-export interface StoreTypes extends CurrentUserType {
+export interface StoreTypes {
     store: Models.Document;
 };
 
@@ -54,3 +52,5 @@ export type AppwriteDocumentResponse = {
     total: number;
     documents: DocumentType;
   };
+
+  export type AdminDashboardType = 'systemAdmin' | 'virtualStoreAdmin' | 'physicalStoreAdmin' | undefined;

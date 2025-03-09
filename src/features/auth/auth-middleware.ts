@@ -31,6 +31,6 @@ export const authMiddleware = createMiddleware().define(async ({ next }) => {
 
 export const physicalStoreOwnerMiddleware = createMiddleware()
     .define(async ({ ctx, next }) => {
-        console.log("ctx", ctx)
+        console.log("Physical store owner middleware: " + ctx)
         return next();
     });

@@ -77,7 +77,6 @@ export const extractSubdomain = (url: string): string | null => {
 };
 
 export const checkDomain = (hostname: string): DomainInfo => {
-    // Handle empty hostname
     if (!hostname) {
         return {
             isSubdomain: false,
@@ -87,7 +86,6 @@ export const checkDomain = (hostname: string): DomainInfo => {
         };
     }
 
-    // Development environment (localhost)
     if (IS_DEVELOPMENT) {
         const parts = hostname.split('.');
         return {
@@ -98,7 +96,6 @@ export const checkDomain = (hostname: string): DomainInfo => {
         };
     }
 
-    // Production environment
     const isWWW = hostname.startsWith('www.');
     const domainWithoutWWW = isWWW ? hostname.slice(4) : hostname;
     const parts = domainWithoutWWW.split('.');

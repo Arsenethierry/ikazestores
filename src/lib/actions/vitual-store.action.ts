@@ -58,7 +58,7 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
             }
         );
         await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
-        
+
         return newVirtualStore
     } catch (error) {
         console.error("Error creating virtual store, rolling back:", error);
@@ -118,10 +118,25 @@ export const getVirtualStoreByDomain = async (domain: string) => {
     }
 }
 
+export const getVirtualStoreById = async (storeId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const store = await databases.getDocument(
+            DATABASE_ID,
+            VIRTUAL_STORE_ID,
+            storeId
+        )
+
+        return store
+    } catch (error) {
+        throw error
+    }
+}
+
 export const getAllVirtualStoresByOwnerId = async (ownerId: string) => {
     try {
         const { databases } = await createSessionClient();
-        
+
         const stores = await databases.listDocuments(
             DATABASE_ID,
             VIRTUAL_STORE_ID,
