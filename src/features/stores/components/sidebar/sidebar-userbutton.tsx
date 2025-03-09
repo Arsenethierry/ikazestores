@@ -33,7 +33,7 @@ import LogoutButton from "@/features/auth/components/logout-button"
 
 export function NavUser({
   currentUser: user,
-}: CurrentUserType) {
+}: {currentUser: CurrentUserType}) {
   const { isMobile } = useSidebar();
 
   if(!user) return;

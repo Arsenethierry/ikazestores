@@ -1,11 +1,11 @@
-import { getAllVirtualProducts } from "@/features/products/actions/virtual-products-actions";
-import ProductCard from "@/features/products/components/product-card";
+// import { getAllVirtualProducts } from "@/features/products/actions/virtual-products-actions";
+// import ProductCard from "@/features/products/components/product-card";
 import { StoreCarousel } from "@/features/stores/components/store-carousel";
 
 export default async function Home() {
-  const virtualProducts = await getAllVirtualProducts();
+  // const virtualProducts = await getAllVirtualProducts();
 
-  console.log(virtualProducts)
+  // console.log(virtualProducts)
 
   return (
     <div className="space-y-5">

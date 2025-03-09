@@ -1,5 +1,5 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { StoreTypes } from '@/lib/types';
+import { CurrentUserType, DocumentType } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -7,7 +7,7 @@ import { StoreQuickActions } from './store-action-button';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { Badge } from '@/components/ui/badge';
 
-export const StoreCard = ({ store, currentUser }: StoreTypes) => {
+export const StoreCard = ({ store, currentUser }: {store: DocumentType, currentUser: CurrentUserType}) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?
         store.bannerUrls[0] :
         store.bannerUrls[0];
@@ -20,7 +20,7 @@ export const StoreCard = ({ store, currentUser }: StoreTypes) => {
                 <div className='flex items-center gap-2 absolute z-30 top-1 right-2 w-fit'>
                     <Badge className='h-full'>{store?.storeType}</Badge>
                     <span className='bg-muted-foreground text-white rounded-full border-2'>
-                        <StoreQuickActions store={store} currentUser={currentUser}/>
+                        <StoreQuickActions store={store} />
                     </span>
                 </div>
             )}

@@ -27,7 +27,7 @@ import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-export function CreateVirtualStoreForm({ currentUser }: CurrentUserType) {
+export function CreateVirtualStoreForm({ currentUser }: {currentUser: CurrentUserType}) {
 
     const { mutate, isPending, error } = useCreateVirtualStore()
     const form = useForm<z.infer<typeof createVirtualStoreFormSchema>>({

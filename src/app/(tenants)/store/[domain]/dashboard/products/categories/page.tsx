@@ -1,6 +1,5 @@
 import { buttonVariants } from '@/components/ui/button';
 import { NewCategoryFormModal } from '@/features/products/components/create-new-category-modal';
-import { ProductsCategories } from '@/features/products/components/products-categories-list';
 import { loadSearchParams } from '@/lib/searchParams';
 import Link from 'next/link';
 import { SearchParams } from 'nuqs';
@@ -19,7 +18,6 @@ export default async function ProductsCategoriesPage({ searchParams }: PageProps
                 <h2 className='font-bold'>Categories: {createnew}</h2>
                 <Link className={buttonVariants()} href={'/dashboard/products/categories?createnew=true'}>New Category</Link>
             </section>
-            <ProductsCategories />
         </div>
     );
 }

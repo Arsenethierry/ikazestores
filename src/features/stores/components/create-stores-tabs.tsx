@@ -3,7 +3,7 @@ import { CreatePhysicalStoreForm } from '@/features/stores/components/create-phy
 import { CurrentUserType } from '@/lib/types';
 import { CreateVirtualStoreForm } from './create-vitual-store-form ';
 
-function CreateStoresTabs({ currentUser }: CurrentUserType) {
+function CreateStoresTabs({ currentUser }: { currentUser: CurrentUserType }) {
     return (
         <div className='max-w-5xl mx-auto'>
             <Tabs defaultValue='virtualStore'>

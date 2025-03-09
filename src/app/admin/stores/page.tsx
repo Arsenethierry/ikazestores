@@ -1,3 +1,4 @@
+import { AccessDeniedCard } from '@/components/access-denied-card';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,13 +16,17 @@ const AllStoresPage = async () => {
         user
     } = await getAuthState();
 
+    if(!user) return (
+        <AccessDeniedCard />
+    )
+
     const virtualStores = isSystemAdmin
         ? await getAllVirtualStores()
-        : await getAllVirtualStoresByOwnerId(user!.$id);
+        : await getAllVirtualStoresByOwnerId(user.$id);
 
     const physicalStores = isSystemAdmin
         ? await getAllPshyicalStores()
-        : await getAllPshyicalStoresByOwnerId(user!.$id)
+        : await getAllPshyicalStoresByOwnerId(user.$id)
 
     return (
         <div className='space-y-5'>
@@ -62,6 +67,7 @@ const AllStoresPage = async () => {
                             <StoreCard
                                 key={store.$id}
                                 store={store}
+                                currentUser={user}
                             />
                         )) : (
                             <Card className='py-10'>
@@ -76,6 +82,7 @@ const AllStoresPage = async () => {
                             <StoreCard
                                 key={store.$id}
                                 store={store}
+                                currentUser={user}
                             />
                         )) : (
                             <Card className='py-10'>

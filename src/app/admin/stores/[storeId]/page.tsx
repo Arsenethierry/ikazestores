@@ -12,8 +12,10 @@ export default async function StoreAdminPage({
 }) {
     const {
         isVirtualStoreOwner,
-        isPhysicalStoreOwner
+        isPhysicalStoreOwner,
+        user
     } = await getAuthState();
+
     const { storeId } = await params;
 
     const currentStore = isVirtualStoreOwner
@@ -28,6 +30,7 @@ export default async function StoreAdminPage({
         <div>
             <StoreCard
                 store={currentStore}
+                currentUser={user}
             />
         </div>
     );
