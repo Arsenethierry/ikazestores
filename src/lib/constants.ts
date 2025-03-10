@@ -2,6 +2,7 @@
 import { UserRoleType } from "./types";
 
 export const AUTH_COOKIE = "ikazestores-cookie";
+export const CART_COOKIE = "ikazestores-cookie";
 
 export const UserRole = {
     PHYSICAL_STORE_OWNER: 'physicalStoreOwner' as UserRoleType,

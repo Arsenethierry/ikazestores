@@ -31,6 +31,21 @@ export const getVirtualStoreProducts = async (virtualStoreId: string) => {
         throw error
     }
 }
+export const getVirtualProductById = async (productId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const product = await databases.getDocument(
+            DATABASE_ID,
+            VIRTUAL_PRODUCT_ID,
+            productId
+        )
+
+        return product
+    } catch (error) {
+        console.log("getVirtualProductById: ", error)
+        throw error
+    }
+}
 
 export const getAllVirtualProducts = async () => {
     try {

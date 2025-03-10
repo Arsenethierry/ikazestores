@@ -6,12 +6,13 @@ import { DocumentType } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import { cn } from '@/lib/utils';
 // import { getAuthState } from '@/lib/user-label-permission';
-import { Heart, ShoppingCart, StarIcon } from 'lucide-react';
+import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { ProductMenuActions } from './product-actions';
 import { CloneProductSheet } from './clone-product-sheet';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { AddToCartButton } from './add-to-cart-button';
 
 const ProductCard = async ({ product }: { product: DocumentType }) => {
     const {
@@ -65,22 +66,7 @@ const ProductCard = async ({ product }: { product: DocumentType }) => {
                         'flex gap-1 items-center',
                         (isSystemAdmin || isPhysicalStoreOwner || isVirtualStoreOwner) && 'hidden'
                     )}>
-                        <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="rounded-full bg-white/80 transition-all duration-300 ease-in-out hover:bg-white hover:scale-110 active:scale-95"
-                                    >
-                                        <ShoppingCart className="h-4 w-4 text-gray-500 transition-colors duration-300 ease-in-out group-hover:text-gray-800" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="dark px-2 py-1 text-xs" showArrow={true}>
-                                    Add to cart
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <AddToCartButton productId={product.$id} />
                         <TooltipProvider delayDuration={0}>
                             <Tooltip>
                                 <TooltipTrigger asChild>

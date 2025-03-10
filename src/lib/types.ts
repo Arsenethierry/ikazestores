@@ -51,6 +51,15 @@ export type DocumentType = Models.Document
 export type AppwriteDocumentResponse = {
     total: number;
     documents: DocumentType;
-  };
+};
 
-  export type AdminDashboardType = 'systemAdmin' | 'virtualStoreAdmin' | 'physicalStoreAdmin' | undefined;
+export type AdminDashboardType = 'systemAdmin' | 'virtualStoreAdmin' | 'physicalStoreAdmin' | undefined;
+
+export interface CartItem {
+    id: string;
+    quantity: number;
+}
+export interface Cart {
+    items: CartItem[];
+    totalItems: number;
+}

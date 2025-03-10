@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { CircleUser, Heart, LayoutDashboard, Settings, ShoppingCart, User } from 'lucide-react';
+import { CircleUser, Heart, LayoutDashboard, Loader, Settings, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import LogoutButton from '@/features/auth/components/logout-button';
 import { getAuthState } from '@/lib/user-label-permission';
+import { CartSheet } from '../cart-components';
+import { Suspense } from 'react';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -42,18 +44,9 @@ export default async function MarketplaceNavbar() {
                     />
                 </div>
                 <div className='flex gap-3 items-center'>
-                    <Link
-                        href={'/my-cart'}
-                        className={'text-white gap-1 font-bold inline-flex'}
-                    >
-                        <Avatar className='h-max w-max'>
-                            <AvatarImage src="/icons/shopping-cart.svg" width={24} />
-                            <AvatarFallback>
-                                <ShoppingCart />
-                            </AvatarFallback>
-                        </Avatar>
-                        <span className='hidden lg:block'>Cart</span>
-                    </Link>
+                    <Suspense fallback={<Loader className='size-5 animate-spin text-white m-auto' />}>
+                        <CartSheet />
+                    </Suspense>
                     <Link
                         href={'/my-cart'}
                         className={'text-white gap-1 font-bold inline-flex'}
@@ -132,7 +125,7 @@ export default async function MarketplaceNavbar() {
                         <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Admin</Link>
                     )}
                 </div>
-            </div>
+            </div >
 
             <div className='main-container flex justify-between bg-primary font-sans flex-between text-white font-medium border-b border-blue-50/20 h-14'>
                 <div className='flex gap-3 items-center'>
