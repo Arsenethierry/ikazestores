@@ -29,7 +29,7 @@ const AllStoresPage = async () => {
         : await getAllPshyicalStoresByOwnerId(user.$id)
 
     return (
-        <div className='space-y-5'>
+        <div className='space-y-5 main-container'>
             <section className='flex justify-between items-center'>
                 <div>
                     <h3 className='text-xl font-medium'>

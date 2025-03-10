@@ -77,13 +77,14 @@ export const addNewVirtualProduct = action
                 VIRTUAL_PRODUCT_ID,
                 ID.unique(),
                 {
-                    clonedBy: ctx.user.$id,
+                    createdBy: ctx.user.$id,
                     store: values.storeId,
                     sellingPrice: values.sellingPrice,
                     purchasePrice: values.purchasePrice,
                     originalProduct: values.originalProductId,
                     title: values.title,
-                    description: values.description
+                    description: values.description,
+                    imageUrls: values.imageUrls
                 }
             );
 

@@ -33,10 +33,11 @@ const formSchema = z.object({
     imageIds: z.array(z.string()),
 });
 export const CloneProductSheet = ({ currentUser, product }: { currentUser: CurrentUserType, product: DocumentType }) => {
+    
     const [open, setOpen] = useState(false);
-
+    
     const storeId = useCurrrentStoreId();
-
+    
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -47,8 +48,8 @@ export const CloneProductSheet = ({ currentUser, product }: { currentUser: Curre
             imageIds: product.imageIds || [],
         },
     });
-
-
+    
+    
     const { isPending, executeAsync, hasSucceeded } = useAction(addNewVirtualProduct, {
         onSuccess: ({ data }) => {
             if (data?.success) {
@@ -61,12 +62,12 @@ export const CloneProductSheet = ({ currentUser, product }: { currentUser: Curre
             toast.error(error.serverError)
         }
     })
-
-
+    
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        if(!currentUser) throw new Error("You must be logged in")
         const formData = {
             sellingPrice: values.price,
-            clonedBy: currentUser?.$id,
+            createdBy: currentUser.$id,
             originalProductId: product.$id,
             storeId,
             purchasePrice: product.price,

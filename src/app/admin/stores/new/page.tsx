@@ -4,12 +4,16 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 
 async function CreateNewStorePage() {
-    const { isSystemAdmin, user } = await getAuthState();
+    const { isSystemAdmin, isVirtualStoreOwner, isPhysicalStoreOwner, user } = await getAuthState();
 
     if (!user) redirect("/sign-in?redirectUrl=/admin/stores/new")
-    if (!isSystemAdmin) redirect("/");
+    if (!isSystemAdmin && !isPhysicalStoreOwner && !isVirtualStoreOwner) redirect("/");
 
-    return <CreateStoresTabs currentUser={user} />;
+    return (
+        <div className='py-10'>
+            <CreateStoresTabs currentUser={user} />;
+        </div>
+    )
 }
 
 export default CreateNewStorePage;

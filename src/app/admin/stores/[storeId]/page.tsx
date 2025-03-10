@@ -23,8 +23,12 @@ export default async function StoreAdminPage({
         : isPhysicalStoreOwner ? await getPhysicalStoreById(storeId) : undefined
 
     if (!currentStore || currentStore.total === 0) {
-        redirect("/admin/stores/create")
+        redirect("/admin/stores/new")
     }
+
+    // if(currentStore.owner !== user?.$id) {
+    //     redirect("/admin")
+    // }
     
     return (
         <div>

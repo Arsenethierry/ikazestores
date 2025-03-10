@@ -20,7 +20,7 @@ export default async function AdminEntry() {
             : null
 
     if (!stores || stores.total === 0) {
-        redirect("/admin/stores/create")
+        redirect("/admin/stores/new")
     } else {
         redirect(`/admin/stores/${stores.documents[0].$id}`)
     }
