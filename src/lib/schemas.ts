@@ -58,3 +58,8 @@ export const VirtualProductSchema = z.object({
     imageUrls: z.string().array(),
     createdBy: z.string(),
 })
+
+export const deleteVirtualProductSchema = z.object({
+    productId: z.string(),
+    virtualStoreId: z.string(),
+})

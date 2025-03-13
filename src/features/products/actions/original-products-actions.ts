@@ -3,7 +3,7 @@
 import { createSafeActionClient } from "next-safe-action"
 import { ProductSchema } from "@/lib/schemas";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID } from "@/lib/env-config";
-import { authMiddleware, physicalStoreOwnerMiddleware } from "../../auth/auth-middleware";
+import { authMiddleware, physicalStoreOwnerMiddleware } from "../../../lib/actions/middlewares";
 import { ID, Query } from "node-appwrite";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";

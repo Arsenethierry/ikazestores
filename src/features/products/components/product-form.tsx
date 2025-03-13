@@ -14,12 +14,12 @@ import { z } from "zod";
 import { useAction } from "next-safe-action/hooks";
 import { createNewProduct } from "../actions/original-products-actions";
 import { toast } from "sonner";
-import { useStoreId } from "../use-store-id";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
+import { useCurrentStoreId } from "@/hooks/use-workspace-id";
 
 export default function ProductForm() {
-    const storeId = useStoreId();
+    const storeId = useCurrentStoreId();
 
     const form = useForm<z.infer<typeof ProductSchema>>({
         resolver: zodResolver(ProductSchema),

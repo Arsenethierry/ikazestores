@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreatePhysicalStoreForm } from '@/features/stores/components/create-physical-store-form';
 import { CurrentUserType } from '@/lib/types';
-import { CreateVirtualStoreForm } from './create-vitual-store-form ';
+import { VirtualStoreForm } from './vitual-store-form ';
+import { PhysicalStoreForm } from './physical-store-form';
 
 function CreateStoresTabs({ currentUser }: { currentUser: CurrentUserType }) {
     return (
@@ -22,10 +22,10 @@ function CreateStoresTabs({ currentUser }: { currentUser: CurrentUserType }) {
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="virtualStore">
-                    {currentUser && <CreateVirtualStoreForm currentUser={currentUser} />}
+                    {currentUser && <VirtualStoreForm currentUser={currentUser} />}
                 </TabsContent>
                 <TabsContent value="physicalStore">
-                    {currentUser && <CreatePhysicalStoreForm currentUser={currentUser} />}
+                    {currentUser && <PhysicalStoreForm currentUser={currentUser} />}
                 </TabsContent>
             </Tabs>
         </div>

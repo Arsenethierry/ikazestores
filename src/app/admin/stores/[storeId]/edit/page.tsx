@@ -1,11 +1,12 @@
-import { StoreCard } from '@/features/stores/components/store-card';
+import { PhysicalStoreForm } from '@/features/stores/components/physical-store-form';
+import { VirtualStoreForm } from '@/features/stores/components/vitual-store-form ';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
 import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
 import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
-export default async function StoreAdminPage({
+async function EditStorePage({
     params,
 }: {
     params: Promise<{ storeId: string }>
@@ -28,16 +29,18 @@ export default async function StoreAdminPage({
 
     const isStoreOwner = user && user?.$id === currentStore.owner.$id
 
-    if(!isStoreOwner) {
+    if (!isStoreOwner) {
         redirect("/admin")
     }
-    
     return (
         <div>
-            <StoreCard
-                store={currentStore}
-                currentUser={user}
-            />
+            {isVirtualStoreOwner ? (
+                <VirtualStoreForm currentUser={user} initialValues={currentStore} />
+            ) : isPhysicalStoreOwner ? (
+                <PhysicalStoreForm currentUser={user} />
+            ) : null}
         </div>
     );
 }
+
+export default EditStorePage;

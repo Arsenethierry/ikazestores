@@ -22,8 +22,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { addNewVirtualProduct } from "../actions/virtual-products-actions";
 import { toast } from "sonner";
-import { useCurrrentStoreId } from "@/hooks/use-workspace-id";
 import { useState } from "react";
+import { useCurrentStoreId } from "@/hooks/use-workspace-id";
 
 const formSchema = z.object({
     title: z.string(),
@@ -32,12 +32,11 @@ const formSchema = z.object({
     imageUrls: z.array(z.string()),
     imageIds: z.array(z.string()),
 });
-export const CloneProductSheet = ({ currentUser, product }: { currentUser: CurrentUserType, product: DocumentType }) => {
-    
+export const CloneProductSheet = ({ currentUser, product, disabled }: { currentUser: CurrentUserType, product: DocumentType, disabled: boolean }) => {
     const [open, setOpen] = useState(false);
-    
-    const storeId = useCurrrentStoreId();
-    
+
+    const storeId = useCurrentStoreId();
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -48,8 +47,8 @@ export const CloneProductSheet = ({ currentUser, product }: { currentUser: Curre
             imageIds: product.imageIds || [],
         },
     });
-    
-    
+
+
     const { isPending, executeAsync, hasSucceeded } = useAction(addNewVirtualProduct, {
         onSuccess: ({ data }) => {
             if (data?.success) {
@@ -62,9 +61,9 @@ export const CloneProductSheet = ({ currentUser, product }: { currentUser: Curre
             toast.error(error.serverError)
         }
     })
-    
+
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        if(!currentUser) throw new Error("You must be logged in")
+        if (!currentUser) throw new Error("You must be logged in")
         const formData = {
             sellingPrice: values.price,
             createdBy: currentUser.$id,
@@ -83,7 +82,7 @@ export const CloneProductSheet = ({ currentUser, product }: { currentUser: Curre
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button variant="outline" size={'sm'}>Clone</Button>
+                <Button variant="outline" size={'sm'} disabled={disabled}>{disabled ? 'Cloned' : 'Clone'}</Button>
             </SheetTrigger>
             <SheetContent>
                 <Form {...form}>

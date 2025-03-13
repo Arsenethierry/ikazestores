@@ -1,6 +1,6 @@
 import { useParams } from "next/navigation"
 
-export const useCurrrentStoreId = () => {
+export const useCurrentStoreId = () => {
     const params = useParams();
     return params?.storeId as string;
 }

@@ -20,23 +20,24 @@ import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { SingleImageUploader } from "@/components/file-uploader";
 import { createVirtualStoreFormSchema } from "@/lib/schemas";
-import { CurrentUserType } from "@/lib/types";
+import { CurrentUserType, DocumentType } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { useCreateVirtualStore } from "../mutations/use-virtual-store-mutations";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-export function CreateVirtualStoreForm({ currentUser }: {currentUser: CurrentUserType}) {
+export function VirtualStoreForm({ currentUser, initialValues = null }: { currentUser: CurrentUserType, initialValues?: DocumentType | null }) {
 
-    const { mutate, isPending, error } = useCreateVirtualStore()
+    const { mutate: createStore, isPending, error } = useCreateVirtualStore();
+    
     const form = useForm<z.infer<typeof createVirtualStoreFormSchema>>({
         resolver: zodResolver(createVirtualStoreFormSchema),
         defaultValues: {
-            storeName: "",
-            desccription: "",
-            storeBio: "",
-            storeDomain: ""
+            storeName: initialValues?.storeName ?? "",
+            desccription: initialValues?.desccription ?? "",
+            storeBio: initialValues?.storeBio ?? "",
+            storeDomain: initialValues?.subDomain ?? ""
         },
     });
     const { watch, setValue } = form;
@@ -56,7 +57,7 @@ export function CreateVirtualStoreForm({ currentUser }: {currentUser: CurrentUse
                 toast.error("Something went wrong, try again");
                 return;
             }
-            mutate({
+            createStore({
                 ...values,
                 ownerId: currentUser.$id,
                 subDomain: sanitizedDomain
@@ -67,9 +68,9 @@ export function CreateVirtualStoreForm({ currentUser }: {currentUser: CurrentUse
     }
 
     return (
-        <Card className="border-t-0 rounded-t-none">
+        <Card className="border-t-0 rounded-t-none max-w-5xl">
             <CardHeader>
-                <CardTitle>Create a virtual store</CardTitle>
+                <CardTitle>{initialValues ? 'Edit' : 'Create'} a virtual store</CardTitle>
             </CardHeader>
             <CardContent>
                 {error && <ErrorAlert errorMessage={error?.message} />}

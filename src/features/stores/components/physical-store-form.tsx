@@ -25,7 +25,7 @@ import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { SingleImageUploader } from "@/components/file-uploader";
 import { toast } from "sonner";
 
-export function CreatePhysicalStoreForm({ currentUser }: { currentUser: CurrentUserType }) {
+export function PhysicalStoreForm({ currentUser }: { currentUser: CurrentUserType }) {
     const { mutate, isPending, error } = useCreatePhysicalStore()
     const form = useForm<z.infer<typeof createPhysicalStoreFormSchema>>({
         resolver: zodResolver(createPhysicalStoreFormSchema),

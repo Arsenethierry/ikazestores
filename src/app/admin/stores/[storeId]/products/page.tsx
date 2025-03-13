@@ -1,11 +1,15 @@
+import SpinningLoader from '@/components/spinning-loader';
 import { buttonVariants } from '@/components/ui/button';
 import { getOriginalProducts } from '@/features/products/actions/original-products-actions';
 import { getVirtualStoreProducts } from '@/features/products/actions/virtual-products-actions';
+import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
+import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
 import { productListColumns } from '@/features/products/components/products-list-table/columns';
 import { ProductsDataTable } from '@/features/products/components/products-list-table/data-table';
+import { DocumentType } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import Link from 'next/link';
-import React from 'react';
+import React, { Suspense } from 'react';
 
 async function StoreProductsPage({
     params,
@@ -37,18 +41,22 @@ async function StoreProductsPage({
     return (
         isVirtualStoreOwner ? (
             <>
-                virtual store products <br/>
                 <Link href={`/admin/stores/${storeId}/products/clone-products`} className={`${buttonVariants()} mb-5`}>Create New Product</Link>
-                <br/> <br/>
-                {JSON.stringify(virtualProducts)}
-                {/* <main className="container mx-auto py-8 px-4">
-                <h1 className="text-2xl font-bold mb-6">Featured Products</h1>
-                <ProductGridComponent />
-            </main> */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {virtualProducts && virtualProducts.documents.map((product: DocumentType) => (
+                        <div key={product.$id}>
+                            <Suspense fallback={<ProductSekeleton />}>
+                                <VirtualProductCard product={product} storeId={storeId} />
+                            </Suspense>
+                        </div>
+                    ))}
+                </div>
             </>
         ) : isPhysicalStoreOwner ? (
             <div className="container mx-auto py-10">
-                <ProductsDataTable columns={productListColumns} data={products.documents} />
+                <Suspense fallback={<SpinningLoader />}>
+                    <ProductsDataTable columns={productListColumns} data={products.documents} />
+                </Suspense>
             </div>
         ) : <></>
     );

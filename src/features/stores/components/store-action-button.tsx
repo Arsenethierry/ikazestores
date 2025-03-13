@@ -33,9 +33,9 @@ export const StoreQuickActions = ({ store }: StoreTypes) => {
         const ok = await confirmDelete();
 
         if (!ok) return;
-        if(store.storeType === 'virtualStore') {
+        if (store.storeType === 'virtualStore') {
             deleteVirtualStore([store.$id, store.bannerIds])
-        } else if(store.storeType === 'physicalStore') {
+        } else if (store.storeType === 'physicalStore') {
             deletePhysicalStore([store.$id, store.bannerIds])
         }
     }
@@ -60,7 +60,10 @@ export const StoreQuickActions = ({ store }: StoreTypes) => {
             <DropdownMenuContent>
                 <DropdownMenuLabel>Quick actions</DropdownMenuLabel>
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/admin/stores/${store.$id}/edit`)}
+                    >
                         <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
                         Edit
                     </DropdownMenuItem>

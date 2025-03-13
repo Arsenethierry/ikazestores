@@ -5,16 +5,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DocumentType } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import { cn } from '@/lib/utils';
-// import { getAuthState } from '@/lib/user-label-permission';
 import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
-import { ProductMenuActions } from './product-actions';
-import { CloneProductSheet } from './clone-product-sheet';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { AddToCartButton } from './add-to-cart-button';
+import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
+import { ProductMenuActions } from '../product-actions';
+import { CloneProductSheet } from '../clone-product-sheet';
 
-const ProductCard = async ({ product }: { product: DocumentType }) => {
+export const VirtualProductCard = async ({ product, storeId }: { product: DocumentType, storeId: string }) => {
     const {
         isPhysicalStoreOwner,
         isVirtualStoreOwner,
@@ -33,6 +32,8 @@ const ProductCard = async ({ product }: { product: DocumentType }) => {
 
     const discountPercentage = discount || (originalPrice && price ?
         Math.round(((originalPrice - price) / originalPrice) * 100) : null);
+
+    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.storeId === storeId));
 
     return (
         <Card className="group w-full max-w-xs overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
@@ -110,10 +111,15 @@ const ProductCard = async ({ product }: { product: DocumentType }) => {
                     </div>
                     {isVirtualStoreOwner ? (
                         <div className="transition-transform duration-300 ease-in-out group-hover:scale-105">
-                            <CloneProductSheet
-                                currentUser={user}
-                                product={product}
-                            />
+                            {/* {isAlreadyCloned() ? (
+                                <RemoveClonedProductButton productId={product.$id} />
+                            ) : ( */}
+                                <CloneProductSheet
+                                    currentUser={user}
+                                    product={product}
+                                    disabled={isAlreadyCloned()}
+                                />
+                            {/* )} */}
                         </div>
                     ) : null}
                 </div>
@@ -121,5 +127,3 @@ const ProductCard = async ({ product }: { product: DocumentType }) => {
         </Card >
     );
 }
-
-export default ProductCard;

@@ -34,3 +34,11 @@ export const physicalStoreOwnerMiddleware = createMiddleware()
         console.log("Physical store owner middleware: " + ctx)
         return next();
     });
+
+export const virtualStoreOwnerMiddleware = createMiddleware()
+    .define(async ({ ctx, next, clientInput }) => {
+        const { productId } = clientInput as { productId: string }
+        console.log("clientInput",productId)
+
+        return next({ctx})
+    })

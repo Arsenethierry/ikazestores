@@ -4,18 +4,20 @@ import Image from "next/image";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { DocumentType } from "@/lib/types";
 
 type ImageUploaderProps = {
     files: File[] | undefined;
     onChange: (files: File[]) => void;
     caption?: string;
     maxFiles?: number;
+    initialValues?: DocumentType | null;
 }
 export const MultiImageUploader = ({
     files = [],
     onChange,
     caption,
-    maxFiles = 5
+    maxFiles = 5,
 }: ImageUploaderProps) => {
 
     const onDrop = useCallback((accesptedFiles: File[]) => {

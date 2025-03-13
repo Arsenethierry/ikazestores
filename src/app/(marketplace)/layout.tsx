@@ -1,3 +1,4 @@
+import { HomePageFooter } from "@/components/navbars/home-page-footer";
 import MarketplaceNavbar from "@/components/navbars/marketplace-navbar";
 
 export default function MarketplaceLayout({
@@ -9,6 +10,7 @@ export default function MarketplaceLayout({
         <div className="min-h-screen">
             <MarketplaceNavbar />
             {children}
+            <HomePageFooter />
         </div>
     );
 }

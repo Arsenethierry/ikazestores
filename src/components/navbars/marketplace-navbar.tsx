@@ -8,7 +8,7 @@ import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import LogoutButton from '@/features/auth/components/logout-button';
 import { getAuthState } from '@/lib/user-label-permission';
-import { CartSheet } from '../cart-components';
+import { CartSheet } from '../../features/cart/components/cart-components';
 import { Suspense } from 'react';
 
 export default async function MarketplaceNavbar() {

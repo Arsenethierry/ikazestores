@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useCurrrentStoreId } from "@/hooks/use-workspace-id";
+import { useCurrentStoreId } from "@/hooks/use-workspace-id";
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -28,7 +28,7 @@ export function ProductsDataTable<TData, TValue>({
     data
 }: DataTableProps<TData, TValue>) {
     const router = useRouter();
-    const storeId = useCurrrentStoreId()
+    const storeId = useCurrentStoreId()
 
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(

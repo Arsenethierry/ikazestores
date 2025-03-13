@@ -12,7 +12,7 @@ export const StoreCard = ({ store, currentUser }: {store: DocumentType, currentU
         store.bannerUrls[0] :
         store.bannerUrls[0];
 
-    const isStoreOwner = currentUser && currentUser?.$id === store.ownerId
+    const isStoreOwner = currentUser && currentUser?.$id === store.owner.$id
     
     return (
         <Card className="relative overflow-hidden hover:shadow-lg transition-shadow max-w-[350px]">
