@@ -7,6 +7,15 @@ import { CreateVirtualStoreParams } from "../types";
 import { AppwriteRollback } from "./rollback";
 import { updateUserLabels } from "./user-labels";
 import { UserRole } from "../constants";
+import { createSafeActionClient } from "next-safe-action";
+import { authMiddleware } from "./middlewares";
+import { updateVirtualStoreFormSchema } from "../schemas";
+
+const action = createSafeActionClient({
+    handleServerError: (error) => {
+        return error.message
+    }
+})
 
 export const createVirtualStoreAction = async (formData: CreateVirtualStoreParams) => {
     const { storeBanner, storeLogo, ...storeData } = formData;
@@ -151,3 +160,25 @@ export const getAllVirtualStoresByOwnerId = async (ownerId: string) => {
         return null;
     }
 }
+
+export const updateVirtualStore = action
+    .use(authMiddleware)
+    .schema(updateVirtualStoreFormSchema)
+    .action(async ({ parsedInput: { storeId, ...values }, ctx }) => {
+        try {
+            const { databases } = ctx;
+
+            const updatedDocument = await databases.updateDocument(
+                DATABASE_ID,
+                VIRTUAL_STORE_ID,
+                storeId,
+                values
+            )
+
+            return { success: `Product with id: ${updatedDocument.$id} has been updated successfully` };
+
+        } catch (error) {
+            console.log("createNewProduct eror: ", error);
+            return { error: error instanceof Error ? error.message : "Failed to update product" };
+        }
+    })

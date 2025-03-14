@@ -21,12 +21,21 @@ export const createPhysicalStoreFormSchema = z.object({
 });
 
 export const createVirtualStoreFormSchema = z.object({
-    storeName: z.string().min(1).max(255),
+    storeName: z.string().min(1).max(500),
     desccription: z.string().max(255).optional(),
     storeBio: z.string().max(255).optional(),
     storeDomain: z.string().min(2).max(50),
     storeBanner: z.custom<File[]>(),
     storeLogo: z.custom<File>()
+});
+export const updateVirtualStoreFormSchema = z.object({
+    storeId: z.string().min(1),
+    storeName: z.string().min(1).max(255).optional(),
+    desccription: z.string().max(500).optional(),
+    storeBio: z.string().max(255).optional(),
+    storeDomain: z.string().min(2).max(50).optional(),
+    storeBanner: z.custom<File[]>().optional(),
+    storeLogo: z.custom<File>().optional()
 });
 
 export const ProductSchema = z.object({

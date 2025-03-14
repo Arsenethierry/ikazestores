@@ -13,7 +13,7 @@ export const StoreCard = ({ store, currentUser }: {store: DocumentType, currentU
         store.bannerUrls[0];
 
     const isStoreOwner = currentUser && currentUser?.$id === store.owner.$id
-    
+
     return (
         <Card className="relative overflow-hidden hover:shadow-lg transition-shadow max-w-[350px]">
             {isStoreOwner && (
@@ -44,6 +44,7 @@ export const StoreCard = ({ store, currentUser }: {store: DocumentType, currentU
                 </CardHeader>
                 <CardContent className="p-4">
                     <h2 className="text-xl font-semibold mb-2">{store.storeName}</h2>
+                    <p className='text-muted-foreground line-clamp-3 text-sm'>{store?.desccription}...</p>
                 </CardContent>
                 <CardFooter className="p-4 pt-0 flex justify-between items-center">
                     <span className="text-sm text-gray-500">

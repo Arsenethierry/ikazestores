@@ -38,8 +38,9 @@ export const useConfirm = (
                         <CardTitle>
                             {title}
                         </CardTitle>
+                        <p className="text-muted-foreground text-sm my-2">{message}</p>
                     </CardHeader>
-                    <div className="pt-4 w-full flex flex-col gap-y-2 lg:flex-row gap-x-2 items-center justify-end">
+                    <div className="pt-4 w-full flex flex-col gap-y-2 lg:flex-row gap-x-2 items-center justify-between">
                         <Button onClick={handleCancel} variant={"outline"} className="w-full lg:w-auto">
                             Cancel
                         </Button>

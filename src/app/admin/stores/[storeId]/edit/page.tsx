@@ -1,3 +1,4 @@
+import { AccessDeniedCard } from '@/components/access-denied-card';
 import { PhysicalStoreForm } from '@/features/stores/components/physical-store-form';
 import { VirtualStoreForm } from '@/features/stores/components/vitual-store-form ';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
@@ -29,16 +30,13 @@ async function EditStorePage({
 
     const isStoreOwner = user && user?.$id === currentStore.owner.$id
 
-    if (!isStoreOwner) {
-        redirect("/admin")
-    }
     return (
         <div>
-            {isVirtualStoreOwner ? (
+            {(isVirtualStoreOwner && isStoreOwner) ? (
                 <VirtualStoreForm currentUser={user} initialValues={currentStore} />
-            ) : isPhysicalStoreOwner ? (
+            ) : (isPhysicalStoreOwner && isStoreOwner) ? (
                 <PhysicalStoreForm currentUser={user} />
-            ) : null}
+            ) : <AccessDeniedCard />}
         </div>
     );
 }

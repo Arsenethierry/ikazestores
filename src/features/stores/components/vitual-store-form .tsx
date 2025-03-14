@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -26,11 +25,38 @@ import { useCreateVirtualStore } from "../mutations/use-virtual-store-mutations"
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useConfirm } from "@/hooks/use-confirm";
+import { updateVirtualStore } from "@/lib/actions/vitual-store.action";
+import { useAction } from "next-safe-action/hooks";
+import { Textarea } from "@/components/ui/textarea";
 
 export function VirtualStoreForm({ currentUser, initialValues = null }: { currentUser: CurrentUserType, initialValues?: DocumentType | null }) {
+    const isEditMode = !!initialValues;
+    const router = useRouter();
+
+    const { execute, isPending: isUpdating } = useAction(updateVirtualStore, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data?.success)
+                router.push(`/admin/stores/${initialValues?.$id}`)
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
+
+    const [CancelDialog, confirmCancelProduct] = useConfirm(
+        "Are you sure you want to cancel?",
+        "The changes made will not be saved!",
+        "destructive"
+    );
 
     const { mutate: createStore, isPending, error } = useCreateVirtualStore();
-    
+
     const form = useForm<z.infer<typeof createVirtualStoreFormSchema>>({
         resolver: zodResolver(createVirtualStoreFormSchema),
         defaultValues: {
@@ -40,7 +66,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
             storeDomain: initialValues?.subDomain ?? ""
         },
     });
-    const { watch, setValue } = form;
+    const { watch, setValue, formState: { dirtyFields } } = form;
     const storeName = watch('storeName');
 
     useEffect(() => {
@@ -57,18 +83,45 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                 toast.error("Something went wrong, try again");
                 return;
             }
-            createStore({
-                ...values,
-                ownerId: currentUser.$id,
-                subDomain: sanitizedDomain
-            })
+            if (isEditMode && initialValues) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const updatedValues: Record<string, any> = {};
+
+                if (dirtyFields.storeName) updatedValues.storeName = values.storeName;
+                if (dirtyFields.desccription) updatedValues.desccription = values.desccription;
+                if (dirtyFields.storeBio) updatedValues.storeBio = values.storeBio;
+                if (dirtyFields.storeDomain) updatedValues.storeDomain = sanitizedDomain;
+
+                if (Object.keys(updatedValues).length > 0) {
+                    execute({
+                        ...updatedValues,
+                        storeId: initialValues.$id,
+                    });
+                } else {
+                    toast.info("No changes detected");
+                }
+            } else {
+                createStore({
+                    ...values,
+                    ownerId: currentUser.$id,
+                    subDomain: sanitizedDomain
+                })
+            }
+
         } catch (error) {
             console.log(error)
         }
     }
 
+    const handleCancel = async () => {
+        const ok = await confirmCancelProduct()
+        if (!ok) return;
+        router.back()
+    }
+
     return (
         <Card className="border-t-0 rounded-t-none max-w-5xl">
+            <CancelDialog />
             <CardHeader>
                 <CardTitle>{initialValues ? 'Edit' : 'Create'} a virtual store</CardTitle>
             </CardHeader>
@@ -84,11 +137,8 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                 <FormItem>
                                     <FormLabel>Store Name</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Placeholder" {...field} />
+                                        <Input placeholder="Your store name" {...field} />
                                     </FormControl>
-                                    <FormDescription>
-                                        Description
-                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -105,9 +155,6 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                             type="text"
                                             {...field} />
                                     </FormControl>
-                                    <FormDescription>
-                                        Description
-                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -120,11 +167,8 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                 <FormItem>
                                     <FormLabel>Desccription</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Placeholder" {...field} />
+                                        <Textarea placeholder="short description" {...field} />
                                     </FormControl>
-                                    <FormDescription>
-                                        Description
-                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -137,11 +181,8 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                 <FormItem>
                                     <FormLabel>Store Bio</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Placeholder" {...field} />
+                                        <Input placeholder="store bio" {...field} />
                                     </FormControl>
-                                    <FormDescription>
-                                        Description
-                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -183,16 +224,17 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                             <Button
                                 type="button"
                                 variant={'destructive'}
+                                onClick={handleCancel}
                                 disabled={isPending}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={isPending}
+                                disabled={isPending || isUpdating}
                             >
                                 <Loader className={isPending ? "animate-spin" : "hidden"} /> {" "}
-                                Submit
+                                {isEditMode ? 'Save changes' : 'Create store'}
                             </Button>
                         </div>
                     </form>
