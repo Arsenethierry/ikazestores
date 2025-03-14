@@ -39,7 +39,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
-                router.push(`/admin/stores/${initialValues?.$id}`)
+                // router.push(`/admin/stores/${initialValues?.$id}`)
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -63,7 +63,8 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
             storeName: initialValues?.storeName ?? "",
             desccription: initialValues?.desccription ?? "",
             storeBio: initialValues?.storeBio ?? "",
-            storeDomain: initialValues?.subDomain ?? ""
+            storeDomain: initialValues?.subDomain ?? "",
+            storeBanner: initialValues?.bannerUrls ?? undefined,
         },
     });
     const { watch, setValue, formState: { dirtyFields } } = form;
@@ -91,6 +92,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                 if (dirtyFields.desccription) updatedValues.desccription = values.desccription;
                 if (dirtyFields.storeBio) updatedValues.storeBio = values.storeBio;
                 if (dirtyFields.storeDomain) updatedValues.storeDomain = sanitizedDomain;
+                if (dirtyFields.storeBanner) updatedValues.storeBanner = values.storeBanner;
 
                 if (Object.keys(updatedValues).length > 0) {
                     execute({
@@ -195,6 +197,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                             renderSkeleton={(field) => (
                                 <FormControl>
                                     <MultiImageUploader
+                                        isEditMode={isEditMode}
                                         files={field.value}
                                         onChange={field.onChange}
                                         caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)"
@@ -203,6 +206,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                 </FormControl>
                             )}
                         />
+
                         <CustomFormField
                             fieldType={FormFieldType.SKELETON}
                             control={form.control}

@@ -26,7 +26,8 @@ export const createVirtualStoreFormSchema = z.object({
     storeBio: z.string().max(255).optional(),
     storeDomain: z.string().min(2).max(50),
     storeBanner: z.custom<File[]>(),
-    storeLogo: z.custom<File>()
+    storeLogo: z.custom<File>(),
+    initialStoreBannerUrls: z.array(z.string()).optional(),
 });
 export const updateVirtualStoreFormSchema = z.object({
     storeId: z.string().min(1),

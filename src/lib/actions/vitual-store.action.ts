@@ -164,15 +164,51 @@ export const getAllVirtualStoresByOwnerId = async (ownerId: string) => {
 export const updateVirtualStore = action
     .use(authMiddleware)
     .schema(updateVirtualStoreFormSchema)
-    .action(async ({ parsedInput: { storeId, ...values }, ctx }) => {
+    .action(async ({ parsedInput: { storeId, storeBanner, ...values }, ctx }) => {
+        const { databases, storage } = ctx;
+        const rollback = new AppwriteRollback(storage, databases);
+
         try {
-            const { databases } = ctx;
+
+            const newBannerImagesUploaded = await Promise.all(
+                storeBanner?.map(async (file) => {
+                    if (file instanceof File) {
+                        const fileId = ID.unique();
+
+                        const uploadedFile = await storage.createFile(
+                            STORE_BUCKET_ID,
+                            fileId,
+                            file
+                        );
+                        await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id);
+                        return {
+                            id: uploadedFile.$id,
+                            url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${uploadedFile.$id}/view?project=${APPWRITE_PROJECT_ID}`
+                        };
+                    } else if (typeof file === 'string') {
+                        const pathname = new URL(file).pathname;
+
+                        const parts = pathname.split("/files/");
+                        if (parts.length > 1) {
+                            const fileId = parts[1].split("/")[0];
+                            return {
+                                id: fileId,
+                                url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${parts[1].split("/")[0]}/view?project=${APPWRITE_PROJECT_ID}`
+                            };
+                        }
+                    }
+                }) || []
+            )
 
             const updatedDocument = await databases.updateDocument(
                 DATABASE_ID,
                 VIRTUAL_STORE_ID,
                 storeId,
-                values
+                {
+                    ...values,
+                    bannerUrls: newBannerImagesUploaded.map(file => file?.url),
+                    bannerIds: newBannerImagesUploaded.map(file => file?.id)
+                }
             )
 
             return { success: `Product with id: ${updatedDocument.$id} has been updated successfully` };

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { convertFileToUrl } from "@/lib/utils";
 import { Upload, X } from "lucide-react";
 import Image from "next/image";
@@ -7,14 +8,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { DocumentType } from "@/lib/types";
 
 type ImageUploaderProps = {
-    files: File[] | undefined;
+    files: any[];
     onChange: (files: File[]) => void;
     caption?: string;
     maxFiles?: number;
     initialValues?: DocumentType | null;
+    isEditMode?: boolean;
 }
 export const MultiImageUploader = ({
     files = [],
+    isEditMode = false,
     onChange,
     caption,
     maxFiles = 5,
@@ -29,6 +32,11 @@ export const MultiImageUploader = ({
         const newFiles = files?.filter((_, i) => i !== index);
         onChange(newFiles || []);
     };
+
+    // const removeExistingImageUrls = (index: number) => {
+    //     const newImageUrls = existingImageUrls?.filter((_, i) => i !== index);
+
+    // }
 
     const { getRootProps, getInputProps } = useDropzone({
         onDrop,
@@ -61,33 +69,46 @@ export const MultiImageUploader = ({
             )}
 
             <div className="flex flex-wrap gap-4">
-                {files && files.map((file, index) => (
-                    <div key={index} className="relative">
-                        <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeFiles(index)}
-                                        className="absolute right-0 -top-1 h-max p-1 w-max bg-muted border border-red-500 object-cover rounded-full"
-                                    >
-                                        <X className="h-4 w-4 text-red-500" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent className="dark px-2 py-1 text-xs" showArrow={true}>
-                                    Remove image
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                        <Image
-                            src={convertFileToUrl(file)}
-                            width={200}
-                            height={100}
-                            alt={`banner ${index + 1}`}
-                            className="h-[50px] w-[200px] object-cover rounded-lg"
-                        />
-                    </div>
-                ))}
+                {files && files.map((file, index) => {
+
+                    return (
+                        <div key={index} className="relative">
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFiles(index)}
+                                            className="absolute right-0 -top-1 h-max p-1 w-max bg-muted border border-red-500 object-cover rounded-full"
+                                        >
+                                            <X className="h-4 w-4 text-red-500" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="dark px-2 py-1 text-xs" showArrow={true}>
+                                        Remove image
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            {isEditMode && !(file instanceof File) ? (
+                                <Image
+                                    src={file}
+                                    width={200}
+                                    height={100}
+                                    alt={`banner ${index + 1}`}
+                                    className="h-[50px] w-[200px] object-cover rounded-lg"
+                                />
+                            ) : (
+                                <Image
+                                    src={convertFileToUrl(file)}
+                                    width={200}
+                                    height={100}
+                                    alt={`banner ${index + 1}`}
+                                    className="h-[50px] w-[200px] object-cover rounded-lg"
+                                />
+                            )}
+                        </div>
+                    )
+                })}
             </div>
 
         </div>
