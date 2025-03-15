@@ -10,6 +10,7 @@ import React, { Suspense } from "react";
 export default async function Home() {
   try {
     const virtualStores = await getAllVirtualStores();
+
     if (!virtualStores || virtualStores.total === 0) {
       return (
         <div className="space-y-5 text-center">
@@ -24,15 +25,15 @@ export default async function Home() {
         <StoreCarousel />
         {virtualStores.documents.map((store) =>
           store.vitualProducts?.length > 0 ? (
-            <div className="main-container" key={store.$id}>
-              <div className="flex justify-between py-2 mb-1">
-                <div>
+            <div className={`main-container p-2`} key={store.$id}>
+              <div className="flex justify-between p-2 mb-1 border-t-2 rounded-t-md bg-secondary items-center">
+                <div className="flex gap-2">
                   <Avatar>
                     <AvatarImage src={store?.storeLogoIdUrl} alt="@shadcn" />
                     <AvatarFallback>{getStoreInitials(store.storeName)}</AvatarFallback>
                   </Avatar>
+                  <h1 className="text-xl font-bold capitalize">{store.storeName}</h1>
                 </div>
-                <h1 className="text-xl font-bold capitalize">{store.storeName}</h1>
                 <Button>Follow</Button>
               </div>
               <Suspense fallback={<ProductListSkeleton />}>

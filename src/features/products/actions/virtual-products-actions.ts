@@ -22,7 +22,7 @@ export const getVirtualStoreProducts = async (virtualStoreId: string) => {
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [
-                Query.equal("store", virtualStoreId)
+                Query.equal("virtualStore", virtualStoreId)
             ]
         );
 
@@ -78,7 +78,7 @@ export const addNewVirtualProduct = action
                 VIRTUAL_PRODUCT_ID,
                 [
                     Query.and([
-                        Query.equal("store", values.storeId),
+                        Query.equal("virtualStore", values.storeId),
                         Query.equal("originalProduct", values.originalProductId)
                     ])
                 ]
@@ -94,7 +94,7 @@ export const addNewVirtualProduct = action
                 ID.unique(),
                 {
                     createdBy: ctx.user.$id,
-                    store: values.storeId,
+                    virtualStoreId: values.storeId,
                     sellingPrice: values.sellingPrice,
                     purchasePrice: values.purchasePrice,
                     originalProduct: values.originalProductId,
@@ -102,7 +102,7 @@ export const addNewVirtualProduct = action
                     description: values.description,
                     imageUrls: values.imageUrls,
                     originalProductId: values.originalProductId,
-                    storeId: values.storeId,
+                    virtualStore: values.storeId,
                 }
             );
 

@@ -33,12 +33,11 @@ export const PhysicalProductCard = async ({ product, storeId }: { product: Docum
     const discountPercentage = discount || (originalPrice && price ?
         Math.round(((originalPrice - price) / originalPrice) * 100) : null);
 
-    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.storeId === storeId));
+    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.virtualStoreId === storeId));
 
     return (
         <Card className="group w-full max-w-xs overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
-
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
                         {product?.imageUrls?.map((imageUrl: string, index: string) => (
