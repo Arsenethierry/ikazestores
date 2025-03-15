@@ -33,11 +33,6 @@ export const MultiImageUploader = ({
         onChange(newFiles || []);
     };
 
-    // const removeExistingImageUrls = (index: number) => {
-    //     const newImageUrls = existingImageUrls?.filter((_, i) => i !== index);
-
-    // }
-
     const { getRootProps, getInputProps } = useDropzone({
         onDrop,
         accept: {

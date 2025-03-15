@@ -12,6 +12,7 @@ type ImageUploaderProps = {
     imageHeight?: number;
     imageWidth?: number;
     className?: string;
+    isEditMode?: boolean;
 }
 
 export const SingleImageUploader = ({
@@ -20,6 +21,7 @@ export const SingleImageUploader = ({
     caption,
     imageHeight = 50,
     imageWidth = 200,
+    isEditMode = false,
 }: ImageUploaderProps) => {
     const onDrop = useCallback((acceptedFiles: File[]) => {
         // Only take the first file
@@ -61,7 +63,7 @@ export const SingleImageUploader = ({
             )}
 
             {file && (
-                <div className="relative inline-block">
+                <div className="relative inline-block w-max">
                     <TooltipProvider delayDuration={0}>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -78,13 +80,23 @@ export const SingleImageUploader = ({
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
-                    <Image
-                        src={convertFileToUrl(file)}
-                        width={imageWidth}
-                        height={imageHeight}
-                        alt="uploaded image"
-                        className={`h-[${imageHeight}px] w-[${imageWidth}px] object-cover rounded-lg`}
-                    />
+                    {isEditMode && !(file instanceof File) ? (
+                        <Image
+                            src={file}
+                            width={imageWidth}
+                            height={imageHeight}
+                            alt="uploaded image"
+                            className={`h-[${imageHeight}px] w-[${imageWidth}px] object-cover rounded-lg`}
+                        />
+                    ) : (
+                        <Image
+                            src={convertFileToUrl(file)}
+                            width={imageWidth}
+                            height={imageHeight}
+                            alt="uploaded image"
+                            className={`h-[${imageHeight}px] w-[${imageWidth}px] object-cover rounded-lg`}
+                        />
+                    )}
                 </div>
             )}
         </div>

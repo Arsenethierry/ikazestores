@@ -27,7 +27,6 @@ export const createVirtualStoreFormSchema = z.object({
     storeDomain: z.string().min(2).max(50),
     storeBanner: z.custom<File[]>(),
     storeLogo: z.custom<File>(),
-    initialStoreBannerUrls: z.array(z.string()).optional(),
 });
 export const updateVirtualStoreFormSchema = z.object({
     storeId: z.string().min(1),
@@ -36,7 +35,12 @@ export const updateVirtualStoreFormSchema = z.object({
     storeBio: z.string().max(255).optional(),
     storeDomain: z.string().min(2).max(50).optional(),
     storeBanner: z.custom<File[]>().optional(),
-    storeLogo: z.custom<File>().optional()
+    bannerUrls: z.array(z.string()).optional(),
+    bannerIds: z.array(z.string()).optional(),
+    storeLogo: z.custom<File[]>().optional(),
+    storeLogoUrl: z.string().optional(),
+    storeLogoId: z.string().optional(),
+    oldFileId: z.string().optional(),
 });
 
 export const ProductSchema = z.object({

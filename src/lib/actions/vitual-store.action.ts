@@ -164,55 +164,65 @@ export const getAllVirtualStoresByOwnerId = async (ownerId: string) => {
 export const updateVirtualStore = action
     .use(authMiddleware)
     .schema(updateVirtualStoreFormSchema)
-    .action(async ({ parsedInput: { storeId, storeBanner, ...values }, ctx }) => {
+    .action(async ({ parsedInput: { storeId, storeBanner, storeLogo, oldFileId, ...values }, ctx }) => {
         const { databases, storage } = ctx;
         const rollback = new AppwriteRollback(storage, databases);
 
         try {
+            const updatedFields = { ...values };
 
-            const newBannerImagesUploaded = await Promise.all(
-                storeBanner?.map(async (file) => {
-                    if (file instanceof File) {
-                        const fileId = ID.unique();
-
-                        const uploadedFile = await storage.createFile(
-                            STORE_BUCKET_ID,
-                            fileId,
-                            file
-                        );
-                        await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id);
-                        return {
-                            id: uploadedFile.$id,
-                            url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${uploadedFile.$id}/view?project=${APPWRITE_PROJECT_ID}`
-                        };
-                    } else if (typeof file === 'string') {
-                        const pathname = new URL(file).pathname;
-
-                        const parts = pathname.split("/files/");
-                        if (parts.length > 1) {
-                            const fileId = parts[1].split("/")[0];
+            if (storeBanner) {
+                const newBannerImagesUploaded = await Promise.all(
+                    storeBanner.map(async (file) => {
+                        if (file instanceof File) {
+                            const fileId = ID.unique();
+                            const uploadedFile = await storage.createFile(STORE_BUCKET_ID, fileId, file);
+                            await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id);
                             return {
-                                id: fileId,
-                                url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${parts[1].split("/")[0]}/view?project=${APPWRITE_PROJECT_ID}`
+                                id: uploadedFile.$id,
+                                url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${uploadedFile.$id}/view?project=${APPWRITE_PROJECT_ID}`
                             };
+                        } else if (typeof file === 'string') {
+                            const pathname = new URL(file).pathname;
+                            const parts = pathname.split("/files/");
+                            if (parts.length > 1) {
+                                const fileId = parts[1].split("/")[0];
+                                return {
+                                    id: fileId,
+                                    url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${fileId}/view?project=${APPWRITE_PROJECT_ID}`
+                                };
+                            }
                         }
-                    }
-                }) || []
-            )
+                    })
+                );
 
-            const updatedDocument = await databases.updateDocument(
-                DATABASE_ID,
-                VIRTUAL_STORE_ID,
-                storeId,
-                {
-                    ...values,
-                    bannerUrls: newBannerImagesUploaded.map(file => file?.url),
-                    bannerIds: newBannerImagesUploaded.map(file => file?.id)
+                updatedFields.bannerUrls = newBannerImagesUploaded.map(file => file?.url).filter((url): url is string => Boolean(url));
+                updatedFields.bannerIds = newBannerImagesUploaded.map(file => file?.id).filter((id): id is string => Boolean(id));
+            }
+
+            if (storeLogo instanceof File) {
+
+                if (oldFileId) {
+                    await storage.deleteFile(STORE_BUCKET_ID, oldFileId);
                 }
-            )
+                const storeLogoUploaded = await storage.createFile(STORE_BUCKET_ID, ID.unique(), storeLogo);
+                await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
+                updatedFields.storeLogoUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`;
+                updatedFields.storeLogoId = storeLogoUploaded.$id;
+            }
 
-            return { success: `Product with id: ${updatedDocument.$id} has been updated successfully` };
+            if (Object.keys(updatedFields).length > 0) {
+                const updatedDocument = await databases.updateDocument(
+                    DATABASE_ID,
+                    VIRTUAL_STORE_ID,
+                    storeId,
+                    updatedFields
+                );
 
+                return { success: `Store with id: ${updatedDocument.$id} has been updated successfully` };
+            } else {
+                return { success: "No changes detected." };
+            }
         } catch (error) {
             console.log("createNewProduct eror: ", error);
             return { error: error instanceof Error ? error.message : "Failed to update product" };

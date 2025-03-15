@@ -35,7 +35,11 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
     const isEditMode = !!initialValues;
     const router = useRouter();
 
-    const { execute, isPending: isUpdating } = useAction(updateVirtualStore, {
+    const {
+        execute,
+        isPending:
+        isUpdating
+    } = useAction(updateVirtualStore, {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
@@ -65,6 +69,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
             storeBio: initialValues?.storeBio ?? "",
             storeDomain: initialValues?.subDomain ?? "",
             storeBanner: initialValues?.bannerUrls ?? undefined,
+            storeLogo: initialValues?.storeLogoUrl ?? undefined,
         },
     });
     const { watch, setValue, formState: { dirtyFields } } = form;
@@ -93,12 +98,17 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                 if (dirtyFields.storeBio) updatedValues.storeBio = values.storeBio;
                 if (dirtyFields.storeDomain) updatedValues.storeDomain = sanitizedDomain;
                 if (dirtyFields.storeBanner) updatedValues.storeBanner = values.storeBanner;
+                if (dirtyFields.storeLogo) {
+                    updatedValues.storeLogo = values.storeLogo;
+                    updatedValues.oldFileId = initialValues?.storeLogoId ?? null;
+                }
 
                 if (Object.keys(updatedValues).length > 0) {
-                    execute({
+                    const formData = {
                         ...updatedValues,
                         storeId: initialValues.$id,
-                    });
+                    }
+                    execute(formData);
                 } else {
                     toast.info("No changes detected");
                 }
@@ -109,7 +119,6 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                     subDomain: sanitizedDomain
                 })
             }
-
         } catch (error) {
             console.log(error)
         }
@@ -120,6 +129,8 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
         if (!ok) return;
         router.back()
     }
+
+    console.log("store logo: ", initialValues)
 
     return (
         <Card className="border-t-0 rounded-t-none max-w-5xl">
@@ -220,6 +231,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                         caption="SVG, PNG, JPG or GIF (Ratio 1:1)"
                                         imageHeight={100}
                                         imageWidth={100}
+                                        isEditMode={isEditMode}
                                     />
                                 </FormControl>
                             )}
@@ -237,7 +249,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                 type="submit"
                                 disabled={isPending || isUpdating}
                             >
-                                <Loader className={isPending ? "animate-spin" : "hidden"} /> {" "}
+                                <Loader className={isPending || isUpdating ? "animate-spin" : "hidden"} /> {" "}
                                 {isEditMode ? 'Save changes' : 'Create store'}
                             </Button>
                         </div>
