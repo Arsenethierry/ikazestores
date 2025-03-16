@@ -43,7 +43,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
-                // router.push(`/admin/stores/${initialValues?.$id}`)
+                router.push(`/admin/stores/${initialValues?.$id}`)
             } else if (data?.error) {
                 toast.error(data?.error)
             }

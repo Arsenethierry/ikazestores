@@ -1,5 +1,5 @@
 
-import { TenantStoreNavbar } from "@/components/navbars/tenant/tenant-store-navbar";
+import MarketplaceNavbar from "@/components/navbars/marketplace-navbar";
 
 export default async function StoreRootLayout({
     children,
@@ -7,9 +7,9 @@ export default async function StoreRootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <>
-            <TenantStoreNavbar />
+        <div className="min-h-screen">
+            <MarketplaceNavbar />
             {children}
-        </>
+        </div>
     );
 }

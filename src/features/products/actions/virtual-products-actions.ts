@@ -32,6 +32,7 @@ export const getVirtualStoreProducts = async (virtualStoreId: string) => {
         throw error
     }
 }
+
 export const getVirtualProductById = async (productId: string) => {
     try {
         const { databases } = await createSessionClient();

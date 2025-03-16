@@ -1,10 +1,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProductListSkeleton } from "@/features/products/components/products-list-sekeleton";
 import { StoreProductsList } from "@/features/products/components/store-products-list";
 import { StoreCarousel } from "@/features/stores/components/store-carousel";
 import { getAllVirtualStores } from "@/lib/actions/vitual-store.action";
+import { getStoreSubdomainUrl } from "@/lib/domain-utils";
 import { getStoreInitials } from "@/lib/utils";
+import { Ellipsis, Navigation } from "lucide-react";
+import Link from "next/link";
 import React, { Suspense } from "react";
 
 export default async function Home() {
@@ -34,7 +38,24 @@ export default async function Home() {
                   </Avatar>
                   <h1 className="text-xl font-bold capitalize">{store.storeName}</h1>
                 </div>
-                <Button>Follow</Button>
+                <div className="flex gap-2">
+                  <Button>Follow</Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="outline" aria-label="Select theme">
+                        <Ellipsis size={16} aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="min-w-32">
+                      <DropdownMenuItem>
+                        <Link href={getStoreSubdomainUrl({ subdomain: store.subDomain })} target="_blank" className="inline-flex">
+                          <Navigation size={16} className="opacity-60" aria-hidden="true" />
+                          <span className="font-bold">Visit store</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               <Suspense fallback={<ProductListSkeleton />}>
                 <StoreProductsList storeId={store.$id} />

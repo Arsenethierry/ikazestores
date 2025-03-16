@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 
-export function StoreCarousel() {
+export function StoreCarousel({ carouselImages }: { carouselImages?: string[] }) {
     const [api, setApi] = useState<CarouselApi>();
     const [current, setCurrent] = useState(0);
     const [count, setCount] = useState(0);
@@ -21,7 +21,7 @@ export function StoreCarousel() {
         Autoplay({ delay: 4000, stopOnInteraction: true })
     );
 
-    const images = [
+    const images = carouselImages ?? [
         "https://images.pexels.com/photos/5872364/pexels-photo-5872364.jpeg",
         "https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg",
         "https://images.pexels.com/photos/5872176/pexels-photo-5872176.jpeg",
