@@ -77,3 +77,19 @@ export const deleteVirtualProductSchema = z.object({
     productId: z.string(),
     virtualStoreId: z.string(),
 })
+
+export const CreateOrderSchema  = z.object({
+    customerId: z.string(),
+    orderDate: z.date(),
+    status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+    totalAmount: z.number(),
+    notes: z.string().optional()
+})
+
+export const AddToCartSchema = z.object({
+    $id: z.string(),
+    title: z.string(),
+    sellingPrice: z.number(),
+    imageUrl: z.string(),
+    quantity: z.number().default(1),
+})

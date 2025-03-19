@@ -55,11 +55,17 @@ export type AppwriteDocumentResponse = {
 
 export type AdminDashboardType = 'systemAdmin' | 'virtualStoreAdmin' | 'physicalStoreAdmin' | undefined;
 
-export interface CartItem {
+export type CartItem = {
     id: string;
+    productId: string;
+    name: string;
+    price: number;
     quantity: number;
-}
+    image: string;
+};
+
 export interface Cart {
     items: CartItem[];
     totalItems: number;
-}
+    totalPrice: number;
+};

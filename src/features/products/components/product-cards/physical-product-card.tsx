@@ -9,7 +9,7 @@ import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
+// import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { ProductMenuActions } from '../product-actions';
 import { CloneProductSheet } from '../clone-product-sheet';
 
@@ -66,7 +66,7 @@ export const PhysicalProductCard = async ({ product, storeId }: { product: Docum
                         'flex gap-1 items-center',
                         (isSystemAdmin || isPhysicalStoreOwner || isVirtualStoreOwner) && 'hidden'
                     )}>
-                        <AddToCartButton productId={product.$id} />
+                        {/* <AddToCartButton productId={product.$id} /> */}
                         <TooltipProvider delayDuration={0}>
                             <Tooltip>
                                 <TooltipTrigger asChild>

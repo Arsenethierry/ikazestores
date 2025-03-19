@@ -3,14 +3,38 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useAddToCart } from "@/features/cart/cart.mutations";
+import { addToCart } from "../cart.actions";
+import { DocumentType } from "@/lib/types";
+import { useAction } from "next-safe-action/hooks";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-export const AddToCartButton = ({ productId }: { productId: string }) => {
+export const AddToCartButton = ({ item }: { item: DocumentType }) => {
+    const router = useRouter();
 
-    const { mutate, isPending } = useAddToCart()
+    const { isPending, execute } = useAction(addToCart, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success("Product added successfully")
+                router.push("/cart");
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
 
     const handleAddToCart = async () => {
-        mutate({ productId, quantity: 1 })
+        const cartData = {
+            $id: item.$id,
+            title: item.title,
+            sellingPrice: item.sellingPrice,
+            imageUrl: item.imageUrls[0],
+            quantity: 1,
+        };
+        await execute(cartData)
     }
 
     return (

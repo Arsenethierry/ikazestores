@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { CircleUser, Heart, LayoutDashboard, Loader, Settings, User } from 'lucide-react';
+import { CircleUser, Heart, LayoutDashboard, Loader, Settings, ShoppingCart, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import LogoutButton from '@/features/auth/components/logout-button';
 import { getAuthState } from '@/lib/user-label-permission';
-import { CartSheet } from '../../features/cart/components/cart-components';
 import { Suspense } from 'react';
+import { Badge } from '../ui/badge';
+import { getCart } from '@/lib/cart';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -18,6 +19,8 @@ export default async function MarketplaceNavbar() {
         isVirtualStoreOwner,
         isPhysicalStoreOwner
     } = await getAuthState();
+
+    const cart = await getCart();
 
     return (
         <>
@@ -45,7 +48,17 @@ export default async function MarketplaceNavbar() {
                 </div>
                 <div className='flex gap-3 items-center'>
                     <Suspense fallback={<Loader className='size-5 animate-spin text-white m-auto' />}>
-                        <CartSheet />
+                        <Link href={'/cart'} className="relative cursor-pointer">
+                            <Avatar className='h-max max-w-8'>
+                                <AvatarImage src="/icons/shopping-cart.svg" alt="Kelly King" />
+                                <AvatarFallback>
+                                    <ShoppingCart />
+                                </AvatarFallback>
+                            </Avatar>
+                            <Badge className="flex flex-col items-center border-background absolute -top-1.5 left-full min-w-5 -translate-x-3.5 px-1">
+                                {cart.totalItems}
+                            </Badge>
+                        </Link>
                     </Suspense>
                     <Link
                         href={'/my-cart'}

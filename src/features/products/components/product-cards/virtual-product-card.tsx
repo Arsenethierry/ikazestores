@@ -67,7 +67,9 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
                         'flex gap-1 items-center',
                         (isSystemAdmin || isPhysicalStoreOwner || isVirtualStoreOwner) && 'hidden'
                     )}>
-                        <AddToCartButton productId={product.$id} />
+                        <AddToCartButton
+                            item={product}
+                        />
                         <TooltipProvider delayDuration={0}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -114,11 +116,11 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
                             {/* {isAlreadyCloned() ? (
                                 <RemoveClonedProductButton productId={product.$id} />
                             ) : ( */}
-                                <CloneProductSheet
-                                    currentUser={user}
-                                    product={product}
-                                    disabled={isAlreadyCloned()}
-                                />
+                            <CloneProductSheet
+                                currentUser={user}
+                                product={product}
+                                disabled={isAlreadyCloned()}
+                            />
                             {/* )} */}
                         </div>
                     ) : null}
