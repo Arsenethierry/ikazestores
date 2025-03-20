@@ -39,7 +39,7 @@ export default async function Home() {
                   <h1 className="text-xl font-bold capitalize">{store.storeName}</h1>
                 </div>
                 <div className="flex gap-2">
-                  <Button>Follow</Button>
+                  <Button>Subscribe</Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button size="icon" variant="outline" aria-label="Select theme">
