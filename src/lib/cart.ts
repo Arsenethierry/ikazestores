@@ -25,8 +25,6 @@ export const getCart = async (): Promise<Cart> => {
         return { items: [], totalItems: 0, totalPrice: 0 };
     }
 
-    console.log("hbdgedge",cartCookie);
-
     try {
         const items = JSON.parse(cartCookie.value) as CartItem[];
         const { totalItems, totalPrice } = calculateCartTotals(items);

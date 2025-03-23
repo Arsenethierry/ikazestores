@@ -4,6 +4,8 @@ import Image from "next/image";
 import ReactDatePicker from "react-datepicker";
 import { Control } from "react-hook-form";
 import PhoneInput from "react-phone-number-input";
+import 'react-phone-number-input/style.css'
+import "react-datepicker/dist/react-datepicker.css";
 
 import { Checkbox } from "./ui/checkbox";
 import {
@@ -16,6 +18,7 @@ import {
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
+import { Calendar } from "lucide-react";
 
 export enum FormFieldType {
     INPUT = "input",
@@ -80,7 +83,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
             return (
                 <FormControl>
                     <PhoneInput
-                        defaultCountry="US"
+                        defaultCountry="RW"
                         placeholder={props.placeholder}
                         international
                         withCountryCallingCode
@@ -107,14 +110,8 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
             );
         case FormFieldType.DATE_PICKER:
             return (
-                <div className="flex rounded-md border border-dark-500 bg-dark-400">
-                    <Image
-                        src="/assets/icons/calendar.svg"
-                        height={24}
-                        width={24}
-                        alt="user"
-                        className="ml-2"
-                    />
+                <div className="flex rounded-md border gap-2 border-dark-500 bg-dark-400">
+                    <Calendar />
                     <FormControl>
                         <ReactDatePicker
                             showTimeSelect={props.showTimeSelect ?? false}

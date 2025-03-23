@@ -33,7 +33,8 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
         defaultValues: {
             email: "",
             password: ""
-        }
+        },
+        mode: "onChange",
     });
 
     const onSubmit = async (values: z.infer<typeof loginSchema>) => {

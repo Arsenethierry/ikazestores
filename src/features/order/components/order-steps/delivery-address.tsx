@@ -1,51 +1,99 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Button } from "@/components/ui/button";
+import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
-import { MouseEventHandler, useState } from "react";
-// import { useFormState } from "react-dom";
-
-interface savedAddressesType {
-    id: string;
-    name: string;
-    street: string;
-    phone: string;
-    city: string;
-    state: string;
-    zip: string;
-}
+import { SelectItem } from "@/components/ui/select";
+import { OrderFormSchema } from "@/lib/schemas";
+import { useEffect, useState } from "react";
+import { Control, UseFormSetValue } from "react-hook-form";
+import { z } from "zod";
+import { useGetDeliverAddress } from "../../order-queries";
 
 type Props = {
-    savedAddresses: savedAddressesType[];
-    onNext: MouseEventHandler<HTMLButtonElement>
+    control: Control<z.infer<typeof OrderFormSchema>>;
+    disabled?: boolean;
+    setValue: UseFormSetValue<z.infer<typeof OrderFormSchema>>;
+    currentUserId: string;
 }
 
-// const initialState = {
-//     message: "",
-//     errors: {},
-// };
+const countries = [
+    { code: "US", name: "United States" },
+    { code: "CA", name: "Canada" },
+    { code: "UK", name: "United Kingdom" },
+    { code: "AU", name: "Australia" },
+    { code: "DE", name: "Germany" },
+    { code: "FR", name: "France" },
+    { code: "JP", name: "Japan" },
+    { code: "IN", name: "India" },
+    { code: "CN", name: "China" },
+    { code: "BR", name: "Brazil" },
+];
 
-export const DeliveryAddress = ({ savedAddresses = [], onNext }: Props) => {
-    const [isNewAddress, setIsNewAddress] = useState(!savedAddresses.length);
-    const [selectedAddress, setSelectedAddress] = useState(savedAddresses[0]?.id || "");
+export const DeliveryAddress = ({ control, disabled = false, setValue, currentUserId }: Props) => {
+    const { data: initialAddress, isLoading } = useGetDeliverAddress(currentUserId);
 
-    // const saveDeliveryAddress = () => {
+    const [isNewAddress, setIsNewAddress] = useState(true);
+    const [selectedAddress, setSelectedAddress] = useState("");
 
-    // }
+    useEffect(() => {
+        if (isLoading) return;
 
-    // const [formState, formAction] = useFormState(saveDeliveryAddress, initialState);
+        const hasAddresses = initialAddress && initialAddress.total > 0;
 
-    const handleSubmit = async () => {
-        // const result = await formAction(formData);
-        // if (!result.errors || Object.keys(result.errors).length === 0) {
-        // }
-        // onNext();
+        if (hasAddresses) {
+            const firstAddress = initialAddress.documents[0];
+            setIsNewAddress(false);
+            setSelectedAddress(firstAddress.$id);
+
+            setValue("deliveryAddress.fullName", firstAddress.fullName || "");
+            setValue("deliveryAddress.street", firstAddress.street || "");
+            setValue("deliveryAddress.phoneNumber", firstAddress.phoneNumber || "");
+            setValue("deliveryAddress.city", firstAddress.city || "");
+            setValue("deliveryAddress.zip", firstAddress.zip || "");
+            setValue("deliveryAddress.state", firstAddress.state || "");
+            setValue("deliveryAddress.country", firstAddress.country || "RW");
+            setValue("deliveryAddress.$id", firstAddress.$id);
+        } else {
+            setIsNewAddress(true);
+            setValue("deliveryAddress.$id", null);
+        }
+    }, [initialAddress, isLoading, setValue]);
+
+    const handleAddressChange = (value: string) => {
+        if (value === "new") {
+            setIsNewAddress(true);
+            setValue("deliveryAddress.$id", null);
+            
+            // Clear form fields for new address
+            setValue("deliveryAddress.fullName", "");
+            setValue("deliveryAddress.street", "");
+            setValue("deliveryAddress.phoneNumber", "");
+            setValue("deliveryAddress.city", "");
+            setValue("deliveryAddress.zip", "");
+            setValue("deliveryAddress.state", "");
+            setValue("deliveryAddress.country", "RW");
+        } else {
+            setIsNewAddress(false);
+            setSelectedAddress(value);
+
+            const addressToUse = initialAddress?.documents.find(addr => addr.$id === value);
+            if (addressToUse) {
+                // Update form with selected address
+                setValue("deliveryAddress.fullName", addressToUse.fullName || "");
+                setValue("deliveryAddress.street", addressToUse.street || "");
+                setValue("deliveryAddress.phoneNumber", addressToUse.phoneNumber || "");
+                setValue("deliveryAddress.city", addressToUse.city || "");
+                setValue("deliveryAddress.zip", addressToUse.zip || "");
+                setValue("deliveryAddress.state", addressToUse.state || "");
+                setValue("deliveryAddress.country", addressToUse.country || "RW");
+                setValue("deliveryAddress.$id", addressToUse.$id);
+            }
+        }
     };
+
+    const hasAddresses = initialAddress && initialAddress.total > 0;
 
     return (
         <div className="space-y-6">
@@ -57,26 +105,19 @@ export const DeliveryAddress = ({ savedAddresses = [], onNext }: Props) => {
             </CardHeader>
 
             <CardContent className="px-0">
-                {savedAddresses.length > 0 && (
+                {hasAddresses && (
                     <div className="mb-6">
                         <RadioGroup
                             value={isNewAddress ? "new" : selectedAddress}
-                            onValueChange={(value) => {
-                                if (value === "new") {
-                                    setIsNewAddress(true);
-                                } else {
-                                    setIsNewAddress(false);
-                                    setSelectedAddress(value);
-                                }
-                            }}
+                            onValueChange={handleAddressChange}
                             className="space-y-4"
                         >
-                            {savedAddresses.map((address) => (
-                                <div key={address.id} className="flex items-start space-x-2">
-                                    <RadioGroupItem value={address.id} id={address.id} />
+                            {initialAddress.documents.map((address) => (
+                                <div key={address.$id} className="flex items-start space-x-2">
+                                    <RadioGroupItem value={address.$id} id={address.$id} />
                                     <div className="grid gap-1">
-                                        <Label htmlFor={address.id} className="font-medium">
-                                            {address.name}
+                                        <Label htmlFor={address.$id} className="font-medium">
+                                            {address.fullName}
                                         </Label>
                                         <p className="text-sm text-gray-500">
                                             {address.street}, {address.city}, {address.state}, {address.zip}
@@ -97,122 +138,82 @@ export const DeliveryAddress = ({ savedAddresses = [], onNext }: Props) => {
                     </div>
                 )}
 
-                {(isNewAddress || !savedAddresses.length) && (
-                    <form action={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input
-                                    id="name"
-                                    name="name"
-                                    placeholder="John Doe"
-                                    // className={formState.errors?.name ? "border-red-500" : ""}
-                                />
-                                {/* {formState.errors?.name && (
-                                    <p className="text-sm text-red-500">{formState.errors.name}</p>
-                                )} */}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <Input
-                                    id="phone"
-                                    name="phone"
-                                    placeholder="1234567890"
-                                    // className={formState.errors?.phone ? "border-red-500" : ""}
-                                />
-                                {/* {formState.errors?.phone && (
-                                    <p className="text-sm text-red-500">{formState.errors.phone}</p>
-                                )} */}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="street">Street Address</Label>
-                            <Textarea
-                                id="street"
-                                name="street"
-                                placeholder="123 Main St, Apt 4B"
-                                // className={formState.errors?.street ? "border-red-500" : ""}
+                {(isNewAddress || !hasAddresses) && (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <CustomFormField
+                                control={control}
+                                name="deliveryAddress.fullName"
+                                label="Full Name"
+                                placeholder="Enter your full name"
+                                fieldType={FormFieldType.INPUT}
+                                iconAlt="user"
+                                disabled={disabled}
                             />
-                            {/* {formState.errors?.street && (
-                                <p className="text-sm text-red-500">{formState.errors.street}</p>
-                            )} */}
-                        </div>
 
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="city">City</Label>
-                                <Input
-                                    id="city"
-                                    name="city"
-                                    placeholder="New York"
-                                    // className={formState.errors?.city ? "border-red-500" : ""}
-                                />
-                                {/* {formState.errors?.city && (
-                                    <p className="text-sm text-red-500">{formState.errors.city}</p>
-                                )} */}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="state">State</Label>
-                            <Input
-                                id="state"
-                                name="state"
-                                placeholder="NY"
-                                // className={formState.errors?.state ? "border-red-500" : ""}
+                            <CustomFormField
+                                control={control}
+                                name="deliveryAddress.phoneNumber"
+                                label="Phone Number"
+                                placeholder="Enter your phone number"
+                                fieldType={FormFieldType.PHONE_INPUT}
+                                disabled={disabled}
                             />
-                            {/* {formState.errors?.state && (
-                                <p className="text-sm text-red-500">{formState.errors.state}</p>
-                            )} */}
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="zip">Zip Code</Label>
-                            <Input
-                                id="zip"
-                                name="zip"
-                                placeholder="10001"
-                                // className={formState.errors?.zip ? "border-red-500" : ""}
+
+                        <CustomFormField
+                            control={control}
+                            name="deliveryAddress.street"
+                            label="Street Address"
+                            placeholder="Enter your street address"
+                            fieldType={FormFieldType.INPUT}
+                            disabled={disabled}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <CustomFormField
+                                control={control}
+                                name="deliveryAddress.city"
+                                label="City"
+                                placeholder="Enter your city"
+                                fieldType={FormFieldType.INPUT}
+                                disabled={disabled}
                             />
-                            {/* {formState.errors?.zip && (
-                                <p className="text-sm text-red-500">{formState.errors.zip}</p>
-                            )} */}
+
+                            <CustomFormField
+                                control={control}
+                                name="deliveryAddress.state"
+                                label="State/Province"
+                                placeholder="Enter your state"
+                                fieldType={FormFieldType.INPUT}
+                                disabled={disabled}
+                            />
+
+                            <CustomFormField
+                                control={control}
+                                name="deliveryAddress.zip"
+                                label="ZIP/Postal Code"
+                                placeholder="Enter your ZIP code"
+                                fieldType={FormFieldType.INPUT}
+                                disabled={disabled}
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="addressType">Address Type</Label>
-                            <RadioGroup defaultValue="home" name="addressType" className="flex space-x-4">
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="home" id="home" />
-                                    <Label htmlFor="home">Home</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="work" id="work" />
-                                    <Label htmlFor="work">Work</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="defaultAddress" className="flex items-center space-x-2">
-                                <Input type="checkbox" id="defaultAddress" name="defaultAddress" className="w-4 h-4" />
-                                <span>Make this my default address</span>
-                            </Label>
-                        </div>
-
-                        {/* {formState.message && (
-                            <p className="text-sm text-red-500">{formState.message}</p>
-                        )} */}
-
-                        <Button type="submit" className="w-full">Save Address</Button>
-                    </form>
-                )}
-
-                {!isNewAddress && savedAddresses.length > 0 && (
-                    <Button
-                    onClick={onNext}
-                    className="w-full">
-                        Deliver to this Address
-                    </Button>
+                        <CustomFormField
+                            control={control}
+                            name="deliveryAddress.country"
+                            label="Country"
+                            placeholder="Select your country"
+                            fieldType={FormFieldType.SELECT}
+                            disabled={disabled}
+                        >
+                            {countries.map(country => (
+                                <SelectItem key={country.code} value={country.code}>
+                                    {country.name}
+                                </SelectItem>
+                            ))}
+                        </CustomFormField>
+                    </div>
                 )}
             </CardContent>
         </div>

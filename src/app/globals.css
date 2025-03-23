@@ -131,7 +131,9 @@ body {
   @apply flex flex-col justify-center gap-2 text-center;
 }
 
-
+.input-phone {
+  @apply h-10 rounded-md px-3 text-sm border !important;
+}
 
 @layer base {
   * {

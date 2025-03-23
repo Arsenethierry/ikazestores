@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "./constants";
 
 export const loginSchema = z.object({
     email: z.string().email(),
@@ -78,7 +79,7 @@ export const deleteVirtualProductSchema = z.object({
     virtualStoreId: z.string(),
 })
 
-export const CreateOrderSchema  = z.object({
+export const CreateOrderSchema = z.object({
     customerId: z.string(),
     orderDate: z.date(),
     status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
@@ -92,4 +93,37 @@ export const AddToCartSchema = z.object({
     sellingPrice: z.number(),
     imageUrl: z.string(),
     quantity: z.number().default(1),
+});
+
+export const OrderFormSchema = z.object({
+    deliveryAddress: z.object({
+        $id: z.string().nullable(),
+        fullName: z.string().min(2, { message: "Full name is required" }).max(100, { message: "Full name must be at most 100 characters" }),
+        phoneNumber: z.string().regex(/^\+?[0-9]{10,15}$/, { message: "Please enter a valid phone number" }).min(10),
+        street: z.string().min(3, { message: "Street must be at least 3 characters" }).max(50, { message: "Street must be at most 50 characters" }).optional(),
+        city: z.string().min(3, { message: "City must be at least 3 characters" }).max(50, { message: "City must be at most 50 characters" }).optional(),
+        zip: z.string().optional(),
+        state: z.string().min(2).max(50).optional(),
+        country: z.string().min(2).max(50).optional(),
+    }),
+    notes: z.string().max(255).optional(),
+    preferredPaymentMethod: z.object({
+        type: z.nativeEnum(PaymentMethodType),
+        onlineProvider: z.nativeEnum(OnlinePaymentProvider).optional(),
+        cardProvider: z.nativeEnum(CardProvider).optional(),
+    }),
+    orderDate: z.date().default(() => new Date()),
+    isExpressDelivery: z.boolean().default(false), //allows customers to pay extra for faster shipping when they need their items more urgently
 })
+
+export const OrderSchema = OrderFormSchema.extend({
+    totalAmount: z.number(),
+    selectedItems: z.object({
+        id: z.string(),
+        productId: z.string(),
+        name: z.string(),
+        price: z.number(),
+        quantity: z.number(),
+        image: z.string()
+    }).array(),
+});

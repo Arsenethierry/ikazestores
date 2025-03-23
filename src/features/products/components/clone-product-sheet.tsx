@@ -46,6 +46,7 @@ export const CloneProductSheet = ({ currentUser, product, disabled }: { currentU
             imageUrls: product.imageUrls || [],
             imageIds: product.imageIds || [],
         },
+        mode: "onChange",
     });
 
 

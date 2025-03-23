@@ -25,7 +25,8 @@ export const SignUpCard = () => {
             password: "",
             username: "",
             phoneNumber: ""
-        }
+        },
+        mode: "onChange",
     });
 
     const onSubmit = (values: z.infer<typeof signupSchema>) => {
