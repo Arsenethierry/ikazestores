@@ -61,7 +61,7 @@ export const createVirtualStoreAction = async (formData: CreateVirtualStoreParam
                 bannerIds: bannerImagesUploaded.map(file => file.id),
                 bannerUrls: bannerImagesUploaded.map(file => file.url),
                 storeLogoId: storeLogoUploaded.$id,
-                storeLogoIdUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
+                storeLogoUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
                 storeType: 'virtualStore',
                 subDomain: storeData.subDomain
             }
