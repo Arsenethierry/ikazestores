@@ -112,3 +112,20 @@ export const getDeliveryAddresses = async (customerId: string) => {
         return { documents: [], total: 0 };
     }
 };
+
+export const getAllCustomerOrders = async (customerId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+
+        const orders = await databases.listDocuments(
+            DATABASE_ID,
+            ORDER_ID,
+            [Query.equal("customerId", customerId)]
+        );
+
+        return orders
+    } catch (error) {
+        console.log("getDeliveryAddresses error: ", error);
+        return { documents: [], total: 0 };
+    }
+}

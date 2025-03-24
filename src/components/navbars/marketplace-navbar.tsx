@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { Input } from '../ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { CircleUser, Heart, LayoutDashboard, Loader, Settings, ShoppingCart, User } from 'lucide-react';
+import { CircleUser, Heart, LayoutDashboard, Loader, ShoppingBag, ShoppingCart, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { AllCategories } from './all-categories';
@@ -11,6 +10,7 @@ import { getAuthState } from '@/lib/user-label-permission';
 import { Suspense } from 'react';
 import { Badge } from '../ui/badge';
 import { getCart } from '@/lib/cart';
+import { SearchField } from '../search/search-field';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -41,10 +41,7 @@ export default async function MarketplaceNavbar() {
                         Ikaze<span className='text-yellow-400'>Online</span>
                     </Link>
 
-                    <Input
-                        placeholder='search products...'
-                        className='bg-white max-w-lg mr-5'
-                    />
+                    <SearchField />
                 </div>
                 <div className='flex gap-3 items-center'>
                     <Suspense fallback={<Loader className='size-5 animate-spin text-white m-auto' />}>
@@ -101,9 +98,12 @@ export default async function MarketplaceNavbar() {
                                             <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem>
-                                            <Settings />
-                                            <span>Settings</span>
-                                            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                                            <DropdownMenuItem className='cursor-pointer w-full'>
+                                                <Link href={'/my-orders'} className='w-full font-medium cursor-pointer inline-flex'>
+                                                    <ShoppingBag className='h-4 my-auto mr-2' />
+                                                    <span>My Orders</span>
+                                                </Link>
+                                            </DropdownMenuItem>
                                         </DropdownMenuItem>
                                         {(isPhysicalStoreOwner || isVirtualStoreOwner) && (
                                             <DropdownMenuItem className='cursor-pointer w-full'>

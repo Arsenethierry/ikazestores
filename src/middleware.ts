@@ -17,7 +17,10 @@ const PROTECTED_ROUTES = {
     },
     '/dashboard': {
         roles: [UserRole.VIRTUAL_STORE_OWNER],
-    }
+    },
+    // '/my-orders': {
+    //     roles: [UserRole.BUYER, UserRole.PHYSICAL_STORE_OWNER, UserRole.SYS_ADMIN, UserRole.VIRTUAL_STORE_OWNER]
+    // }
 } as any;
 
 const isProtectedRoute = (path: string) => {
