@@ -6,7 +6,7 @@ export default function MinimalNavbar() {
         <>
             <section className='main-container min-h-14 flex justify-between items-center bg-primary'>
                 <Link href={'/'} className='font-bold text-26 text-white'>
-                    Ikaze<span className='text-yellow-400'>Online</span>
+                    Ikaze<span className='text-yellow-400'>Stores</span>
                 </Link>
             </section>
         </>

@@ -13,7 +13,7 @@ import Link from "next/link";
 import React, { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: 'IkazeOnline | Hybrid Commerce Platform Bridging Physical & Digital Stores',
+  title: 'IkazeStores | Hybrid Commerce Platform Bridging Physical & Digital Stores',
   description: 'Transform retail spaces into digital revenue streams or launch virtual stores with zero inventory. Connect physical suppliers with digital entrepreneurs in real-time. Join 500+ vendors and 2.3k entrepreneurs.',
   keywords: [
     'hybrid commerce',

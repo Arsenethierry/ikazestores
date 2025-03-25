@@ -59,7 +59,7 @@ export default async function MarketplaceNavbar() {
                 </div>
 
                 <Link href={'/'} className='font-bold text-2xl text-white md:ml-0'>
-                    Ikaze<span className='text-yellow-400'>Online</span>
+                    Ikaze<span className='text-yellow-400'>Stores</span>
                 </Link>
 
                 {/* Desktop Search - Hidden on mobile */}
