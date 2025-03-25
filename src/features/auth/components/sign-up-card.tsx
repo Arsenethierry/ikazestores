@@ -5,18 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { signupSchema } from '../../../lib/schemas';
 import { useSignup } from '../mutations/use-signup';
 import { Separator } from '@/components/ui/separator';
-import { GoogleLogo } from '@/components/icons';
 import { PhoneInput } from '@/components/phone-input';
 import Link from 'next/link';
 import ErrorAlert from '@/components/error-alert';
+import { loginWithGoogle } from '@/lib/actions/auth.action';
+import { GoogleLogInButton } from './google-login-button';
 
 export const SignUpCard = () => {
+    const [googleLoginPending, setGoogleLoginPending] = useState(false);
+
     const { mutate, isPending, error } = useSignup();
     const form = useForm<z.infer<typeof signupSchema>>({
         resolver: zodResolver(signupSchema),
@@ -32,6 +35,13 @@ export const SignUpCard = () => {
     const onSubmit = (values: z.infer<typeof signupSchema>) => {
         mutate(values);
     }
+
+    const handleLoginWithGoogle = async () => {
+        setGoogleLoginPending(true);
+        await loginWithGoogle()
+        setGoogleLoginPending(false);
+    }
+
     return (
         <div className='w-full max-w-lg mx-auto md:p-8'>
             <Card className='w-full shadow-none space-y-4 border-0 sm:border sm:shadow-sm'>
@@ -105,18 +115,24 @@ export const SignUpCard = () => {
                                     </FormItem>
                                 )}
                             />
-                            <Button disabled={isPending} className='w-full' size={'lg'}>Sign Up</Button>
+                            <Button
+                                disabled={isPending || googleLoginPending}
+                                className='w-full'
+                                size={'lg'}
+                            >
+                                Sign Up
+                            </Button>
                         </form>
                     </Form>
-                    <div className="my-7 w-full hidden items-center justify-center overflow-hidden">
+                    <div className="my-7 w-full flex items-center justify-center overflow-hidden">
                         <Separator />
                         <span className="text-sm px-2">OR</span>
                         <Separator />
                     </div>
-                    <Button disabled={isPending} variant={'outline'} className="w-full hidden">
-                        <GoogleLogo />
-                        Continue with Google
-                    </Button>
+                    <GoogleLogInButton
+                        disabled={isPending || googleLoginPending}
+                        handler={handleLoginWithGoogle}
+                    />
                 </CardContent>
             </Card>
             <div className="mt-5 space-y-5">

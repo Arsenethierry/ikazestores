@@ -7,24 +7,28 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader } from 'lucide-react';
+import { CircleAlert, Loader } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { GoogleLogo } from '@/components/icons';
 import { loginSchema } from '../../../lib/schemas';
 import { useLogin } from '../mutations/use-login';
 import ErrorAlert from '@/components/error-alert';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { loginWithGoogle } from '@/lib/actions/auth.action';
+import { GoogleLogInButton } from './google-login-button';
 interface SignInCardProps {
     isModal?: boolean;
 }
 
 export const SignInCard = ({ isModal = false }: SignInCardProps) => {
+    const [googleLoginPending, setGoogleLoginPending] = useState(false);
     const searchParams = useSearchParams();
     const router = useRouter();
 
     const redirectUrl = searchParams.get('redirectUrl')
+    const googleLogInError = searchParams.get('google-auth-error');
 
     const { mutate, isPending, error } = useLogin();
 
@@ -50,11 +54,25 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
 
     }
 
+    const handleLoginWithGoogle = async () => {
+        setGoogleLoginPending(true);
+        await loginWithGoogle()
+        setGoogleLoginPending(false);
+    }
+
     return (
         <div className={cn(
             "w-full max-w-lg mx-auto sm:p-6 md:p-8",
             isModal && "py-5"
         )}>
+            {googleLogInError === "true" ? (
+                <div className="rounded-md border border-red-500/50 px-4 py-3 text-red-600 my-5">
+                    <p className="text-sm">
+                        <CircleAlert className="me-3 -mt-0.5 inline-flex opacity-60" size={16} aria-hidden="true" />
+                        Goodle login failed. Please try again
+                    </p>
+                </div>
+            ) : null}
             <Card className={cn(
                 "w-full shadow-none space-y-4 border-0 sm:border sm:shadow-sm",
                 isModal && "border-none shadow-none"
@@ -104,7 +122,7 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
                                 )}
                             />
                             <Button
-                                disabled={isPending}
+                                disabled={isPending || googleLoginPending}
                                 className='w-full h-11 sm:h-12 text-sm sm:text-base'
                                 size={'lg'}
                             >
@@ -113,19 +131,15 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
                             </Button>
                         </form>
                     </Form>
-                    <div className="my-6 items-center gap-3 hidden">
+                    <div className="my-6 items-center gap-3 flex">
                         <Separator className="flex-1" />
                         <span className="text-xs sm:text-sm text-muted-foreground">OR</span>
                         <Separator className="flex-1" />
                     </div>
-                    <Button
-                        variant={'outline'}
-                        className="w-full hidden h-11 sm:h-12 gap-2 text-sm sm:text-base"
-                        disabled={isPending}
-                    >
-                        <GoogleLogo />
-                        Continue with Google
-                    </Button>
+                    <GoogleLogInButton
+                        disabled={isPending || googleLoginPending}
+                        handler={handleLoginWithGoogle}
+                    />
                 </CardContent>
             </Card>
             <div className="mt-6 space-y-3 text-center">

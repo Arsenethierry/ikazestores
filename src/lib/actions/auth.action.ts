@@ -2,11 +2,12 @@
 "use server";
 
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { AUTH_COOKIE } from "../constants";
-import { DATABASE_ID, USER_DATA_ID } from "../env-config";
-import { ID, Query } from "node-appwrite";
+import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
+import { ID, OAuthProvider, Query } from "node-appwrite";
 import { SignInParams, SignUpParams } from "../types";
+import { redirect } from "next/navigation";
 
 export async function getLoggedInUser() {
     try {
@@ -116,7 +117,25 @@ export const getUserData = async (userId: string) => {
 
         return userData
     } catch (error) {
-        console.log("getUserData: ",error);
+        console.log("getUserData: ", error);
         return null;
+    }
+}
+
+export const loginWithGoogle = async () => {
+    try {
+        const headersList = await headers()
+        const origin = headersList.get("origin");
+
+        const { account } = await createSessionClient();
+        
+        await account.createOAuth2Token(
+            OAuthProvider.Google,
+            `${origin}/oauth`,
+            `${origin}/sign-in?google-auth-error=true`,
+        )
+    } catch (error) {
+        console.log("loginWithGoogle error: ", error);
+        redirect(`${MAIN_DOMAIN}/sign-in?google-auth-error=true`)
     }
 }
