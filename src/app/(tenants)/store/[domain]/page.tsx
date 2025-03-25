@@ -20,7 +20,7 @@ async function page({
             <Suspense fallback={<Skeleton />}>
                 <StoreCarousel carouselImages={store.documents[0].bannerUrls} />
             </Suspense>
-            <section className='main-container mt-2'>
+            <section className='main-container mt-2 md:block hidden'>
                 <div className='w-full p-5 border rounded-md'>
                     <div className="flex h-10 items-center justify-evenly space-x-4 text-sm">
                         <div className='inline-flex items-center gap-2'>
