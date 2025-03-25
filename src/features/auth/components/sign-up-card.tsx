@@ -33,14 +33,14 @@ export const SignUpCard = () => {
         mutate(values);
     }
     return (
-        <div className='h-max m-auto'>
-            <Card className='w-full md:w-[487px] shadow-none space-y-6'>
-                <CardHeader className='flex items-center justify-center text-center'>
-                    <CardTitle className='text-2xl'>
-                        Creaye an account
+        <div className='w-full max-w-md mx-auto md:p-8'>
+            <Card className='w-full shadow-none space-y-4 border-0 sm:border sm:shadow-sm'>
+                <CardHeader className='space-y-2 text-center'>
+                    <CardTitle className='text-xl sm:text-2xl font-semibold'>
+                        Create a new account
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                     {error && <ErrorAlert errorMessage={error?.message} />}
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -7,8 +7,10 @@ export default async function AuthLayout({
 }>) {
 
   return (
-    <div className="grid lg:grid-cols-2 min-h-screen">
-      {children}
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <div className="flex items-center justify-center p-2 md:p-8">
+        {children}
+      </div>
       <div className="auth-asset">
         <Image
           src="/images/auth-image.svg"

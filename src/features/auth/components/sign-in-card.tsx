@@ -52,19 +52,19 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
 
     return (
         <div className={cn(
-            "h-max m-auto",
+            "w-full max-w-md mx-auto sm:p-6 md:p-8",
             isModal && "py-5"
         )}>
             <Card className={cn(
-                "w-[487px] shadow-none space-y-6",
+                "w-full shadow-none space-y-4 border-0 sm:border sm:shadow-sm",
                 isModal && "border-none shadow-none"
             )}>
-                <CardHeader className='flex items-center justify-center text-center'>
-                    <CardTitle className='text-2xl'>
+                <CardHeader className='space-y-2 text-center'>
+                    <CardTitle className='text-xl sm:text-2xl font-semibold'>
                         Log In
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                     {error && <ErrorAlert errorMessage={error?.message} />}
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -73,9 +73,13 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email</FormLabel>
+                                        <FormLabel className="text-sm sm:text-base">Email</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Email" {...field} />
+                                            <Input
+                                                placeholder="Email"
+                                                {...field}
+                                                className="h-11 sm:h-12"
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -86,41 +90,57 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
                                 name="password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Password</FormLabel>
+                                        <FormLabel className="text-sm sm:text-base">Password</FormLabel>
                                         <FormControl>
-                                            <Input type="password" placeholder="Enter password" {...field} />
+                                            <Input
+                                                type="password"
+                                                placeholder="Enter password"
+                                                {...field}
+                                                className="h-11 sm:h-12"
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <Button disabled={isPending} className='w-full' size={'lg'}>
-                                <Loader className={isPending ? "animate-spin" : "hidden"} /> {" "}
+                            <Button
+                                disabled={isPending}
+                                className='w-full h-11 sm:h-12 text-sm sm:text-base'
+                                size={'lg'}
+                            >
+                                {isPending && <Loader className="animate-spin mr-2" />}
                                 Login
                             </Button>
                         </form>
                     </Form>
-                    <div className="my-7 w-full flex items-center justify-center overflow-hidden">
-                        <Separator />
-                        <span className="text-sm px-2">OR</span>
-                        <Separator />
+                    <div className="my-6 flex items-center gap-3">
+                        <Separator className="flex-1" />
+                        <span className="text-xs sm:text-sm text-muted-foreground">OR</span>
+                        <Separator className="flex-1" />
                     </div>
-                    <Button disabled={isPending} variant={'outline'} className="w-full">
+                    <Button
+                        variant={'outline'}
+                        className="w-full h-11 sm:h-12 gap-2 text-sm sm:text-base"
+                        disabled={isPending}
+                    >
                         <GoogleLogo />
                         Continue with Google
                     </Button>
                 </CardContent>
             </Card>
-            <div className="mt-5 space-y-5">
+            <div className="mt-6 space-y-3 text-center">
                 <Link
                     href="#"
-                    className="text-sm block underline text-muted-foreground text-center"
+                    className="text-xs sm:text-sm underline text-muted-foreground hover:text-foreground transition-colors"
                 >
                     Forgot your password?
                 </Link>
-                <p className="text-sm text-center">
-                    Don&apos;t have an account?
-                    <Link href="/sign-up" className="ml-1 underline text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                    Don&apos;t have an account?{" "}
+                    <Link
+                        href="/sign-up"
+                        className="underline hover:text-foreground transition-colors"
+                    >
                         Create account
                     </Link>
                 </p>
