@@ -2,9 +2,9 @@
 
 import { Input } from "../ui/input";
 
-export const SearchField = () => {
+export const SearchField = ({ mobile }: { mobile?: boolean }) => {
     return <Input
         placeholder='search products...'
-        className='bg-white max-w-lg mr-5'
+        className={`${mobile ? 'hidden' : 'bg-white max-w-lg mr-5'}`}
     />
 }

@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 export const AddToCartButton = ({ item }: { item: DocumentType }) => {
     const router = useRouter();
 
-    const { isPending, execute } = useAction(addToCart, {
+    const { isPending, executeAsync } = useAction(addToCart, {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success("Product added successfully")
@@ -34,7 +34,7 @@ export const AddToCartButton = ({ item }: { item: DocumentType }) => {
             imageUrl: item.imageUrls[0],
             quantity: 1,
         };
-        await execute(cartData)
+        await executeAsync(cartData)
     }
 
     return (

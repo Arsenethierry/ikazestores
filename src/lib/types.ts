@@ -69,3 +69,10 @@ export interface Cart {
     totalItems: number;
     totalPrice: number;
 };
+
+export type AuthStatus = {
+    isPhysicalStoreOwner: boolean;
+    isAuthenticated: boolean;
+    isVirtualStoreOwner: boolean;
+    isSystemAdmin: boolean;
+}

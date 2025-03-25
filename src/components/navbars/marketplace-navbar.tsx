@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { CircleUser, Heart, LayoutDashboard, Loader, ShoppingBag, ShoppingCart, User } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
+import { Loader, Menu, ShoppingCart } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
-import LogoutButton from '@/features/auth/components/logout-button';
 import { getAuthState } from '@/lib/user-label-permission';
 import { Suspense } from 'react';
 import { Badge } from '../ui/badge';
 import { getCart } from '@/lib/cart';
 import { SearchField } from '../search/search-field';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
+import { AccountDropdown } from './account-dropdown-menu';
+import { MobileMenuContent } from './mobile-menu-contents';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -24,134 +25,100 @@ export default async function MarketplaceNavbar() {
 
     return (
         <>
-            <div className='main-container flex justify-between items-center bg-primary font-sans text-white font-medium flex-between border-b border-blue-50/20 h-8'>
+            <div className='main-container hidden md:flex justify-between items-center bg-primary font-sans text-white font-medium flex-between border-b border-blue-50/20 h-8'>
                 <div className='flex gap-3'>
-                    <Link href={'/'}>Language: English</Link>
-                    <Link href={'/'}>currency</Link>
+                    <Link href={'/'} className='text-sm hover:text-white/80'>Language: English</Link>
+                    <Link href={'/'} className='text-sm hover:text-white/80'>Currency</Link>
                 </div>
                 <div className='flex gap-3'>
-                    <Link href={'/'}>About Us</Link>
-                    <Link href={'/'}>Contact Us</Link>
-                    <Link href={'/'}>FAQs</Link>
+                    <Link href={'/'} className='text-sm hover:text-white/80'>About Us</Link>
+                    <Link href={'/'} className='text-sm hover:text-white/80'>Contact Us</Link>
+                    <Link href={'/'} className='text-sm hover:text-white/80'>FAQs</Link>
                 </div>
             </div>
-            <div className='main-container flex justify-between items-center z-50 font-sans flex-between h-16 sticky top-0 bg-primary'>
-                <div className='flex gap-3 w-full'>
-                    <Link href={'/'} className='font-bold text-26 text-white'>
-                        Ikaze<span className='text-yellow-400'>Online</span>
-                    </Link>
 
+            <div className='main-container flex justify-between items-center z-50 font-sans flex-between h-16 sticky top-0 bg-primary px-4'>
+                {/* Mobile Menu Trigger */}
+                <div className='md:hidden'>
+                    <Sheet>
+                        <SheetTitle className="hidden"></SheetTitle>
+                        <SheetTrigger>
+                            <Menu className='text-white h-6 w-6' />
+                        </SheetTrigger>
+                        <SheetContent side="left" className="bg-primary text-white w-[300px]">
+                            <div className="flex flex-col gap-6 pt-8">
+                                <MobileMenuContent
+                                    isAuthenticated={isAuthenticated}
+                                    isPhysicalStoreOwner={isPhysicalStoreOwner}
+                                    isVirtualStoreOwner={isVirtualStoreOwner}
+                                    isSystemAdmin={isSystemAdmin}
+                                />
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+                </div>
+
+                <Link href={'/'} className='font-bold text-2xl text-white md:ml-0'>
+                    Ikaze<span className='text-yellow-400'>Online</span>
+                </Link>
+
+                {/* Desktop Search - Hidden on mobile */}
+                <div className='hidden md:flex gap-3 w-full max-w-xl mx-8'>
                     <SearchField />
                 </div>
+
                 <div className='flex gap-3 items-center'>
+                    {/* Mobile Search Trigger */}
+                    <div className='md:hidden'>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-screen max-w-full mt-2">
+                                <div className="p-4">
+                                    <SearchField mobile />
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
                     <Suspense fallback={<Loader className='size-5 animate-spin text-white m-auto' />}>
                         <Link href={'/cart'} className="relative cursor-pointer">
-                            <Avatar className='h-max max-w-8'>
-                                <AvatarImage src="/icons/shopping-cart.svg" alt="Kelly King" />
+                            <Avatar className='h-8 w-8'>
+                                <AvatarImage src="/icons/shopping-cart.svg" alt="Cart" />
                                 <AvatarFallback>
-                                    <ShoppingCart />
+                                    <ShoppingCart className='h-4 w-4' />
                                 </AvatarFallback>
                             </Avatar>
-                            <Badge className="flex flex-col items-center border-background absolute -top-1.5 left-full min-w-5 -translate-x-3.5 px-1">
+                            <Badge className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center">
                                 {cart.totalItems}
                             </Badge>
                         </Link>
                     </Suspense>
-                    <Link
-                        href={'/my-cart'}
-                        className={'text-white gap-1 font-bold inline-flex'}
-                    >
-                        <Avatar className='h-max w-max'>
-                            <AvatarImage sizes='4' width={22} src="/icons/heart.svg" />
-                            <AvatarFallback>
-                                <Heart />
-                            </AvatarFallback>
-                        </Avatar>
-                        <span className='hidden lg:block'>Favorite</span>
-                    </Link>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            {isAuthenticated ? (
-                                <Button variant={'ghost'} className='text-white font-medium cursor-pointer inline-flex w-max'>
-                                    <CircleUser className='h-4 m-auto' />
-                                    <span>My account</span>
-                                </Button>
-                            ) : (
-                                <Button variant={'ghost'} className='text-white cursor-pointer inline-flex w-max'>
-                                    <CircleUser />
-                                    <div className='flex flex-col text-xs items-start'>
-                                        <span>My account</span>
-                                        <span className='font-extralight text-xs'>Login / Register</span>
-                                    </div>
-                                </Button>
-                            )}
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56">
-                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <>
-                                    {isAuthenticated ? <>
-                                        <DropdownMenuItem>
-                                            <User />
-                                            <span>Profile</span>
-                                            <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                            <DropdownMenuItem className='cursor-pointer w-full'>
-                                                <Link href={'/my-orders'} className='w-full font-medium cursor-pointer inline-flex'>
-                                                    <ShoppingBag className='h-4 my-auto mr-2' />
-                                                    <span>My Orders</span>
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuItem>
-                                        {(isPhysicalStoreOwner || isVirtualStoreOwner) && (
-                                            <DropdownMenuItem className='cursor-pointer w-full'>
-                                                <Link href={'/admin'} className='w-full font-medium cursor-pointer inline-flex'>
-                                                    <LayoutDashboard className='h-4 my-auto' />
-                                                    <span>Dashboard</span>
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        )}
-                                        <DropdownMenuItem>
-                                            <LogoutButton />
-                                        </DropdownMenuItem>
-                                    </> : <>
-                                        <DropdownMenuItem className='cursor-pointer w-full'>
-                                            <Link href={'/sign-in'} className='w-full font-medium cursor-pointer inline-flex'>
-                                                <CircleUser className='h-4 my-auto' />
-                                                <span>Log In</span>
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className='cursor-pointer w-full'>
-                                            <Link href={'/sign-up'} className='w-full font-medium cursor-pointer inline-flex justify-items-start'>
-                                                <CircleUser className='h-4 my-auto' />
-                                                <span>Create account</span>
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    </>}
-                                </>
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    {isSystemAdmin && (
-                        <Link href={'/admin'} className='hover:underline w-max text-white hover:text-white/80'>Admin</Link>
-                    )}
-                </div>
-            </div >
 
-            <div className='main-container flex justify-between bg-primary font-sans flex-between text-white font-medium border-b border-blue-50/20 h-14'>
-                <div className='flex gap-3 items-center'>
-                    <AllCategories />
-                    <Link href={'/'}>Top Deals</Link>
-                    <Link href={'/'}>Deal of the day</Link>
-                    <Link href={'/'}>Men</Link>
-                    <Link href={'/'}>Women</Link>
+                    <AccountDropdown
+                        isAuthenticated={isAuthenticated}
+                        isPhysicalStoreOwner={isPhysicalStoreOwner}
+                        isVirtualStoreOwner={isVirtualStoreOwner}
+                        isSystemAdmin={isSystemAdmin}
+                    />
                 </div>
-                <div className='flex gap-3 items-center'>
+            </div>
+
+            <div className='main-container hidden md:flex justify-between bg-primary font-sans flex-between text-white font-medium border-b border-blue-50/20 h-14'>
+                <div className='flex gap-6 items-center'>
+                    <AllCategories />
+                    <Link href={'/'} className='hover:text-white/80'>Top Deals</Link>
+                    <Link href={'/'} className='hover:text-white/80'>Deal of the day</Link>
+                    <Link href={'/'} className='hover:text-white/80'>Men</Link>
+                    <Link href={'/'} className='hover:text-white/80'>Women</Link>
+                </div>
+                <div className='flex gap-6 items-center'>
                     <NavigationMenuCategories />
-                    <Link href={'/sell'} target='_blank' className='hover:underline hover:text-white/80'>Start selling</Link>
-                    <Link href={'/explore-stores'} className='hover:underline hover:text-white/80'>Explore</Link>
+                    <Link href={'/sell'} className='hover:text-white/80'>Start selling</Link>
+                    <Link href={'/explore-stores'} className='hover:text-white/80'>Explore</Link>
                 </div>
             </div>
         </>
