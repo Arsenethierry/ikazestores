@@ -32,7 +32,7 @@ const sections = [
 
 export const HomePageFooter = () => {
     return (
-        <section className="py-16 main-container mx-auto">
+        <section className="py-16 main-container max-w-[1540px] mx-auto">
             <div className="container">
                 <footer>
                     <div className="flex flex-col items-center justify-between gap-10 text-center lg:flex-row lg:text-left">
@@ -44,7 +44,7 @@ export const HomePageFooter = () => {
                                         alt="logo"
                                         className="h-11"
                                     /> */}
-                                    <p className="text-3xl font-semibold">DropConnect</p>
+                                    <p className="text-3xl font-semibold">IkazeStores</p>
                                 </span>
                                 <p className="mt-6 text-sm text-muted-foreground">
                                     Connect physical and virtual stores in one marketplace. Create your virtual store, import products, and start selling without inventory.
@@ -92,7 +92,7 @@ export const HomePageFooter = () => {
                         </div>
                     </div>
                     <div className="mt-12 flex flex-col justify-between gap-4 border-t pt-8 text-center text-sm font-medium text-muted-foreground lg:flex-row lg:items-center lg:text-left">
-                        <p>© 2025 DropConnect. All rights reserved.</p>
+                        <p>© 2025 IkazeStores. All rights reserved.</p>
                         <ul className="flex flex-wrap justify-center gap-4 lg:justify-start">
                             <li className="hover:text-primary">
                                 <a href="#"> Terms of Service</a>

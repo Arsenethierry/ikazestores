@@ -62,21 +62,21 @@ export default async function Home() {
     }
 
     return (
-      <div className="">
+      <div>
         <StoreCarousel />
         {virtualStores.documents.map((store) =>
           store.vitualProducts?.length > 0 ? (
-            <div className={`main-container p-2`} key={store.$id}>
-              <div className="flex justify-between p-2 mb-1 border-t-2 rounded-t-md bg-secondary items-center">
+            <div className={`md:main-container md:px-5 max-w-[1540px] mx-auto py-3 px-1`} key={store.$id}>
+              <div className="flex justify-between mb-1 border-t-2 rounded-t-md bg-secondary items-center">
                 <div className="flex gap-2">
                   <Avatar>
                     <AvatarImage src={store?.storeLogoIdUrl} alt="@shadcn" />
                     <AvatarFallback>{getStoreInitials(store.storeName)}</AvatarFallback>
                   </Avatar>
-                  <h1 className="text-xl font-bold capitalize">{store.storeName}</h1>
+                  <h1 className="text-xl font-bold capitalize truncate">{store.storeName}</h1>
                 </div>
                 <div className="flex gap-2">
-                  <Button>Subscribe</Button>
+                  <Button className="hidden md:block">Subscribe</Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button size="icon" variant="outline" aria-label="Select theme">
