@@ -52,7 +52,7 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
 
     return (
         <div className={cn(
-            "w-full max-w-md mx-auto sm:p-6 md:p-8",
+            "w-full max-w-lg mx-auto sm:p-6 md:p-8",
             isModal && "py-5"
         )}>
             <Card className={cn(
@@ -113,14 +113,14 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
                             </Button>
                         </form>
                     </Form>
-                    <div className="my-6 flex items-center gap-3">
+                    <div className="my-6 items-center gap-3 hidden">
                         <Separator className="flex-1" />
                         <span className="text-xs sm:text-sm text-muted-foreground">OR</span>
                         <Separator className="flex-1" />
                     </div>
                     <Button
                         variant={'outline'}
-                        className="w-full h-11 sm:h-12 gap-2 text-sm sm:text-base"
+                        className="w-full hidden h-11 sm:h-12 gap-2 text-sm sm:text-base"
                         disabled={isPending}
                     >
                         <GoogleLogo />

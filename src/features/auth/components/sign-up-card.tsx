@@ -33,7 +33,7 @@ export const SignUpCard = () => {
         mutate(values);
     }
     return (
-        <div className='w-full max-w-md mx-auto md:p-8'>
+        <div className='w-full max-w-lg mx-auto md:p-8'>
             <Card className='w-full shadow-none space-y-4 border-0 sm:border sm:shadow-sm'>
                 <CardHeader className='space-y-2 text-center'>
                     <CardTitle className='text-xl sm:text-2xl font-semibold'>
@@ -108,12 +108,12 @@ export const SignUpCard = () => {
                             <Button disabled={isPending} className='w-full' size={'lg'}>Sign Up</Button>
                         </form>
                     </Form>
-                    <div className="my-7 w-full flex items-center justify-center overflow-hidden">
+                    <div className="my-7 w-full hidden items-center justify-center overflow-hidden">
                         <Separator />
                         <span className="text-sm px-2">OR</span>
                         <Separator />
                     </div>
-                    <Button disabled={isPending} variant={'outline'} className="w-full">
+                    <Button disabled={isPending} variant={'outline'} className="w-full hidden">
                         <GoogleLogo />
                         Continue with Google
                     </Button>
