@@ -55,9 +55,21 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
     }
 
     const handleLoginWithGoogle = async () => {
-        setGoogleLoginPending(true);
-        await loginWithGoogle()
-        setGoogleLoginPending(false);
+        try {
+            setGoogleLoginPending(true);
+            const { url } = await loginWithGoogle();
+
+            if (typeof window !== "undefined" && url) {
+                // Perform client-side redirect to Google auth page
+                window.location.href = url;
+            }
+        } catch (error) {
+            console.error("Google login failed:", error);
+            setGoogleLoginPending(false);
+            window.location.href = `/sign-in?google-auth-error=true`;
+        } finally {
+            setGoogleLoginPending(false);
+        }
     }
 
     return (

@@ -122,20 +122,42 @@ export const getUserData = async (userId: string) => {
     }
 }
 
+// export const loginWithGoogle = async () => {
+//     try {
+//         const headersList = await headers()
+//         const origin = headersList.get("origin");
+
+//         const { account } = await createSessionClient();
+
+//         const results = await account.createOAuth2Token(
+//             OAuthProvider.Google,
+//             `${origin}/oauth`,
+//             `${origin}/sign-in?google-auth-error=true`,
+//         );
+
+//         console.log("loginWithGoogle results: ",results);
+//     } catch (error) {
+//         console.log("loginWithGoogle error: ", error);
+//         redirect(`${MAIN_DOMAIN}/sign-in?google-auth-error=true`)
+//     }
+// }
+
 export const loginWithGoogle = async () => {
     try {
         const headersList = await headers()
-        const origin = headersList.get("origin");
+        const origin = headersList.get("origin") || MAIN_DOMAIN;
 
         const { account } = await createSessionClient();
         
-        await account.createOAuth2Token(
+        const authorizationUrl = await account.createOAuth2Token(
             OAuthProvider.Google,
-            `${origin}/oauth`,
-            `${origin}/sign-in?google-auth-error=true`,
-        )
+            `${origin}/api/oauth/callback`,
+            `${origin}/sign-in?google-auth-error=true`
+        );
+
+        return { url: authorizationUrl };
     } catch (error) {
-        console.log("loginWithGoogle error: ", error);
-        redirect(`${MAIN_DOMAIN}/sign-in?google-auth-error=true`)
+        console.error("Google OAuth initiation failed:", error);
+        redirect(`${MAIN_DOMAIN}/sign-in?google-auth-error=true`);
     }
-}
+};
