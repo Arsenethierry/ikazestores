@@ -14,8 +14,6 @@ import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DeliveryAddress } from "./order-steps/delivery-address";
-// import { OrderSummaryStep } from "./order-steps/order-summary";
-import { Cart } from "@/lib/types";
 import { PaymentMethod } from "./order-steps/payment-step";
 import SpinningLoader from "@/components/spinning-loader";
 import { useForm } from "react-hook-form";
@@ -30,8 +28,10 @@ import { useAction } from "next-safe-action/hooks";
 import { createOrder } from "../actions/order-actions";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { useCartStore } from "@/features/cart/use-cart-store";
 
-export const PlaceOrderPage = ({ cartItems }: { cartItems: Cart }) => {
+export const PlaceOrderPage = () => {
+    const { items, totalPrice } = useCartStore()
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -143,10 +143,10 @@ export const PlaceOrderPage = ({ cartItems }: { cartItems: Cart }) => {
     }
 
     const selectedIds = searchParams.get("products")?.split(",") || [];
-    const selectedItems = cartItems.items.filter(item => selectedIds.includes(item.id));
+    const selectedItems = items.filter(item => selectedIds.includes(item.id));
 
     const handleSubmitOrder = async (data: z.infer<typeof OrderFormSchema>) => {
-        const payload = { selectedItems, totalAmount: cartItems.totalPrice, ...data }
+        const payload = { selectedItems, totalAmount: totalPrice, ...data }
         execute(payload)
     }
 

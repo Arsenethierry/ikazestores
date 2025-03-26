@@ -3,28 +3,26 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { addToCart } from "../cart.actions";
 import { DocumentType } from "@/lib/types";
-import { useAction } from "next-safe-action/hooks";
+import { useCartStore } from "../use-cart-store";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 export const AddToCartButton = ({ item }: { item: DocumentType }) => {
-    const router = useRouter();
+    const { addToCart } = useCartStore.getState()
 
-    const { isPending, executeAsync } = useAction(addToCart, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success("Product added successfully")
-                router.push("/cart");
-            } else if (data?.error) {
-                toast.error(data?.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    })
+    // const { isPending, executeAsync } = useAction(addToCart, {
+    //     onSuccess: ({ data }) => {
+    //         if (data?.success) {
+    //             toast.success("Product added successfully")
+    //             router.push("/cart");
+    //         } else if (data?.error) {
+    //             toast.error(data?.error)
+    //         }
+    //     },
+    //     onError: ({ error }) => {
+    //         toast.error(error.serverError)
+    //     }
+    // })
 
     const handleAddToCart = async () => {
         const cartData = {
@@ -34,7 +32,8 @@ export const AddToCartButton = ({ item }: { item: DocumentType }) => {
             imageUrl: item.imageUrls[0],
             quantity: 1,
         };
-        await executeAsync(cartData)
+        await addToCart(cartData)
+        toast("Product added to cart successfully")
     }
 
     return (
@@ -46,7 +45,6 @@ export const AddToCartButton = ({ item }: { item: DocumentType }) => {
                         variant="ghost"
                         size="icon"
                         onClick={handleAddToCart}
-                        disabled={isPending}
                         className="rounded-full bg-white/80 transition-all duration-300 ease-in-out hover:bg-white hover:scale-110 active:scale-95"
                     >
                         <ShoppingCart className="h-4 w-4 text-gray-500 transition-colors duration-300 ease-in-out group-hover:text-gray-800" />

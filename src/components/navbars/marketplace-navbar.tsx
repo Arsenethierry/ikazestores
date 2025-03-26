@@ -1,17 +1,15 @@
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Loader, Menu, ShoppingCart } from 'lucide-react';
+import { Loader, Menu } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import { getAuthState } from '@/lib/user-label-permission';
 import { Suspense } from 'react';
-import { Badge } from '../ui/badge';
-import { getCart } from '@/lib/cart';
 import { SearchField } from '../search/search-field';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { AccountDropdown } from './account-dropdown-menu';
 import { MobileMenuContent } from './mobile-menu-contents';
+import { CartNavButton } from '@/features/cart/components/cart-navbar-button';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -20,8 +18,6 @@ export default async function MarketplaceNavbar() {
         isVirtualStoreOwner,
         isPhysicalStoreOwner
     } = await getAuthState();
-
-    const cart = await getCart();
 
     return (
         <>
@@ -85,17 +81,7 @@ export default async function MarketplaceNavbar() {
                     </div>
 
                     <Suspense fallback={<Loader className='size-5 animate-spin text-white m-auto' />}>
-                        <Link href={'/cart'} className="relative cursor-pointer">
-                            <Avatar className='h-8 w-8'>
-                                <AvatarImage src="/icons/shopping-cart.svg" alt="Cart" />
-                                <AvatarFallback>
-                                    <ShoppingCart className='h-4 w-4' />
-                                </AvatarFallback>
-                            </Avatar>
-                            <Badge className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center">
-                                {cart.totalItems}
-                            </Badge>
-                        </Link>
+                        <CartNavButton />
                     </Suspense>
 
                     <AccountDropdown

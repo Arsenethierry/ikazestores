@@ -3,12 +3,13 @@
 import { CartItem } from "@/lib/types"
 import { Button } from "../../../components/ui/button"
 import { Minus, Plus, Trash } from 'lucide-react';
-import { removeFromCart, updateCartItemQuantity } from "../cart.actions";
+import { useCartStore } from "../use-cart-store";
 
 export const DecreaseCartItemQuantity = ({ item }: { item: CartItem }) => {
+    const { updateItemQuantity } = useCartStore();
 
-    const reduceCartItemQuantity = async () => {
-        await updateCartItemQuantity(item.id, item.quantity - 1)
+    const reduceCartItemQuantity = () => {
+        updateItemQuantity(item.id, item.quantity - 1)
     }
 
     return <Button
@@ -22,8 +23,10 @@ export const DecreaseCartItemQuantity = ({ item }: { item: CartItem }) => {
     </Button>
 }
 export const IncreaseCartItemQuantity = ({ item }: { item: CartItem }) => {
-    const increaseCartItemQuantity = async () => {
-        await updateCartItemQuantity(item.id, item.quantity + 1)
+    const { updateItemQuantity } = useCartStore();
+
+    const increaseCartItemQuantity = () => {
+        updateItemQuantity(item.id, item.quantity + 1)
     }
 
     return <Button
@@ -38,8 +41,10 @@ export const IncreaseCartItemQuantity = ({ item }: { item: CartItem }) => {
 }
 
 export const RemoveCartItem = ({ item }: { item: CartItem }) => {
-    const deleteCartItem = async () => {
-        await removeFromCart(item.id)
+    const { removeFromCart } = useCartStore();
+
+    const deleteCartItem = () => {
+        removeFromCart(item.id)
     }
 
     return <Button

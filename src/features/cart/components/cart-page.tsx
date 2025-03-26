@@ -2,23 +2,32 @@
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Cart } from '@/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { DecreaseCartItemQuantity, IncreaseCartItemQuantity, RemoveCartItem } from './cart-actions-buttons';
 import { Button } from '@/components/ui/button';
+import { useCartStore } from '../use-cart-store';
+import { NoItemsCard } from '@/components/no-items-card';
 
-export const CartPage = ({ cartItems }: { cartItems: Cart }) => {
+export const CartPage = () => {
+    const { items, totalItems } = useCartStore();
     const router = useRouter();
-    
-    const [selectedItems, setSelectedItems] = useState<string[]>(cartItems.items.map(item => item.id));
+    const [selectedItems, setSelectedItems] = useState<string[]>(items.map(item => item.id));
 
-    const selectedItemsData = cartItems.items.filter(item => selectedItems.includes(item.id));
+    if (totalItems === 0) {
+        return (
+            <div className='ppy-10 md:py-20'>
+                <NoItemsCard />
+            </div>
+        )
+    }
+
+
+    const selectedItemsData = items.filter(item => selectedItems.includes(item.id));
     const selectedTotalItems = selectedItemsData.reduce((acc, item) => acc + item.quantity, 0);
     const subtotal = selectedItemsData.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const shipping = subtotal > 50 ? 0 : 5.99;
-    const total = subtotal + shipping;
+    const total = subtotal;
 
     const handleCheckedChange = (itemId: string) => (checked: boolean) => {
         setSelectedItems(prev =>
@@ -33,7 +42,7 @@ export const CartPage = ({ cartItems }: { cartItems: Cart }) => {
     return (
         <div className='grid md:grid-cols-3 gap-5 py-10 md:py-5 px-4 max-w-7xl mx-auto'>
             <div className='md:col-span-2 flex flex-col gap-5'>
-                {cartItems.items.map(item => (
+                {items.map(item => (
                     <Card key={item.id} className='shadow-sm hover:shadow-md transition-shadow'>
                         <CardContent className='flex items-center p-4 gap-4'>
                             <Checkbox
@@ -82,7 +91,7 @@ export const CartPage = ({ cartItems }: { cartItems: Cart }) => {
                             </div>
                             <div className='flex justify-between'>
                                 <span>Shipping</span>
-                                <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                                <span>FREE</span>
                             </div>
                         </div>
 
