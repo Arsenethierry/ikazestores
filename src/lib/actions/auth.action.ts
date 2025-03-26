@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
@@ -6,8 +5,16 @@ import { cookies, headers } from "next/headers";
 import { AUTH_COOKIE } from "../constants";
 import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
 import { ID, OAuthProvider, Query } from "node-appwrite";
-import { SignInParams, SignUpParams } from "../types";
+import { SignUpParams } from "../types";
 import { redirect } from "next/navigation";
+import { createSafeActionClient } from "next-safe-action";
+import { loginSchema } from "../schemas";
+
+const action = createSafeActionClient({
+    handleServerError: (error) => {
+        return error.message
+    },
+})
 
 export async function getLoggedInUser() {
     try {
@@ -18,13 +25,64 @@ export async function getLoggedInUser() {
     }
 }
 
-export const logInAction = async ({ email, password }: SignInParams) => {
-    try {
+export const logInAction = action
+    .schema(loginSchema)
+    .action(async ({ parsedInput: { email, password } }) => {
+        try {
+            const { account } = await createAdminClient();
+            const session = await account.createEmailPasswordSession(email, password);
 
-        const { account } = await createAdminClient();
+            const cookieStore = await cookies();
+
+            cookieStore.set(AUTH_COOKIE, session.secret, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'strict',
+                secure: true,
+            });
+
+            return { success: "You are logged in.", session };
+        } catch (error) {
+            console.error('signIn user action Error', error);
+            return { error: error instanceof Error ? error.message : "Failed to create product" };
+        }
+    })
+
+export async function signUpAction(formData: SignUpParams) {
+    try {
+        const { email, password, username, phoneNumber } = formData;
+        const { account, databases, users } = await createAdminClient();
+
+        const isExistingUser = await users.list(
+            [
+                Query.equal("email", [email])
+            ]
+        );
+
+        if (isExistingUser.total > 0) throw new Error("Email already exists")
+
+        const newAcc = await account.create(
+            ID.unique(),
+            email,
+            password,
+            username
+        );
+
+        await databases.createDocument(
+            DATABASE_ID,
+            USER_DATA_ID,
+            newAcc.$id,
+            {
+                fullName: username,
+                email,
+                // role: 'PHYSICAL_STORE_OWNER',
+                phoneNumber
+            }
+        )
         const session = await account.createEmailPasswordSession(email, password);
 
         const cookieStore = await cookies();
+
 
         cookieStore.set(AUTH_COOKIE, session.secret, {
             path: '/',
@@ -33,58 +91,10 @@ export const logInAction = async ({ email, password }: SignInParams) => {
             secure: true,
         });
 
-        return session
-    } catch (error: any) {
-        console.error('signIn user action Error', error);
-        // eslint-disable-next-line prefer-const
-        let errorMessage = "An unexpected error occurred";
-        throw new Error(error?.message ?? errorMessage);
+        return newAcc;
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Failed to create account" };
     }
-}
-
-export async function signUpAction(formData: SignUpParams) {
-    const { email, password, username, phoneNumber } = formData;
-    const { account, databases, users } = await createAdminClient();
-
-    const isExistingUser = await users.list(
-        [
-            Query.equal("email", [email])
-        ]
-    );
-
-    if (isExistingUser.total > 0) throw new Error("Email already exists")
-
-    const newAcc = await account.create(
-        ID.unique(),
-        email,
-        password,
-        username
-    );
-
-    await databases.createDocument(
-        DATABASE_ID,
-        USER_DATA_ID,
-        newAcc.$id,
-        {
-            fullName: username,
-            email,
-            // role: 'PHYSICAL_STORE_OWNER',
-            phoneNumber
-        }
-    )
-    const session = await account.createEmailPasswordSession(email, password);
-
-    const cookieStore = await cookies();
-
-
-    cookieStore.set(AUTH_COOKIE, session.secret, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: true,
-    });
-
-    return newAcc;
 }
 
 export const logoutCurrentUser = async () => {
@@ -148,7 +158,7 @@ export const loginWithGoogle = async () => {
         const origin = headersList.get("origin") || MAIN_DOMAIN;
 
         const { account } = await createSessionClient();
-        
+
         const authorizationUrl = await account.createOAuth2Token(
             OAuthProvider.Google,
             `${origin}/api/oauth/callback`,

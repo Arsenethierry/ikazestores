@@ -12,12 +12,13 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { loginSchema } from '../../../lib/schemas';
-import { useLogin } from '../mutations/use-login';
 import ErrorAlert from '@/components/error-alert';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { loginWithGoogle } from '@/lib/actions/auth.action';
+import { logInAction, loginWithGoogle } from '@/lib/actions/auth.action';
 import { GoogleLogInButton } from './google-login-button';
+import { useAction } from 'next-safe-action/hooks';
+import { toast } from 'sonner';
 interface SignInCardProps {
     isModal?: boolean;
 }
@@ -30,7 +31,24 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
     const redirectUrl = searchParams.get('redirectUrl')
     const googleLogInError = searchParams.get('google-auth-error');
 
-    const { mutate, isPending, error } = useLogin();
+    // const { mutate, isPending, error } = useLogin();
+    const { execute, isPending, result } = useAction(logInAction, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data?.success)
+                if (redirectUrl) {
+                    router.push(redirectUrl)
+                } else {
+                    router.push("/")
+                }
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
 
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
@@ -42,15 +60,7 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
     });
 
     const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-        mutate(values, {
-            onSuccess: () => {
-                if (redirectUrl) {
-                    router.push(redirectUrl)
-                } else {
-                    router.push("/")
-                }
-            }
-        });
+        execute(values);
 
     }
 
@@ -95,7 +105,7 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {error && <ErrorAlert errorMessage={error?.message} />}
+                    {result?.data?.error && <ErrorAlert errorMessage={result?.data?.error} />}
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <FormField
