@@ -67,10 +67,12 @@ export const StoreQuickActions = ({ store }: StoreTypes) => {
                         <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
                         Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleNavigateStore}>
-                        <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
-                        Go to store
-                    </DropdownMenuItem>
+                    {store.storeType === 'virtualStore' && (
+                        <DropdownMenuItem onClick={handleNavigateStore}>
+                            <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
+                            Go to store
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                         onClick={handleDeleteStore}
                         className="text-destructive focus:text-destructive cursor-pointer"

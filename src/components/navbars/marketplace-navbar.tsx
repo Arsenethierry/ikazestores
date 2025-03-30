@@ -16,7 +16,7 @@ export default async function MarketplaceNavbar() {
         isSystemAdmin,
         isAuthenticated,
         isVirtualStoreOwner,
-        isPhysicalStoreOwner
+        isPhysicalStoreOwner,
     } = await getAuthState();
 
     return (
@@ -26,6 +26,7 @@ export default async function MarketplaceNavbar() {
                     <Link href={'/'} className='text-sm hover:text-white/80'>Language: English</Link>
                     <Link href={'/'} className='text-sm hover:text-white/80'>Currency</Link>
                 </div>
+
                 <div className='flex gap-3'>
                     <Link href={'/'} className='text-sm hover:text-white/80'>About Us</Link>
                     <Link href={'/'} className='text-sm hover:text-white/80'>Contact Us</Link>
@@ -34,6 +35,7 @@ export default async function MarketplaceNavbar() {
             </div>
 
             <div className='main-container flex justify-between items-center z-50 font-sans flex-between h-16 sticky top-0 bg-primary px-4'>
+                {/* {user && !(user.emailVerification) && <VerifyUserAlert />} */}
                 {/* Mobile Menu Trigger */}
                 <div className='md:hidden'>
                     <Sheet>

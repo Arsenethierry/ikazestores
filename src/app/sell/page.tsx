@@ -89,7 +89,7 @@ const SellPage = () => {
                                 key={index}
                                 className="p-6 bg-background rounded-xl border hover:shadow-md transition-shadow duration-300"
                             >
-                                <metric.icon className="h-8 w-8 mb-4 text-primary" />
+                                <metric.icon className="h-8 w-8 mb-4 text-primary mx-auto" />
                                 <h3 className="text-2xl font-bold">{metric.value}</h3>
                                 <p className="text-muted-foreground mt-1">{metric.label}</p>
                             </div>

@@ -2,6 +2,7 @@ import { AccessDeniedCard } from '@/components/access-denied-card';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PhyscalStoreCard } from '@/features/stores/components/physical-store-card';
 import { StoreCard } from '@/features/stores/components/store-card';
 import { getAllPshyicalStores, getAllPshyicalStoresByOwnerId } from '@/lib/actions/physical-store.action';
 import { getAllVirtualStores, getAllVirtualStoresByOwnerId } from '@/lib/actions/vitual-store.action';
@@ -16,7 +17,7 @@ const AllStoresPage = async () => {
         user
     } = await getAuthState();
 
-    if(!user) return (
+    if (!user) return (
         <AccessDeniedCard />
     )
 
@@ -58,7 +59,7 @@ const AllStoresPage = async () => {
                         value={"physicalStores"}
                         className="rounded-none bg-background h-full data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
                     >
-                        Physical Stores
+                        Physical Vendors
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent key={"virtualStores"} value={"virtualStores"}>
@@ -79,10 +80,10 @@ const AllStoresPage = async () => {
                 <TabsContent key={"physicalStores"} value={"physicalStores"}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                         {physicalStores && physicalStores.total > 0 ? physicalStores.documents.map((store) => (
-                            <StoreCard
-                                key={store.$id}
+                            <PhyscalStoreCard
                                 store={store}
                                 currentUser={user}
+                                key={store.$id}
                             />
                         )) : (
                             <Card className='py-10'>

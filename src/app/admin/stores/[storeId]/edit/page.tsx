@@ -3,7 +3,7 @@ import { PhysicalStoreForm } from '@/features/stores/components/physical-store-f
 import { VirtualStoreForm } from '@/features/stores/components/vitual-store-form ';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
 import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState, isStoreOwner } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
@@ -28,14 +28,14 @@ async function EditStorePage({
         redirect("/admin/stores/new")
     }
 
-    const isStoreOwner = user && user?.$id === currentStore.owner.$id
+    const isOwner = isStoreOwner(user, currentStore)
 
     return (
         <div>
-            {(isVirtualStoreOwner && isStoreOwner) ? (
+            {(isVirtualStoreOwner && isOwner) ? (
                 <VirtualStoreForm currentUser={user} initialValues={currentStore} />
-            ) : (isPhysicalStoreOwner && isStoreOwner) ? (
-                <PhysicalStoreForm currentUser={user} />
+            ) : (isPhysicalStoreOwner && isOwner) ? (
+                <PhysicalStoreForm currentUser={user} initialValues={currentStore} />
             ) : <AccessDeniedCard />}
         </div>
     );

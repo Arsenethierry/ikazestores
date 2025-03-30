@@ -31,7 +31,6 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
     const redirectUrl = searchParams.get('redirectUrl')
     const googleLogInError = searchParams.get('google-auth-error');
 
-    // const { mutate, isPending, error } = useLogin();
     const { execute, isPending, result } = useAction(logInAction, {
         onSuccess: ({ data }) => {
             if (data?.success) {

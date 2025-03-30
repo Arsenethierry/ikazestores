@@ -1,7 +1,8 @@
+import { PhyscalStoreCard } from '@/features/stores/components/physical-store-card';
 import { StoreCard } from '@/features/stores/components/store-card';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
 import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState, isStoreOwner } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
@@ -26,18 +27,23 @@ export default async function StoreAdminPage({
         redirect("/admin/stores/new")
     }
 
-    const isStoreOwner = user && user?.$id === currentStore.owner.$id
-
-    if(!isStoreOwner) {
+    if (!isStoreOwner(user, currentStore)) {
         redirect("/admin")
     }
-    
+
     return (
         <div>
-            <StoreCard
-                store={currentStore}
-                currentUser={user}
-            />
+            {isPhysicalStoreOwner ? (
+                <PhyscalStoreCard
+                    store={currentStore}
+                    currentUser={user}
+                />
+            ) : (
+                <StoreCard
+                    store={currentStore}
+                    currentUser={user}
+                />
+            )}
         </div>
     );
 }

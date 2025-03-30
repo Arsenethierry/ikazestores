@@ -3,13 +3,13 @@
 import { ID, Query } from "node-appwrite";
 import { createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
-import { CreateVirtualStoreParams } from "../types";
 import { AppwriteRollback } from "./rollback";
 import { updateUserLabels } from "./user-labels";
 import { UserRole } from "../constants";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
-import { updateVirtualStoreFormSchema } from "../schemas";
+import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "../schemas";
+import { getUserLocale } from "./auth.action";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -17,64 +17,75 @@ const action = createSafeActionClient({
     }
 })
 
-export const createVirtualStoreAction = async (formData: CreateVirtualStoreParams) => {
-    const { storeBanner, storeLogo, ...storeData } = formData;
-    const { databases, storage } = await createSessionClient();
-    const rollback = new AppwriteRollback(storage, databases);
-    try {
+export const createVirtualStoreAction = action
+    .use(authMiddleware)
+    .schema(createVirtualStoreFormSchema)
+    .action(async ({ parsedInput: {
+        storeBanner,
+        storeDomain,
+        storeLogo,
+        storeName,
+        desccription,
+        storeBio,
+    }, ctx }) => {
+        const { databases, storage, user } = ctx
+        const rollback = new AppwriteRollback(storage, databases);
 
-        const bannerImagesUploaded = await Promise.all(
-            storeBanner?.map(async (file) => {
-                const fileId = ID.unique();
+        try {
+            const bannerImagesUploaded = await Promise.all(
+                storeBanner?.map(async (file) => {
+                    const fileId = ID.unique();
 
-                const uploadedFile = await storage.createFile(
-                    STORE_BUCKET_ID,
-                    fileId,
-                    file
-                );
-                await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id);
-                return {
-                    id: uploadedFile.$id,
-                    name: uploadedFile.name,
-                    url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${uploadedFile.$id}/view?project=${APPWRITE_PROJECT_ID}`
-                };
-            }) || []
-        );
+                    const uploadedFile = await storage.createFile(
+                        STORE_BUCKET_ID,
+                        fileId,
+                        file
+                    );
+                    await rollback.trackFile(STORE_BUCKET_ID, uploadedFile.$id);
+                    return {
+                        id: uploadedFile.$id,
+                        name: uploadedFile.name,
+                        url: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${uploadedFile.$id}/view?project=${APPWRITE_PROJECT_ID}`
+                    };
+                }) || []
+            );
+            const storeLogoUploaded = await storage.createFile(
+                STORE_BUCKET_ID,
+                ID.unique(),
+                storeLogo!
+            );
 
-        const storeLogoUploaded = await storage.createFile(
-            STORE_BUCKET_ID,
-            ID.unique(),
-            storeLogo!
-        );
+            await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
 
-        await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
+            await updateUserLabels(user.$id, [UserRole.VIRTUAL_STORE_OWNER])
 
-        await updateUserLabels(storeData.ownerId, [UserRole.VIRTUAL_STORE_OWNER])
+            const newVirtualStore = await databases.createDocument(
+                DATABASE_ID,
+                VIRTUAL_STORE_ID,
+                ID.unique(),
+                {
+                    storeName: storeName,
+                    owner: user.$id,
+                    bannerIds: bannerImagesUploaded.map(file => file.id),
+                    bannerUrls: bannerImagesUploaded.map(file => file.url),
+                    storeLogoId: storeLogoUploaded.$id,
+                    storeLogoUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
+                    storeType: 'virtualStore',
+                    subDomain: storeDomain,
+                    locale: (await getUserLocale())?.country,
+                    desccription,
+                    storeBio
+                }
+            );
+            await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
 
-        const newVirtualStore = await databases.createDocument(
-            DATABASE_ID,
-            VIRTUAL_STORE_ID,
-            ID.unique(),
-            {
-                storeName: storeData.storeName,
-                owner: storeData.ownerId,
-                bannerIds: bannerImagesUploaded.map(file => file.id),
-                bannerUrls: bannerImagesUploaded.map(file => file.url),
-                storeLogoId: storeLogoUploaded.$id,
-                storeLogoUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
-                storeType: 'virtualStore',
-                subDomain: storeData.subDomain
-            }
-        );
-        await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
-
-        return newVirtualStore
-    } catch (error) {
-        console.error("Error creating virtual store, rolling back:", error);
-        await rollback.rollback();
-        throw error;
-    }
-}
+            return { success: "Store created successfully.", storeId: newVirtualStore.$id };
+        } catch (error) {
+            console.log("create virtual store error: ", error);
+            await rollback.rollback();
+            return { error: error instanceof Error ? error.message : "Failed to create virtual store" };
+        }
+    })
 
 export const getAllVirtualStores = async () => {
     try {
@@ -225,6 +236,7 @@ export const updateVirtualStore = action
             }
         } catch (error) {
             console.log("createNewProduct eror: ", error);
-            return { error: error instanceof Error ? error.message : "Failed to update product" };
+            await rollback.rollback();
+            return { error: error instanceof Error ? error.message : "Failed to update store" };
         }
     })

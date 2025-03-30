@@ -3,7 +3,6 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { foods, travelMenuItems } from "./config";
-import { Logo } from "./logo";
 
 export const NavigationSheet = () => {
   return (
@@ -16,7 +15,9 @@ export const NavigationSheet = () => {
         </Button>
       </SheetTrigger>
       <SheetContent>
-        <Logo />
+        <Link href={'/'} className='font-bold text-2xl text-primary md:ml-0'>
+          Ikaze<span className='text-yellow-400'>Stores</span>
+        </Link>
 
         <div className="mt-12 text-base space-y-4">
           <Link href="#">Home</Link>

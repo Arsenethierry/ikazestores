@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "./constants";
+import { CardProvider, OnlinePaymentProvider, PaymentMethodType, UserRole } from "./constants";
 
 export const loginSchema = z.object({
     email: z.string().email(),
@@ -8,17 +8,47 @@ export const loginSchema = z.object({
 
 export const signupSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(1, "Required"),
-    username: z.string().min(1, "Required"),
-    phoneNumber: z.string().min(10)
+    password: z.string().min(1, { message: 'Password must be at least 8 characters' }).max(265, { message: "Password must be less than 265 characters" }),
+    confirmPassword: z
+        .string()
+        .min(1, { message: 'Please confirm your password' }),
+    fullName: z.string().min(1, "Required"),
+    phoneNumber: z.string().min(10),
+    role: z.nativeEnum(UserRole),
+}).superRefine((val, ctx) => {
+    if (val.password !== val.confirmPassword) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Password does not match with confirmed password",
+            path: ['confirmPassword']
+        })
+    }
+})
+
+export const verifyEmilSchema = z.object({
+    secret: z.string().min(1, "Required"),
+    userId: z.string().min(1, "Required"),
+});
+
+export const InitiatePasswordRecoverySchema = z.object({
+    email: z.string().email(),
+});
+
+export const CompletePasswordRecoverySchema = z.object({
+    secret: z.string(),
+    userId: z.string(),
+    newPassword: z.string()
 });
 
 export const createPhysicalStoreFormSchema = z.object({
     storeName: z.string().min(1).max(255),
-    desccription: z.string().max(255).optional(),
+    description: z.string().max(255).optional(),
     storeBio: z.string().max(255).optional(),
-    storeBanner: z.custom<File[]>(),
-    storeLogo: z.custom<File>()
+    storeLogo: z.custom<File>(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    address: z.string().max(500).optional(),
+    country: z.string().min(1)
 });
 
 export const createVirtualStoreFormSchema = z.object({
@@ -28,7 +58,12 @@ export const createVirtualStoreFormSchema = z.object({
     storeDomain: z.string().min(2).max(50),
     storeBanner: z.custom<File[]>(),
     storeLogo: z.custom<File>(),
+    operatingCountries: z.array(z.object({
+        value: z.string(),
+        label: z.string()
+    })).min(1, { message: "Select at least one operating country" })
 });
+
 export const updateVirtualStoreFormSchema = z.object({
     storeId: z.string().min(1),
     storeName: z.string().min(1).max(255).optional(),
@@ -41,7 +76,18 @@ export const updateVirtualStoreFormSchema = z.object({
     storeLogo: z.custom<File[]>().optional(),
     storeLogoUrl: z.string().optional(),
     storeLogoId: z.string().optional(),
-    oldFileId: z.string().optional(),
+    oldFileId: z.string().optional().nullable(),
+});
+
+export const UpdatePhysicalStoreFormSchema = z.object({
+    storeId: z.string().min(1),
+    storeName: z.string().min(1).max(255).optional(),
+    desccription: z.string().max(500).optional(),
+    storeBio: z.string().max(255).optional(),
+    storeLogo: z.custom<File[]>().optional(),
+    storeLogoUrl: z.string().optional(),
+    storeLogoId: z.string().optional(),
+    oldFileId: z.string().optional().nullable(),
 });
 
 export const ProductSchema = z.object({

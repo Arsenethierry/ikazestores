@@ -12,25 +12,6 @@ export type SignUpParams = {
     password: string;
 }
 
-export type CreatePhysicalStoreParams = {
-    ownerId: string;
-    storeName: string;
-    desccription?: string;
-    storeBio?: string;
-    storeBanner?: File[];
-    storeLogo?: File;
-}
-
-export type CreateVirtualStoreParams = {
-    ownerId: string;
-    storeName: string;
-    desccription?: string;
-    storeBio?: string;
-    storeBanner?: File[];
-    storeLogo?: File;
-    subDomain: string;
-}
-
 export type CurrentUserType = Models.User<Models.Preferences> | null;
 
 export type ImageDimensionConstraints = {

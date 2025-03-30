@@ -1,4 +1,4 @@
-import CreateStoresTabs from '@/features/stores/components/create-stores-tabs';
+import { CreateStoresTabs } from '@/features/stores/components/create-stores-tabs';
 import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
@@ -11,7 +11,10 @@ async function CreateNewStorePage() {
 
     return (
         <div className='py-10'>
-            <CreateStoresTabs currentUser={user} />;
+            <CreateStoresTabs
+                currentUser={user}
+                isPhysicalStoreOwner={isPhysicalStoreOwner}
+            />;
         </div>
     )
 }

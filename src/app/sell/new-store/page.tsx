@@ -1,15 +1,19 @@
-import CreateStoresTabs from '@/features/stores/components/create-stores-tabs';
-import { getLoggedInUser } from '@/lib/actions/auth.action';
+import { CreateStoresTabs } from '@/features/stores/components/create-stores-tabs';
+import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
 async function page() {
-    const user = await getLoggedInUser();
+    const { isPhysicalStoreOwner, user } = await getAuthState();
 
     if (!user) redirect("/sign-in?redirectUrl=/sell/new-store")
+
     return (
         <div className='mt-28'>
-            <CreateStoresTabs currentUser={user} />
+            <CreateStoresTabs
+                currentUser={user}
+                isPhysicalStoreOwner={isPhysicalStoreOwner}
+            />
         </div>
     );
 }

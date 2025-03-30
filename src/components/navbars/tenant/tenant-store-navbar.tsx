@@ -1,4 +1,3 @@
-import { Logo } from "./logo";
 import { ArrowUpRight, LayoutDashboard } from "lucide-react";
 import { NavigationSheet } from "./navigation-sheet";
 import { NavMenu } from "./nav-menu";
@@ -16,7 +15,9 @@ export const TenantStoreNavbar = async () => {
       <nav className="h-16 bg-background border-b">
         <div className="h-full flex items-center justify-between mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8">
-            <Logo />
+            <Link href={'/'} className='font-bold text-2xl text-primary md:ml-2'>
+              Ikaze<span className='text-yellow-400'>Stores</span>
+            </Link>
 
             {/* Desktop Menu */}
             <NavMenu className="hidden md:block" />

@@ -1,7 +1,7 @@
 import { Models } from "node-appwrite";
 import { getLoggedInUser } from "./actions/auth.action";
 import { UserRole } from "./constants";
-import { UserRoleType } from "./types";
+import { DocumentType, UserRoleType } from "./types";
 
 export interface AuthResult {
     isAuthenticated: boolean;
@@ -9,11 +9,9 @@ export interface AuthResult {
     roles: UserRoleType[];
 }
 
-const USER_ROLES = Object.values(UserRole);
-
 const isValidUserRole = (role: string): role is UserRoleType => {
-    return USER_ROLES.includes(role as UserRoleType);
-};
+    return Object.values(UserRole).includes(role as UserRole);
+  };
 
 const checkAuth = async (): Promise<AuthResult> => {
     try {
@@ -27,7 +25,7 @@ const checkAuth = async (): Promise<AuthResult> => {
             };
         }
 
-        const userRoles = (user.labels || []).filter(isValidUserRole);
+        const userRoles = (user.labels || []).filter(isValidUserRole) as UserRoleType[];
 
         return {
             isAuthenticated: true,
@@ -57,3 +55,8 @@ export const getAuthState = async () => {
         isBuyer: auth.roles.includes(UserRole.BUYER),
     };
 };
+
+export const isStoreOwner = (user: Models.User<Models.Preferences> | null, store: DocumentType): boolean => {
+    if(!user || !store) return false;
+    return user && (user.$id === store.owner)
+}

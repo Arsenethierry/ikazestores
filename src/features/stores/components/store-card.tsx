@@ -6,17 +6,18 @@ import React from 'react';
 import { StoreQuickActions } from './store-action-button';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { Badge } from '@/components/ui/badge';
+import { isStoreOwner } from '@/lib/user-label-permission';
 
 export const StoreCard = ({ store, currentUser }: {store: DocumentType, currentUser: CurrentUserType}) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?
         store.bannerUrls[0] :
         store.bannerUrls[0];
 
-    const isStoreOwner = currentUser && currentUser?.$id === store.owner.$id;
+    const isOwner = isStoreOwner(currentUser, store)
 
     return (
         <Card className="relative overflow-hidden hover:shadow-lg transition-shadow max-w-[350px]">
-            {isStoreOwner && (
+            {isOwner && (
                 <div className='flex items-center gap-2 absolute z-30 top-1 right-2 w-fit'>
                     <Badge className='h-full'>{store?.storeType}</Badge>
                     <span className='bg-muted-foreground text-white rounded-full border-2'>

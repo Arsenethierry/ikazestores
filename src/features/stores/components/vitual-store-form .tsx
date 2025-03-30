@@ -21,24 +21,35 @@ import { SingleImageUploader } from "@/components/file-uploader";
 import { createVirtualStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType, DocumentType } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
-import { useCreateVirtualStore } from "../mutations/use-virtual-store-mutations";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/hooks/use-confirm";
-import { updateVirtualStore } from "@/lib/actions/vitual-store.action";
+import { createVirtualStoreAction, updateVirtualStore } from "@/lib/actions/vitual-store.action";
 import { useAction } from "next-safe-action/hooks";
 import { Textarea } from "@/components/ui/textarea";
+import MultipleSelector, { type Option } from "@/components/ui/multiselect";
+import countriesData from '@/data/countries.json';
 
-export function VirtualStoreForm({ currentUser, initialValues = null }: { currentUser: CurrentUserType, initialValues?: DocumentType | null }) {
+export function VirtualStoreForm({
+    currentUser, initialValues = null
+}: {
+    currentUser: CurrentUserType,
+    initialValues?: DocumentType | null
+}) {
     const isEditMode = !!initialValues;
     const router = useRouter();
 
+    const countries: Option[] = countriesData.map(country => ({
+        value: country.code,
+        label: country.name
+    }));
+
     const {
-        execute,
-        isPending:
-        isUpdating
+        execute: updateStore,
+        isPending: isUpdating,
+        result: updateStoreResponse
     } = useAction(updateVirtualStore, {
         onSuccess: ({ data }) => {
             if (data?.success) {
@@ -53,13 +64,29 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
         }
     })
 
-    const [CancelDialog, confirmCancelProduct] = useConfirm(
+    const {
+        execute: createStore,
+        isPending: isCreatingStore,
+        result: createStoreResponse
+    } = useAction(createVirtualStoreAction, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data?.success)
+                router.push(`/admin/stores/${data?.storeId}`)
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
+
+    const [CancelDialog, confirmCancelEdit] = useConfirm(
         "Are you sure you want to cancel?",
         "The changes made will not be saved!",
         "destructive"
     );
-
-    const { mutate: createStore, isPending, error } = useCreateVirtualStore();
 
     const form = useForm<z.infer<typeof createVirtualStoreFormSchema>>({
         resolver: zodResolver(createVirtualStoreFormSchema),
@@ -102,22 +129,20 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                     updatedValues.storeLogo = values.storeLogo;
                     updatedValues.oldFileId = initialValues?.storeLogoId ?? null;
                 }
-
+                if (dirtyFields.operatingCountries) {
+                    updatedValues.operatingCountries = values.operatingCountries
+                }
                 if (Object.keys(updatedValues).length > 0) {
                     const formData = {
                         ...updatedValues,
                         storeId: initialValues.$id,
                     }
-                    execute(formData);
+                    updateStore(formData);
                 } else {
                     toast.info("No changes detected");
                 }
             } else {
-                createStore({
-                    ...values,
-                    ownerId: currentUser.$id,
-                    subDomain: sanitizedDomain
-                })
+                createStore(values)
             }
         } catch (error) {
             console.log(error)
@@ -125,12 +150,14 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
     }
 
     const handleCancel = async () => {
-        const ok = await confirmCancelProduct()
+        const ok = await confirmCancelEdit()
         if (!ok) return;
         router.back()
     }
 
-    console.log("store logo: ", initialValues)
+    const isLoading = isCreatingStore || isUpdating;
+
+    const error = isEditMode ? updateStoreResponse.data?.error : createStoreResponse.data?.error
 
     return (
         <Card className="border-t-0 rounded-t-none max-w-5xl">
@@ -139,7 +166,7 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                 <CardTitle>{initialValues ? 'Edit' : 'Create'} a virtual store</CardTitle>
             </CardHeader>
             <CardContent>
-                {error && <ErrorAlert errorMessage={error?.message} />}
+                {error && <ErrorAlert errorMessage={error} />}
                 <Form {...form}>
                     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
@@ -183,6 +210,26 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                         <Textarea placeholder="short description" {...field} />
                                     </FormControl>
                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="operatingCountries"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Operating Countries</FormLabel>
+                                    <MultipleSelector
+                                        {...field}
+                                        defaultOptions={countries}
+                                        placeholder="Select operating countries to sell your products"
+                                        emptyIndicator={
+                                            <p className="text-center text-sm">No countries found</p>
+                                        }
+                                        maxSelected={5}
+                                        hideClearAllButton
+                                    />
                                 </FormItem>
                             )}
                         />
@@ -241,15 +288,15 @@ export function VirtualStoreForm({ currentUser, initialValues = null }: { curren
                                 type="button"
                                 variant={'destructive'}
                                 onClick={handleCancel}
-                                disabled={isPending}
+                                disabled={isLoading}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={isPending || isUpdating}
+                                disabled={isLoading}
                             >
-                                <Loader className={isPending || isUpdating ? "animate-spin" : "hidden"} /> {" "}
+                                <Loader className={isLoading ? "animate-spin" : "hidden"} /> {" "}
                                 {isEditMode ? 'Save changes' : 'Create store'}
                             </Button>
                         </div>

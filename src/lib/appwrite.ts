@@ -4,6 +4,7 @@ import {
     Account,
     Client,
     Databases,
+    Locale,
     Storage,
     Teams,
     Users
@@ -38,6 +39,9 @@ export async function createSessionClient() {
         },
         get teams() {
             return new Teams(client);
+        },
+        get locale() {
+            return new Locale(client);
         }
     };
 }

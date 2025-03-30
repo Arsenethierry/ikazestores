@@ -26,7 +26,7 @@ export const authMiddleware = createMiddleware().define(async ({ next }) => {
     const storage = new Storage(client);
 
     const user = await account.get();
-    return next({ ctx: { user, databases, storage } });
+    return next({ ctx: { user, databases, storage, account } });
 });
 
 export const physicalStoreOwnerMiddleware = createMiddleware()

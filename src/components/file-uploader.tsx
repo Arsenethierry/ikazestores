@@ -44,6 +44,7 @@ export const SingleImageUploader = ({
         multiple: false,
         disabled: !!file
     });
+
     return (
         <div className="flex flex-col">
             {!file && (

@@ -1,7 +1,5 @@
-import { Logo } from "@/components/navbars/tenant/logo";
 import { NavMenu } from "@/components/navbars/tenant/nav-menu";
-import { NavigationSheet } from "@/components/navbars/tenant/navigation-sheet";
-import { Button } from "@/components/ui/button";
+// import { NavigationSheet } from "@/components/navbars/tenant/navigation-sheet";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import Link from "next/link";
 
@@ -14,20 +12,15 @@ export default function SellPageLayout({
     <div className="min-h-screen">
       <nav className="fixed top-6 inset-x-4 h-16 bg-background border dark:border-slate-700/70 max-w-screen-xl mx-auto rounded-full z-50">
         <div className="h-full flex items-center justify-between mx-auto px-4">
-          <Link href={'/'}>
-            <Logo />
+          <Link href={'/'} className='font-bold text-2xl text-primary md:ml-2'>
+            Ikaze<span className='text-yellow-400'>Stores</span>
           </Link>
 
           {/* Desktop Menu - Updated for marketplace focus */}
           <NavMenu className="hidden md:block" />
 
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              className="hidden sm:inline-flex rounded-full"
-            >
-              Sign In
-            </Button>
+            
             {/* Updated Get Started with dropdown */}
             <NavigationMenu>
               <NavigationMenuList>
@@ -62,7 +55,7 @@ export default function SellPageLayout({
 
             {/* Mobile Menu */}
             <div className="md:hidden">
-              <NavigationSheet />
+              {/* <NavigationSheet /> */}
             </div>
           </div>
         </div>
