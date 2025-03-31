@@ -88,12 +88,36 @@ export const getStoreOriginalProducts = async (physicalStoreId: string) => {
             DATABASE_ID,
             ORIGINAL_PRODUCT_ID,
             [
-                Query.equal("storeId", physicalStoreId)
+                Query.equal("storeId", physicalStoreId),
             ]
         )
 
         return products
     } catch (error) {
         return { error: error instanceof Error ? error.message : "Failed to fetch products" };
+    }
+}
+
+export const getNearbyStoresProducts = async (
+    southWest: { lat: number, lng: number },
+    northEast: { lat: number, lng: number }
+) => {
+    try {
+        const { databases } = await createSessionClient();
+        const nearbyProducts = await databases.listDocuments(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            [
+                Query.greaterThan("storeLat", southWest.lat),
+                Query.lessThan("storeLat", northEast.lat),
+                Query.greaterThan("storeLong", southWest.lng),
+                Query.lessThan("storeLong", northEast.lng)
+            ]
+        );
+
+        return nearbyProducts
+    } catch (error) {
+        console.error("Error getting stores in bounding box:", error);
+        return { total: 0, documents: [] }
     }
 }

@@ -142,7 +142,12 @@ export function VirtualStoreForm({
                     toast.info("No changes detected");
                 }
             } else {
-                createStore(values)
+                const updatedValues = {
+                    ...values,
+                    storeDomain: sanitizedDomain
+                };
+                
+                createStore(updatedValues);
             }
         } catch (error) {
             console.log(error)

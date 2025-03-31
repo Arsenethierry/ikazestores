@@ -23,8 +23,9 @@ export const MultiImageUploader = ({
     maxFiles = 5,
 }: ImageUploaderProps) => {
 
-    const onDrop = useCallback((accesptedFiles: File[]) => {
-        const newFiles = [...(files || []), ...accesptedFiles].slice(0, maxFiles);
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        const currentFiles = files || [];
+        const newFiles = [...currentFiles, ...acceptedFiles].slice(0, maxFiles);
         onChange(newFiles);
     }, [files, maxFiles, onChange]);
 

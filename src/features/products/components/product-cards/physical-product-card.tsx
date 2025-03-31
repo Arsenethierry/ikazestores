@@ -1,9 +1,10 @@
+"use client";
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DocumentType } from '@/lib/types';
-import { getAuthState } from '@/lib/user-label-permission';
+import { CurrentUserType, DocumentType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -13,13 +14,21 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { ProductMenuActions } from '../product-actions';
 import { CloneProductSheet } from '../clone-product-sheet';
 
-export const PhysicalProductCard = async ({ product, storeId }: { product: DocumentType, storeId: string }) => {
-    const {
-        isPhysicalStoreOwner,
-        isVirtualStoreOwner,
-        isSystemAdmin,
-        user
-    } = await getAuthState();
+export const PhysicalProductCard = ({
+    product,
+    storeId,
+    user,
+    isSystemAdmin,
+    isPhysicalStoreOwner,
+    isVirtualStoreOwner
+}: {
+    product: DocumentType,
+    storeId: string,
+    isVirtualStoreOwner: boolean,
+    isPhysicalStoreOwner: boolean,
+    isSystemAdmin: boolean,
+    user: CurrentUserType
+}) => {
 
     const isMyProduct = user ? product.createdBy === user.$id : false;
 
@@ -36,7 +45,7 @@ export const PhysicalProductCard = async ({ product, storeId }: { product: Docum
     const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.virtualStoreId === storeId));
 
     return (
-        <Card className="group w-full max-w-xs overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <Card className="group w-full min-w-fit max-w-xs overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>

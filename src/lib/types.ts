@@ -57,3 +57,19 @@ export type AuthStatus = {
     isVirtualStoreOwner: boolean;
     isSystemAdmin: boolean;
 }
+
+export interface PhysicalStoreTypes extends DocumentType {
+    storeName: string,
+    owner: string,
+    description?: string,
+    bio?: string,
+    storeType: 'physicalStore' | 'virtualVirtual',
+    products?: DocumentType[],
+    latitude?: number,
+    longitude?: number,
+    address?: string,
+    country: string,
+    storeLogoUrl: string,
+    createFrom?: string,
+    storeLogoId?: string
+}

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ProductSchema } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert, DollarSign } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAction } from "next-safe-action/hooks";
@@ -17,9 +17,11 @@ import { toast } from "sonner";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { useCurrentStoreId } from "@/hooks/use-workspace-id";
+import { PhysicalStoreTypes } from "@/lib/types";
 
-export default function ProductForm() {
+export default function ProductForm({ storeData }: { storeData: PhysicalStoreTypes }) {
     const storeId = useCurrentStoreId();
+    const router = useRouter()
 
     const form = useForm<z.infer<typeof ProductSchema>>({
         resolver: zodResolver(ProductSchema),
@@ -27,7 +29,9 @@ export default function ProductForm() {
             title: "",
             description: "",
             price: 0,
-            storeId
+            storeId,
+            storeLat: storeData.latitude,
+            storeLong: storeData.longitude
         },
         mode: "onChange",
     });
@@ -39,6 +43,7 @@ export default function ProductForm() {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
+                router.push(`/admin/stores/${storeData.$id}/products`)
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -47,6 +52,16 @@ export default function ProductForm() {
             toast.error(error.serverError)
         }
     })
+
+    const handleImageChange = (newFiles: File[]) => {
+        form.setValue("images", newFiles, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+        });
+
+        form.trigger("images");
+    };
 
     function onSubmit(values: z.infer<typeof ProductSchema>) {
         execute(values);
@@ -137,7 +152,7 @@ export default function ProductForm() {
                                 <FormControl>
                                     <MultiImageUploader
                                         files={field.value}
-                                        onChange={field.onChange}
+                                        onChange={handleImageChange}
                                         caption="SVG, PNG, JPG or GIF (max. 2000 x 500 px)"
                                         maxFiles={5}
                                     />
@@ -149,7 +164,6 @@ export default function ProductForm() {
                             className="w-full"
                             disabled={
                                 isPending ||
-                                !form.formState.isValid ||
                                 !form.formState.isDirty
                             }
                             type="submit"

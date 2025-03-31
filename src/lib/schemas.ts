@@ -102,7 +102,12 @@ export const ProductSchema = z.object({
         .number({ invalid_type_error: "Price must be a number" })
         .positive({ message: "Price must be a positive number" }),
     storeId: z.string(),
-    images: z.custom<File[]>(),
+    images: z.array(z.any())
+        .refine(files => files.length > 0, {
+            message: "At least 1 image is required"
+        }),
+    storeLat: z.number().optional(),
+    storeLong: z.number().optional()
 })
 
 export const VirtualProductSchema = z.object({

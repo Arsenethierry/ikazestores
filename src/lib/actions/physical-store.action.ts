@@ -10,6 +10,7 @@ import { createSafeActionClient } from "next-safe-action";
 import { createPhysicalStoreFormSchema, UpdatePhysicalStoreFormSchema } from "../schemas";
 import { authMiddleware } from "./middlewares";
 import { getUserLocale } from "./auth.action";
+import { PhysicalStoreTypes } from "../types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -115,7 +116,7 @@ export const getPhysicalStoreById = async (storeId: string) => {
     try {
         const { databases } = await createSessionClient();
 
-        const store = await databases.getDocument(
+        const store = await databases.getDocument<PhysicalStoreTypes>(
             DATABASE_ID,
             PHYSICAL_STORE_ID,
             storeId
@@ -127,6 +128,7 @@ export const getPhysicalStoreById = async (storeId: string) => {
         return null;
     }
 }
+
 export const getAllPshyicalStoresByOwnerId = async (ownerId: string) => {
     try {
         const { databases } = await createSessionClient();

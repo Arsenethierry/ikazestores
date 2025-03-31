@@ -1,55 +1,82 @@
 import { buttonVariants } from '@/components/ui/button';
-import { getOriginalProducts } from '@/features/products/actions/original-products-actions';
-import { PhysicalProductCard } from '@/features/products/components/product-cards/physical-product-card';
-import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
-import { DocumentType } from '@/lib/types';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CloneProductsPage from '@/features/products/components/clone-products/default-view-products';
+import { NearByProducts } from '@/features/products/components/clone-products/near-by-products';
 import { getAuthState } from '@/lib/user-label-permission';
+import { MapPinHouse, TableOfContents } from 'lucide-react';
 import Link from 'next/link';
-import React, { Suspense } from 'react';
+import React from 'react';
 
-async function CloneProductsPage({
+async function page({
     params,
 }: {
     params: Promise<{ storeId: string }>
 }) {
     const { storeId } = await params;
-
-    const { isVirtualStoreOwner } = await getAuthState();
+    const {
+        isPhysicalStoreOwner,
+        isVirtualStoreOwner,
+        isSystemAdmin,
+        user
+    } = await getAuthState();
 
     if (!isVirtualStoreOwner) {
         return <p className='text-3xl text-destructive font-bold'>Access denied!</p>
     }
 
-    const result = await getOriginalProducts();
-
-    if (result === undefined) {
-        return <p>Loading...</p>;
-    }
-
-    if (result.serverError) {
-        return <p>Error: {result.serverError}</p>;
-    }
-
-    const products = result.data?.products;
-
-    if (!products || !products.documents) {
-        return <p>No products found</p>;
-    }
-
     return (
-        <div>
+        <>
             <Link href={`/admin/stores/${storeId}/products/new`} className={`${buttonVariants()} mb-5`}>Create New Product</Link>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {products.documents.map((product: DocumentType) => (
-                    <div key={product.$id}>
-                        <Suspense fallback={<ProductSekeleton />}>
-                            <PhysicalProductCard product={product} storeId={storeId} />
-                        </Suspense>
-                    </div>
-                ))}
-            </div>
-        </div>
+            <Tabs defaultValue="defaultProductsDisplay">
+                <ScrollArea>
+                    <TabsList className="mb-3 gap-1 bg-transparent">
+                        <TabsTrigger
+                            value="defaultProductsDisplay"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full data-[state=active]:shadow-none"
+                        >
+                            <TableOfContents
+                                className="-ms-0.5 me-1.5 opacity-60"
+                                size={16}
+                                aria-hidden="true"
+                            />
+                            Default
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="nearBy"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full data-[state=active]:shadow-none"
+                        >
+                            <MapPinHouse
+                                className="-ms-0.5 me-1.5 opacity-60"
+                                size={16}
+                                aria-hidden="true"
+                            />
+                            Near By
+                        </TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+                <TabsContent value="defaultProductsDisplay">
+                    <CloneProductsPage
+                        storeId={storeId}
+                        isPhysicalStoreOwner={isPhysicalStoreOwner}
+                        isSystemAdmin={isSystemAdmin}
+                        isVirtualStoreOwner={isVirtualStoreOwner}
+                        user={user}
+                    />
+                </TabsContent>
+                <TabsContent value="nearBy">
+                    <NearByProducts
+                        storeId={storeId}
+                        isPhysicalStoreOwner={isPhysicalStoreOwner}
+                        isSystemAdmin={isSystemAdmin}
+                        isVirtualStoreOwner={isVirtualStoreOwner}
+                        user={user}
+                    />
+                </TabsContent>
+            </Tabs>
+        </>
     );
 }
 
-export default CloneProductsPage;
+export default page;

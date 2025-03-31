@@ -17,7 +17,7 @@ export default async function AuthLayout({
       </div>
       <div className="auth-asset">
         <Image
-          src="/images/auth-image.svg"
+          src="/images/auth-image.png"
           alt="Auth image"
           width={500}
           height={500}

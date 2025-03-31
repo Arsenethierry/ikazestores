@@ -64,3 +64,27 @@ export async function createAdminClient() {
         },
     };
 }
+
+// export async function withAuthSessionClient() {
+//     const cookieStore = await cookies();
+//     const session = cookieStore.get(AUTH_COOKIE);
+
+//     if (!session) {
+//         return null;
+//     }
+
+//     try {
+//         const client = new Client()
+//             .setEndpoint(APPWRITE_ENDPOINT)
+//             .setProject(APPWRITE_PROJECT_ID)
+//             .setSession(session.value);
+
+//         const account = new Account(client);
+//         const user = await account.get();
+
+//         return { user, session: session.value };
+//     } catch (error) {
+//         console.error('Error validating session:', error);
+//         return null;
+//     }
+// }
