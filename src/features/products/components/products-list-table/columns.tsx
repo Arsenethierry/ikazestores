@@ -2,12 +2,12 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { DocumentType } from "@/lib/types"
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, CheckIcon, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, CheckIcon } from "lucide-react"
+import { PhysicalProductMenuActions } from "../physical-product-actions"
 
 export const productListColumns: ColumnDef<DocumentType>[] = [
     {
@@ -22,9 +22,9 @@ export const productListColumns: ColumnDef<DocumentType>[] = [
         accessorKey: "price",
         header: ({ column }) => <Button
             variant={'ghost'}
-             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="inline-flex"
-            >
+        >
             <span>Price </span>
             <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>,
@@ -74,22 +74,8 @@ export const productListColumns: ColumnDef<DocumentType>[] = [
         cell: ({ row }) => {
             const product = row.original;
 
-            console.log(product)
-
             return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem> Copy product Id </DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <PhysicalProductMenuActions product={product} />
             )
         }
     }

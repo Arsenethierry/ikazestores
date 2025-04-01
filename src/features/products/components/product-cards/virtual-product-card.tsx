@@ -10,8 +10,7 @@ import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
-import { ProductMenuActions } from '../product-actions';
-import { CloneProductSheet } from '../clone-product-sheet';
+import { VirtualProductMenuActions } from '../virtual-product-actions';
 
 export const VirtualProductCard = async ({ product, storeId }: { product: DocumentType, storeId: string }) => {
     const {
@@ -21,7 +20,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
         user
     } = await getAuthState();
 
-    const isMyProduct = user ? product.createdBy === user.$id : false;
+    const isMyProduct = user ? product?.createdBy === user.$id : false;
 
     let discount;
     const originalPrice = product?.price ?? product?.sellingPrice;
@@ -33,12 +32,9 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
     const discountPercentage = discount || (originalPrice && price ?
         Math.round(((originalPrice - price) / originalPrice) * 100) : null);
 
-    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.storeId === storeId));
-
     return (
-        <Card className="group w-full max-w-xs overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <Card className="group w-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
-
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
                         {product?.imageUrls?.map((imageUrl: string, index: string) => (
@@ -87,7 +83,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                    {isMyProduct && <ProductMenuActions />}
+                    {isMyProduct && <VirtualProductMenuActions storeId={storeId} product={product} />}
                 </div>
             </div>
             <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">
@@ -111,19 +107,6 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
                             <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">${originalPrice.toFixed(2)}</span>
                         )}
                     </div>
-                    {isVirtualStoreOwner ? (
-                        <div className="transition-transform duration-300 ease-in-out group-hover:scale-105">
-                            {/* {isAlreadyCloned() ? (
-                                <RemoveClonedProductButton productId={product.$id} />
-                            ) : ( */}
-                            <CloneProductSheet
-                                currentUser={user}
-                                product={product}
-                                disabled={isAlreadyCloned()}
-                            />
-                            {/* )} */}
-                        </div>
-                    ) : null}
                 </div>
             </CardContent>
         </Card >

@@ -149,9 +149,11 @@ export function PhysicalStoreForm({
             } else {
                 try {
                     const location = await getUserLocation();
-                    form.setValue('latitude', location.latitude)
-                    form.setValue('longitude', location.longitude)
-                    toast.success("We use your current location to accurate user search results")
+                    if (location) {
+                        form.setValue('latitude', location.latitude)
+                        form.setValue('longitude', location.longitude)
+                        toast.success("We use your current location to accurate user search results")
+                    }
                 } catch (error) {
                     console.error("Error getting location:", error);
                     toast.error("Failed to detect location. Please check your browser permissions.");

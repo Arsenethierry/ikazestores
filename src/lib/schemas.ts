@@ -107,7 +107,8 @@ export const ProductSchema = z.object({
             message: "At least 1 image is required"
         }),
     storeLat: z.number().optional(),
-    storeLong: z.number().optional()
+    storeLong: z.number().optional(),
+    storeOriginCountry: z.string()
 })
 
 export const VirtualProductSchema = z.object({
@@ -178,3 +179,7 @@ export const OrderSchema = OrderFormSchema.extend({
         image: z.string()
     }).array(),
 });
+
+export const DeleteProductSchema = z.object({
+    productId: z.string()
+})

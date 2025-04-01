@@ -150,3 +150,26 @@ export const removeProduct = action
             return { error: error instanceof Error ? error.message : "Failed to delete product" };
         }
     })
+
+export const getAllVirtualPropByOriginalProduct = async (originalProductId: string) => {
+    try {
+        const { databases } = await createSessionClient()
+        const products = await databases.listDocuments(
+            DATABASE_ID,
+            VIRTUAL_PRODUCT_ID,
+            [
+                Query.equal("originalProduct", originalProductId)
+            ]
+        );
+
+        return products
+    } catch (error) {
+        console.log("getAllVirtualPropByOriginalProduct", error)
+        return {
+            error:
+                error instanceof Error ? error.message : "Failed to fetch products",
+            total: 0,
+            documents: []
+        };
+    }
+}

@@ -1,10 +1,10 @@
 "use client";
 
-export const getUserLocation = (): Promise<{ latitude: number, longitude: number }> => {
+export const getUserLocation = (): Promise<{ latitude: number, longitude: number } | null> => {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             reject(new Error("Geolocation is not supported by your browser."));
-            return;
+            return null;
         }
 
         navigator.geolocation.getCurrentPosition(
@@ -16,6 +16,7 @@ export const getUserLocation = (): Promise<{ latitude: number, longitude: number
             },
             (error) => {
                 reject(error);
+                return null;
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );

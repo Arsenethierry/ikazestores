@@ -32,7 +32,7 @@ const formSchema = z.object({
     imageUrls: z.array(z.string()),
     imageIds: z.array(z.string()),
 });
-export const CloneProductSheet = ({ currentUser, product, disabled }: { currentUser: CurrentUserType, product: DocumentType, disabled: boolean }) => {
+export const CloneProductSheet = ({ currentUser, product, isAlreadyCloned }: { currentUser: CurrentUserType, product: DocumentType, isAlreadyCloned: boolean }) => {
     const [open, setOpen] = useState(false);
 
     const storeId = useCurrentStoreId();
@@ -81,9 +81,10 @@ export const CloneProductSheet = ({ currentUser, product, disabled }: { currentU
     }
 
     return (
+        <>
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button variant="outline" size={'sm'} disabled={disabled}>{disabled ? 'Cloned' : 'Clone'}</Button>
+                <Button variant="outline" size={'sm'} disabled={isAlreadyCloned}>{isAlreadyCloned ? 'Added' : 'Add'}</Button>
             </SheetTrigger>
             <SheetContent>
                 <Form {...form}>
@@ -188,5 +189,6 @@ export const CloneProductSheet = ({ currentUser, product, disabled }: { currentU
                 </Form>
             </SheetContent>
         </Sheet>
+        </>
     )
 }

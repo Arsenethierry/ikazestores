@@ -1,12 +1,14 @@
 "use server";
 
 import { createSafeActionClient } from "next-safe-action"
-import { ProductSchema } from "@/lib/schemas";
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID } from "@/lib/env-config";
+import { DeleteProductSchema, ProductSchema } from "@/lib/schemas";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
 import { authMiddleware, physicalStoreOwnerMiddleware } from "../../../lib/actions/middlewares";
 import { ID, Query } from "node-appwrite";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
+import { revalidatePath } from "next/cache";
+import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -121,3 +123,38 @@ export const getNearbyStoresProducts = async (
         return { total: 0, documents: [] }
     }
 }
+
+export const deleteOriginalProduct = action
+    .use(authMiddleware)
+    .schema(DeleteProductSchema)
+    .action(async ({ parsedInput: { productId }, ctx }) => {
+        const { databases } = ctx;
+        try {
+            await databases.deleteDocument(
+                DATABASE_ID,
+                ORIGINAL_PRODUCT_ID,
+                productId
+            );
+
+            const clones = await getAllVirtualPropByOriginalProduct(productId)
+
+            if (clones && clones.total > 0) {
+                await Promise.all(
+                    clones.documents.map(async (document) => {
+                        await databases.updateDocument(
+                            DATABASE_ID,
+                            VIRTUAL_PRODUCT_ID,
+                            document.$id,
+                            {
+                                archived: true
+                            }
+                        )
+                    })
+                )
+            }
+
+            revalidatePath('/admin/stores/[storeId]/products')
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : "Failed to delete product" };
+        }
+    })

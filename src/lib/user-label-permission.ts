@@ -57,6 +57,7 @@ export const getAuthState = async () => {
 };
 
 export const isStoreOwner = (user: Models.User<Models.Preferences> | null, store: DocumentType | null): boolean => {
+    console.log("store", store?.$id)
     if(!user || !store) return false;
     return user && (user.$id === store.owner)
 }

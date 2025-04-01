@@ -10,9 +10,10 @@ async function page({
     params: Promise<{ storeId: string }>
 }) {
     const { storeId } = await params;
+
     const { isPhysicalStoreOwner, user } = await getAuthState();
 
-    const storeData = await getPhysicalStoreById(storeId)
+    const storeData = await getPhysicalStoreById(storeId);
 
     if (!isPhysicalStoreOwner || !isStoreOwner(user, storeData) || !storeData) {
         return <AccessDeniedCard />

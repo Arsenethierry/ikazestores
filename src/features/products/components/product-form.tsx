@@ -21,8 +21,8 @@ import { PhysicalStoreTypes } from "@/lib/types";
 
 export default function ProductForm({ storeData }: { storeData: PhysicalStoreTypes }) {
     const storeId = useCurrentStoreId();
-    const router = useRouter()
-
+    const router = useRouter();
+    
     const form = useForm<z.infer<typeof ProductSchema>>({
         resolver: zodResolver(ProductSchema),
         defaultValues: {
@@ -31,7 +31,8 @@ export default function ProductForm({ storeData }: { storeData: PhysicalStoreTyp
             price: 0,
             storeId,
             storeLat: storeData.latitude,
-            storeLong: storeData.longitude
+            storeLong: storeData.longitude,
+            storeOriginCountry: storeData.country
         },
         mode: "onChange",
     });

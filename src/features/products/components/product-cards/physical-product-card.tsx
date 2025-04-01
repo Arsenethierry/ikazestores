@@ -11,7 +11,7 @@ import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 // import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
-import { ProductMenuActions } from '../product-actions';
+import { PhysicalProductMenuActions } from '../physical-product-actions';
 import { CloneProductSheet } from '../clone-product-sheet';
 
 export const PhysicalProductCard = ({
@@ -30,7 +30,7 @@ export const PhysicalProductCard = ({
     user: CurrentUserType
 }) => {
 
-    const isMyProduct = user ? product.createdBy === user.$id : false;
+    const isMyProduct = user ? product?.createdBy === user.$id : false;
 
     let discount;
     const originalPrice = product?.price ?? product?.sellingPrice;
@@ -45,7 +45,7 @@ export const PhysicalProductCard = ({
     const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.virtualStoreId === storeId));
 
     return (
-        <Card className="group w-full min-w-fit max-w-xs overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <Card className="group w-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
@@ -93,7 +93,7 @@ export const PhysicalProductCard = ({
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                    {isMyProduct && <ProductMenuActions />}
+                    {isMyProduct && <PhysicalProductMenuActions product={product} />}
                 </div>
             </div>
             <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">
@@ -119,15 +119,11 @@ export const PhysicalProductCard = ({
                     </div>
                     {isVirtualStoreOwner ? (
                         <div className="transition-transform duration-300 ease-in-out group-hover:scale-105">
-                            {/* {isAlreadyCloned() ? (
-                                <RemoveClonedProductButton productId={product.$id} />
-                            ) : ( */}
-                                <CloneProductSheet
-                                    currentUser={user}
-                                    product={product}
-                                    disabled={isAlreadyCloned()}
-                                />
-                            {/* )} */}
+                            <CloneProductSheet
+                                currentUser={user}
+                                product={product}
+                                isAlreadyCloned={isAlreadyCloned()}
+                            />
                         </div>
                     ) : null}
                 </div>

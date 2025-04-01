@@ -2,7 +2,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CloneProductsPage from '@/features/products/components/clone-products/default-view-products';
-import { NearByProducts } from '@/features/products/components/clone-products/near-by-products';
+import { CloneNearByProducts } from '@/features/products/components/clone-products/clone-near-by-products';
 import { getAuthState } from '@/lib/user-label-permission';
 import { MapPinHouse, TableOfContents } from 'lucide-react';
 import Link from 'next/link';
@@ -26,8 +26,7 @@ async function page({
     }
 
     return (
-        <>
-            <Link href={`/admin/stores/${storeId}/products/new`} className={`${buttonVariants()} mb-5`}>Create New Product</Link>
+        <div className='flex justify-between gap-2'>
             <Tabs defaultValue="defaultProductsDisplay">
                 <ScrollArea>
                     <TabsList className="mb-3 gap-1 bg-transparent">
@@ -66,7 +65,7 @@ async function page({
                     />
                 </TabsContent>
                 <TabsContent value="nearBy">
-                    <NearByProducts
+                    <CloneNearByProducts
                         storeId={storeId}
                         isPhysicalStoreOwner={isPhysicalStoreOwner}
                         isSystemAdmin={isSystemAdmin}
@@ -75,7 +74,10 @@ async function page({
                     />
                 </TabsContent>
             </Tabs>
-        </>
+            {(isPhysicalStoreOwner || isSystemAdmin) && (
+                <Link href={`/admin/stores/${storeId}/products/new`} className={`${buttonVariants({ size: 'sm' })} mb-5`}>Add New Product</Link>
+            )}
+        </div>
     );
 }
 

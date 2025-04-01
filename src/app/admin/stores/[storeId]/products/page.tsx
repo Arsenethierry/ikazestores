@@ -41,7 +41,7 @@ async function StoreProductsPage({
     return (
         isVirtualStoreOwner ? (
             <>
-                <Link href={`/admin/stores/${storeId}/products/clone-products`} className={`${buttonVariants()} mb-5`}>Create New Product</Link>
+                <Link href={`/admin/stores/${storeId}/products/clone-products`} className={`${buttonVariants()} mb-5`}>Add Products</Link>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {virtualProducts && virtualProducts.documents.map((product: DocumentType) => (
                         <div key={product.$id}>
