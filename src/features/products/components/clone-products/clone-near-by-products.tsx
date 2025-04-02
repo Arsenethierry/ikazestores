@@ -1,11 +1,11 @@
 "use client";
 
 import { CurrentUserType, DocumentType } from "@/lib/types";
-import { useGetNearByProducts } from "../../products-queries";
 import { Suspense } from "react";
 import { ProductSekeleton } from "../products-list-sekeleton";
 import { PhysicalProductCard } from "../product-cards/physical-product-card";
 import { AlertCircle } from "lucide-react";
+import { useGetNearByOriginalProducts } from "../../products-queries";
 
 export const CloneNearByProducts = ({
     storeId,
@@ -20,7 +20,7 @@ export const CloneNearByProducts = ({
     isSystemAdmin: boolean,
     user: CurrentUserType
 }) => {
-    const { data: products, isLoading, isFetching, error } = useGetNearByProducts();
+    const { data: products, isLoading, isFetching, error } = useGetNearByOriginalProducts();
     
     const isLocationError = error && 
         (error.message.includes("location") || 

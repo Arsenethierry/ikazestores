@@ -158,13 +158,12 @@ export const getAllVirtualPropByOriginalProduct = async (originalProductId: stri
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [
-                Query.equal("originalProduct", originalProductId)
+                Query.equal("originalProductId", originalProductId)
             ]
         );
 
         return products
     } catch (error) {
-        console.log("getAllVirtualPropByOriginalProduct", error)
         return {
             error:
                 error instanceof Error ? error.message : "Failed to fetch products",

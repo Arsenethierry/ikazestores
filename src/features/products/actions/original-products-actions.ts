@@ -83,6 +83,55 @@ export const getOriginalProducts = action
         }
     })
 
+export const getOriginalProductsWithVirtualProducts = action
+    .use(authMiddleware)
+    .use(physicalStoreOwnerMiddleware)
+    .action(async () => {
+        try {
+            const { databases } = await createSessionClient();
+            const products = await databases.listDocuments(
+                DATABASE_ID,
+                ORIGINAL_PRODUCT_ID,
+                [
+                    Query.orderDesc('$updatedAt')
+                    // Query.limit(15)
+                ]
+            )
+
+            if (products.total > 0) {
+                const productsWithVirtualProducts = await Promise.all(
+                    products.documents.map(async (product) => {
+                        const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
+
+                        const virtualProducts = 'error' in virtualProductsResponse
+                            ? []
+                            : virtualProductsResponse.documents;
+
+                        return {
+                            ...product,
+                            vitualProducts: virtualProducts
+                        };
+                    })
+                );
+
+                return {
+                    products: {
+                        ...products,
+                        documents: productsWithVirtualProducts
+                    }
+                };
+            }
+            return {
+                products: {
+                    total: 0,
+                    documents: []
+                }
+            };
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : "Failed to fetch products" };
+        }
+    })
+
 export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     try {
         const { databases } = await createSessionClient();
@@ -92,7 +141,7 @@ export const getStoreOriginalProducts = async (physicalStoreId: string) => {
             [
                 Query.equal("storeId", physicalStoreId),
             ]
-        )
+        );
 
         return products
     } catch (error) {
@@ -100,7 +149,7 @@ export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     }
 }
 
-export const getNearbyStoresProducts = async (
+export const getNearbyStoresOriginalProducts = async (
     southWest: { lat: number, lng: number },
     northEast: { lat: number, lng: number }
 ) => {
@@ -117,7 +166,32 @@ export const getNearbyStoresProducts = async (
             ]
         );
 
-        return nearbyProducts
+        if (nearbyProducts.total > 0) {
+            const productsWithVirtualProducts = await Promise.all(
+                nearbyProducts.documents.map(async (product) => {
+                    const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
+
+                    const virtualProducts = 'error' in virtualProductsResponse
+                        ? []
+                        : virtualProductsResponse.documents;
+
+                    return {
+                        ...product,
+                        vitualProducts: virtualProducts
+                    }
+                })
+            );
+
+            return {
+                ...nearbyProducts,
+                documents: productsWithVirtualProducts
+            }
+        }
+
+        return {
+            total: 0,
+            documents: []
+        }
     } catch (error) {
         console.error("Error getting stores in bounding box:", error);
         return { total: 0, documents: [] }

@@ -1,4 +1,4 @@
-import { getOriginalProducts } from '@/features/products/actions/original-products-actions';
+import { getOriginalProductsWithVirtualProducts } from '@/features/products/actions/original-products-actions';
 import { PhysicalProductCard } from '@/features/products/components/product-cards/physical-product-card';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
 import { CurrentUserType, DocumentType } from '@/lib/types';
@@ -18,7 +18,7 @@ async function CloneProductsPage({
     user: CurrentUserType
 }) {
 
-    const result = await getOriginalProducts();
+    const result = await getOriginalProductsWithVirtualProducts();
 
     if (result === undefined) {
         return <p>Loading...</p>;

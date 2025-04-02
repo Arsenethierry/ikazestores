@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getVirtualProductById } from "./actions/virtual-products-actions";
-import { getNearbyStoresProducts } from "./actions/original-products-actions";
+import { getNearbyStoresOriginalProducts } from "./actions/original-products-actions";
 import { getUserLocation } from "@/lib/geolocation";
 
 export const useGetProductById = (productId: string) => {
@@ -10,9 +10,9 @@ export const useGetProductById = (productId: string) => {
     });
 };
 
-export const useGetNearByProducts = () => {
+export const useGetNearByOriginalProducts = () => {
     return useQuery({
-        queryKey: ["nearByProducts"],
+        queryKey: ["nearByOriginalProducts"],
         queryFn: async () => {
             try {
                 const location = await getUserLocation();
@@ -30,9 +30,8 @@ export const useGetNearByProducts = () => {
                     lng: location.longitude + RADIUS_OFFSET,
                 };
 
-                return getNearbyStoresProducts(southWest, northEast);
+                return getNearbyStoresOriginalProducts(southWest, northEast);
             } catch (error) {
-                // Forward the error with more context if needed
                 if (error instanceof Error) {
                     throw error;
                 } else {
@@ -40,6 +39,6 @@ export const useGetNearByProducts = () => {
                 }
             }
         },
-        retry: false, // Don't retry on geolocation errors as they require user intervention
+        retry: false,
     });
 };
