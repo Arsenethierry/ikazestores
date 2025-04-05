@@ -3,7 +3,7 @@
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { SelectItem } from "@/components/ui/select";
 import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "@/lib/constants";
-import { OrderFormSchema } from "@/lib/schemas";
+import { OrderFormSchema } from "@/lib/schemas/products-schems";
 import { Control, useWatch } from "react-hook-form";
 import { z } from "zod";
 

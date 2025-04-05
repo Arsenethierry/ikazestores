@@ -8,8 +8,8 @@ import { updateUserLabels } from "./user-labels";
 import { UserRole } from "../constants";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
-import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "../schemas";
 import { getUserLocale } from "./auth.action";
+import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "../schemas/stores-schema";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {

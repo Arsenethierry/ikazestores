@@ -11,7 +11,6 @@ import { CircleAlert, Loader } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { loginSchema } from '../../../lib/schemas';
 import ErrorAlert from '@/components/error-alert';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -19,6 +18,7 @@ import { logInAction, loginWithGoogle } from '@/lib/actions/auth.action';
 import { GoogleLogInButton } from './google-login-button';
 import { useAction } from 'next-safe-action/hooks';
 import { toast } from 'sonner';
+import { loginSchema } from '@/lib/schemas/user-schema';
 interface SignInCardProps {
     isModal?: boolean;
 }

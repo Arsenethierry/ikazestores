@@ -8,10 +8,17 @@ export default async function AdminEntry() {
         isVirtualStoreOwner,
         isPhysicalStoreOwner,
         user,
-        isAuthenticated
+        isAuthenticated,
+        isSystemAdmin
     } = await getAuthState();
 
     if (!isAuthenticated || !user) redirect("/sign-in");
+
+    if (isSystemAdmin) {
+        return (
+            <p>System Admin dashboard</p>
+        )
+    }
 
     const stores = isVirtualStoreOwner
         ? await getAllVirtualStoresByOwnerId(user.$id)

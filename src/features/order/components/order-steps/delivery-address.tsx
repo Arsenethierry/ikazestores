@@ -5,11 +5,11 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "@/component
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SelectItem } from "@/components/ui/select";
-import { OrderFormSchema } from "@/lib/schemas";
 import { useEffect, useState } from "react";
 import { Control, UseFormSetValue } from "react-hook-form";
 import { z } from "zod";
 import { useGetDeliverAddress } from "../../order-queries";
+import { OrderFormSchema } from "@/lib/schemas/products-schems";
 
 type Props = {
     control: Control<z.infer<typeof OrderFormSchema>>;

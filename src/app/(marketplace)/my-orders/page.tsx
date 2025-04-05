@@ -22,8 +22,6 @@ async function page() {
         return <NoItemsCard />
     }
 
-    console.log(myOrders.documents[0])
-
     return (
         <div className='main-container mx-auto max-w-5xl p-6'>
             <h1 className="text-2xl font-bold mb-8">Your Orders</h1>

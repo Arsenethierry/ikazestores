@@ -4,7 +4,7 @@ import { authMiddleware } from "@/lib/actions/middlewares";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { DATABASE_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
-import { deleteVirtualProductSchema, VirtualProductSchema } from "@/lib/schemas";
+import { deleteVirtualProductSchema, VirtualProductSchema } from "@/lib/schemas/products-schems";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";

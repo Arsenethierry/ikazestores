@@ -18,7 +18,6 @@ import { PaymentMethod } from "./order-steps/payment-step";
 import SpinningLoader from "@/components/spinning-loader";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { OrderFormSchema } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PaymentMethodType } from "@/lib/constants";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
@@ -29,6 +28,7 @@ import { createOrder } from "../actions/order-actions";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/features/cart/use-cart-store";
+import { OrderFormSchema } from "@/lib/schemas/products-schems";
 
 export const PlaceOrderPage = () => {
     const { items, totalPrice } = useCartStore()

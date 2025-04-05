@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorAlert from "@/components/error-alert";
 import { Check, ChevronsUpDown, Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
-import { createPhysicalStoreFormSchema } from "@/lib/schemas";
 import { CurrentUserType, DocumentType } from "@/lib/types";
 import { SingleImageUploader } from "@/components/file-uploader";
 import { toast } from "sonner";
@@ -33,6 +32,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { createPhysicalStoreFormSchema } from "@/lib/schemas/stores-schema";
 
 export function PhysicalStoreForm({
     currentUser, initialValues = null
@@ -67,8 +67,6 @@ export function PhysicalStoreForm({
             toast.error(error.serverError)
         }
     });
-
-    console.log("updateStoreResponse: ", updateStoreResponse)
 
     const {
         execute: createStore,
@@ -106,6 +104,7 @@ export function PhysicalStoreForm({
             longitude: undefined,
             country: initialValues?.country ?? ""
         },
+        mode: "onChange",
     })
 
     const { formState: { dirtyFields } } = form;

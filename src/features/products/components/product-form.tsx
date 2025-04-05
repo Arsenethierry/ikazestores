@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ProductSchema } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert, DollarSign } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,6 +17,7 @@ import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { useCurrentStoreId } from "@/hooks/use-workspace-id";
 import { PhysicalStoreTypes } from "@/lib/types";
+import { ProductSchema } from "@/lib/schemas/products-schems";
 
 export default function ProductForm({ storeData }: { storeData: PhysicalStoreTypes }) {
     const storeId = useCurrentStoreId();

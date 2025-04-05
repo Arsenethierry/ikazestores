@@ -1,14 +1,15 @@
 "use server";
 
 import { createSafeActionClient } from "next-safe-action"
-import { DeleteProductSchema, ProductSchema } from "@/lib/schemas";
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, CATEGORIES_COLLECTION_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID, SUB_CATEGORIES_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
 import { authMiddleware, physicalStoreOwnerMiddleware } from "../../../lib/actions/middlewares";
 import { ID, Query } from "node-appwrite";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { revalidatePath } from "next/cache";
 import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
+import { CategoryById, CategorySchema, DeleteProductSchema, ProductSchema } from "@/lib/schemas/products-schems";
+import { DocumentType } from "@/lib/types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -230,5 +231,130 @@ export const deleteOriginalProduct = action
             revalidatePath('/admin/stores/[storeId]/products')
         } catch (error) {
             return { error: error instanceof Error ? error.message : "Failed to delete product" };
+        }
+    })
+
+export const createNewCategory = action
+    .use(authMiddleware)
+    .schema(CategorySchema)
+    .action(async ({ parsedInput: {
+        categoryName,
+        icon
+    }, ctx }) => {
+        const { databases, storage } = ctx;
+        const rollback = new AppwriteRollback(storage, databases);
+
+        try {
+            const uploadedIcon = await storage.createFile(
+                PRODUCTS_BUCKET_ID,
+                ID.unique(),
+                icon
+            );
+            await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedIcon.$id);
+
+            const newProduct = await databases.createDocument(
+                DATABASE_ID,
+                CATEGORIES_COLLECTION_ID,
+                ID.unique(),
+                {
+                    categoryName,
+                    iconFileId: uploadedIcon.$id,
+                    iconUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedIcon.$id}/view?project=${APPWRITE_PROJECT_ID}`
+                }
+            );
+            await rollback.trackDocument(CATEGORIES_COLLECTION_ID, newProduct.$id);
+
+            return { success: `Category has been created successfully` };
+
+        } catch (error) {
+            console.log("createNewCategory error: ", error);
+            await rollback.rollback();
+            return { error: error instanceof Error ? error.message : "Failed to create category" };
+        }
+    });
+
+export const getCategoryById = async (categoryId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const category = await databases.getDocument(
+            DATABASE_ID,
+            CATEGORIES_COLLECTION_ID,
+            categoryId
+        );
+        return category;
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Failed to fetch category", };
+    }
+}
+
+export const deleteCategoryById = action
+    .use(authMiddleware)
+    .schema(CategoryById)
+    .action(async ({ parsedInput: { categoryId }, ctx }) => {
+        const { databases, storage } = ctx;
+        try {
+            const subCetegories = await getSubcategoriesByParentId(categoryId);
+            const category = await getCategoryById(categoryId) as DocumentType;
+            if (!category) {
+                return { error: "Category not found" };
+            }
+            if (subCetegories.total > 0) {
+                await Promise.all(
+                    subCetegories.documents.map(async (subcategory) => {
+                        await deleteSubcategoryById({ categoryId: subcategory.$id })
+                    })
+                )
+            }
+            if (category.iconFileId) {
+                await storage.deleteFile(
+                    PRODUCTS_BUCKET_ID,
+                    category.iconFileId
+                )
+            }
+            await databases.deleteDocument(
+                DATABASE_ID,
+                CATEGORIES_COLLECTION_ID,
+                category.$id
+            )
+            return { success: "category deleted successfully" }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : "Failed to delete category" };
+        }
+    })
+
+export const getSubcategoriesByParentId = async (categoryId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const subcategories = await databases.listDocuments(
+            DATABASE_ID,
+            SUB_CATEGORIES_COLLECTION_ID,
+            [
+                Query.equal("categoryId", categoryId)
+            ]
+        );
+        return subcategories
+    } catch (error) {
+        return {
+            error: error instanceof Error ? error.message : "Failed to fetch category",
+            documents: [],
+            total: 0
+        };
+    }
+}
+
+export const deleteSubcategoryById = action
+    .use(authMiddleware)
+    .schema(CategoryById)
+    .action(async ({ parsedInput: { categoryId }, ctx }) => {
+        const { databases } = ctx;
+        try {
+            await databases.deleteDocument(
+                DATABASE_ID,
+                SUB_CATEGORIES_COLLECTION_ID,
+                categoryId
+            );
+        } catch (error) {
+            console.log("deleteSubcategoryById error: ", error)
+            return { error: error instanceof Error ? error.message : "Failed to delete sub category" };
         }
     })

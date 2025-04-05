@@ -18,7 +18,7 @@ export const NoItemsCard = ({
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-center rounded-lg border bg-background/50 p-8 text-center shadow-sm transition-all hover:shadow-md max-w-2xl mx-auto",
+                "flex flex-col items-center justify-center rounded-lg border bg-background/50 p-8 text-center shadow-sm transition-all hover:shadow-md max-w-2xl mx-auto my-5 md:my-10",
                 className
             )}
             {...props}

@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { signupSchema } from '../../../lib/schemas';
 import { Separator } from '@/components/ui/separator';
 import { PhoneInput } from '@/components/phone-input';
 import Link from 'next/link';
@@ -23,6 +22,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Stepper, StepperDescription, StepperIndicator, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper';
 import { UserRole } from '@/lib/constants';
+import { signupSchema } from '@/lib/schemas/user-schema';
 
 export const SignUpCard = () => {
     const router = useRouter()

@@ -27,7 +27,7 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
     const sidebarLinks = adminType === 'physicalStoreAdmin'
         ? getSidebarLinks(storeId).physicalStoreAdmin
         : adminType === 'systemAdmin'
-            ? getSidebarLinks(storeId).systemAdmin
+            ? getSidebarLinks(null).systemAdmin
             : adminType === 'virtualStoreAdmin'
                 ? getSidebarLinks(storeId).virtualStoreAdmin
                 : []

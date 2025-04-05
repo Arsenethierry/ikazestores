@@ -7,10 +7,10 @@ import { AppwriteRollback } from "./rollback";
 import { updateUserLabels } from "./user-labels";
 import { UserRole } from "../constants";
 import { createSafeActionClient } from "next-safe-action";
-import { createPhysicalStoreFormSchema, UpdatePhysicalStoreFormSchema } from "../schemas";
 import { authMiddleware } from "./middlewares";
 import { getUserLocale } from "./auth.action";
 import { PhysicalStoreTypes } from "../types";
+import { createPhysicalStoreFormSchema, UpdatePhysicalStoreFormSchema } from "../schemas/stores-schema";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {

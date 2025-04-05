@@ -7,15 +7,9 @@ import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
 import { ID, OAuthProvider, Query } from "node-appwrite";
 import { redirect } from "next/navigation";
 import { createSafeActionClient } from "next-safe-action";
-import {
-    CompletePasswordRecoverySchema,
-    InitiatePasswordRecoverySchema,
-    loginSchema,
-    signupSchema,
-    verifyEmilSchema
-} from "../schemas";
 import { authMiddleware } from "./middlewares";
 import { updateUserLabels } from "./user-labels";
+import { CompletePasswordRecoverySchema, InitiatePasswordRecoverySchema, loginSchema, signupSchema, verifyEmilSchema } from "../schemas/user-schema";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
