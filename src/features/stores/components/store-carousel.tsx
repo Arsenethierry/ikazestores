@@ -71,7 +71,7 @@ export function StoreCarousel({ carouselImages }: { carouselImages?: string[] })
                     startIndex: 0,
                 }}
             >
-                <CarouselContent className="h-[50vh]">
+                <CarouselContent className="h-[56vh]">
                     {images.map((image, index) => (
                         <CarouselItem key={index}>
                             <div className="relative aspect-[16/9] w-full h-full">
@@ -79,7 +79,7 @@ export function StoreCarousel({ carouselImages }: { carouselImages?: string[] })
                                     src={image}
                                     alt={`Hero image ${index + 1}`}
                                     fill
-                                    className="object-cover"
+                                    className="object-cover rounded-lg"
                                     priority={index === 0}
                                 />
                             </div>
