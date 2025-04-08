@@ -80,13 +80,45 @@ export const DeleteProductSchema = z.object({
 })
 
 export const CategorySchema = z.object({
-    categoryName: z.string().min(2, { message: "Category name is required" }).max(20, { message: "Category name must not exceed 20 characters long" }),
+    categoryName: z.string().min(2, { message: "Category name is required" }).max(50, { message: "Category name must not exceed 20 characters long" }),
     icon: z.custom<File>()
         .refine(file => file instanceof File, {
             message: "Icon thumbnail is required"
         }),
 });
 
+export const UpdateCategoryForm = z.object({
+    categoryName: z.string().max(50, { message: "Category name must not exceed 20 characters long" }).optional(),
+    icon: z.custom<File>().optional(),
+    oldFileId: z.string().optional().nullable(),
+    iconUrl: z.string().optional(),
+});
+
+export const UpdateCategoryActionSchema = UpdateCategoryForm.extend({
+    categoryId: z.string()
+})
+
 export const CategoryById = z.object({
     categoryId: z.string()
+});
+
+export const SubCategorySchema = z.object({
+    parentCategoryIds: z.array(z.string()),
+    subCategoryName: z.string().min(2, { message: "Sub category name is required" }).max(50, { message: "Sub category name must not exceed 50 characters long" }),
+    icon: z.custom<File>()
+        .refine(file => file instanceof File, {
+            message: "Icon thumbnail is required"
+        }),
+});
+
+export const UpdateSubCategoryForm = z.object({
+    parentCategoryIds: z.array(z.string()).optional(),
+    subCategoryName: z.string().max(50, { message: "sub category name must not exceed 50 characters long" }).optional(),
+    icon: z.custom<File>().optional(),
+    oldFileId: z.string().optional().nullable(),
+    iconUrl: z.string().optional(),
+});
+
+export const UpdateSubCategoryActionSchema = UpdateSubCategoryForm.extend({
+    subCategoryId: z.string()
 })

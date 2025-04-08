@@ -1,16 +1,20 @@
-import { NewCategoryForm } from '@/features/products/components/categories/new-category-form';
+import { AccessDeniedCard } from '@/components/access-denied-card';
+import { CategoryForm } from '@/features/categories/components/new-category-form';
 import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
 async function NewCategory() {
     const {
-        user
+        user,
+        isSystemAdmin
     } = await getAuthState();
 
     if(!user) redirect('/');
+
+    if(!isSystemAdmin) return <AccessDeniedCard />
     
-    return <NewCategoryForm currentUser={user}/>
+    return <CategoryForm currentUser={user}/>
 }
 
 export default NewCategory;

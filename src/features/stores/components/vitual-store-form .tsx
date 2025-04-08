@@ -96,11 +96,17 @@ export function VirtualStoreForm({
             storeBio: initialValues?.storeBio ?? "",
             storeDomain: initialValues?.subDomain ?? "",
             storeBanner: initialValues?.bannerUrls ?? undefined,
-            storeLogo: initialValues?.storeLogoUrl ?? undefined,
+            storeLogo: undefined,
         },
     });
     const { watch, setValue, formState: { dirtyFields } } = form;
     const storeName = watch('storeName');
+
+    useEffect(() => {
+        if (isEditMode && initialValues?.storeLogoUrl) {
+            form.setValue("storeLogo", initialValues?.storeLogoUrl)
+        }
+    }, [isEditMode, initialValues?.storeLogoUrl, form])
 
     useEffect(() => {
         if (storeName) {
@@ -146,7 +152,7 @@ export function VirtualStoreForm({
                     ...values,
                     storeDomain: sanitizedDomain
                 };
-                
+
                 createStore(updatedValues);
             }
         } catch (error) {

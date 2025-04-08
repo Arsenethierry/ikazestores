@@ -7,17 +7,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl } from '@/components/ui/form';
 import { useConfirm } from '@/hooks/use-confirm';
-import { CategorySchema } from '@/lib/schemas/products-schems';
+import { CategorySchema, UpdateCategoryForm } from '@/lib/schemas/products-schems';
 import { CurrentUserType, DocumentType } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
+import { useAction } from 'next-safe-action/hooks';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { createNewCategory, updateCategory } from '../actions/categories-actions';
 
-export const NewCategoryForm = ({
+const getCategorySchema = (isEditMode: boolean) => {
+    return isEditMode
+        ? UpdateCategoryForm
+        : CategorySchema;
+};
+
+export const CategoryForm = ({
     currentUser,
     initialValues = null
 }: {
@@ -27,25 +35,68 @@ export const NewCategoryForm = ({
     const isEditMode = !!initialValues;
     const router = useRouter();
 
+    const formSchema = getCategorySchema(isEditMode);
+
+    const {
+        execute: updateCategoryAction,
+        isPending: isUpdating,
+        result: updateCategoryResponse
+    } = useAction(updateCategory, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data?.success)
+                router.push(`/admin/categories`)
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    });
+
+    const { execute: createCategoryAction,
+        isPending: isCreatingCategory,
+        result: createCategoryRes
+    } = useAction(createNewCategory, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data?.success)
+                router.push(`/admin/categories`);
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
+
+
     const [CancelDialog, confirmCancelEdit] = useConfirm(
         "Are you sure you want to cancel?",
         "The changes made will not be saved!",
         "destructive"
     );
 
-    const form = useForm<z.infer<typeof CategorySchema>>({
-        resolver: zodResolver(CategorySchema),
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
         defaultValues: {
             categoryName: initialValues?.categoryName ?? "",
-            icon: initialValues?.iconUrl ?? undefined,
+            icon: undefined
         },
         mode: "onChange",
     });
 
+    useEffect(() => {
+        if (isEditMode && initialValues?.iconUrl) {
+            form.setValue("icon", initialValues?.iconUrl)
+        }
+    }, [isEditMode, initialValues?.iconUrl, form])
+
     const { formState: { dirtyFields } } = form;
 
-    function onSubmit(values: z.infer<typeof CategorySchema>) {
-        console.log("formm: ", values)
+    function onSubmit(values: z.infer<typeof formSchema>) {
         if (!currentUser) {
             toast.error("Something went wrong, try again");
             return;
@@ -61,12 +112,16 @@ export const NewCategoryForm = ({
             }
 
             if (Object.keys(updatedValues).length > 0) {
-                // updateCategory(formData);
+                const formData = {
+                    ...updatedValues,
+                    categoryId: initialValues.$id
+                }
+                updateCategoryAction(formData);
             } else {
                 toast.info("No changes detected");
             }
         } else {
-            // createCategory(values)
+            createCategoryAction(values as z.infer<typeof CategorySchema>)
         }
     }
 
@@ -76,12 +131,9 @@ export const NewCategoryForm = ({
         router.back()
     }
 
-    const isLoading = false
-    // isCreatingStore || isUpdating;
+    const isLoading = isCreatingCategory || isUpdating;
 
-    const error = null
-    // isEditMode ? updateStoreResponse.data?.error : createStoreResponse.data?.error;
-
+    const error = isEditMode ? updateCategoryResponse.data?.error : createCategoryRes.data?.error;
 
     return (
         <Card className='max-w-5xl'>
@@ -129,7 +181,7 @@ export const NewCategoryForm = ({
                                 disabled={isLoading}
                             >
                                 <Loader className={isLoading ? "animate-spin" : "hidden"} /> {" "}
-                                {isEditMode ? 'Save changes' : 'Create store'}
+                                {isEditMode ? 'Save changes' : 'Create category'}
                             </Button>
                         </div>
                     </form>

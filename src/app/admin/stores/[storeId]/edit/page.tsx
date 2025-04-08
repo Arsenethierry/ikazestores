@@ -22,9 +22,9 @@ async function EditStorePage({
 
     const currentStore = isVirtualStoreOwner
         ? await getVirtualStoreById(storeId)
-        : isPhysicalStoreOwner ? await getPhysicalStoreById(storeId) : undefined
+        : isPhysicalStoreOwner ? await getPhysicalStoreById(storeId) : null
 
-    if (!currentStore || currentStore.total === 0) {
+    if (!currentStore) {
         redirect("/admin/stores/new")
     }
 

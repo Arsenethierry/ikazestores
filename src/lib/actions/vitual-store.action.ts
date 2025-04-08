@@ -149,7 +149,8 @@ export const getVirtualStoreById = async (storeId: string) => {
 
         return store
     } catch (error) {
-        throw error
+        console.log("getVirtualStoreById error: ", error)
+        return null
     }
 }
 
