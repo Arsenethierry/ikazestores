@@ -1,33 +1,148 @@
-import React from 'react'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
-function CategoriesSidebar() {
-    const categories = [
-        { name: "Electronics", subcategories: ["Screens", "Computers", "Phones", "etc"] },
-        { name: "Fashion", subcategories: ["Clothing", "Shoes", "Accessories"] },
-        { name: "Home & Garden", subcategories: ["Furniture", "Decor", "Gardening"] },
-        { name: "Health & Beauty", subcategories: ["Skincare", "Makeup", "Wellness"] },
-        { name: "Sports & Outdoors", subcategories: ["Fitness", "Camping", "Cycling"] },
-        { name: "Toys & Hobbies", subcategories: ["Kids Toys", "Collectibles", "Games"] },
-        { name: "Automotive", subcategories: ["Parts", "Accessories", "Tools"] },
-        { name: "Books", subcategories: ["Fiction", "Non-Fiction", "Comics"] },
-        { name: "others..."},
-       ]
-  return (
-    <div className="h-fit w-full">
-        <div className="p-2 w-full bg-blue-600 rounded-t-lg">
-            <h3 className="text-2xl font-bold text-center text-white">Categories</h3>
-        </div>
-        <ul>
-            {categories.map((category, index) => (
-                <li key={index} className="px-2 py-1 flex justify-between hover:bg-gray-100 cursor-pointer transition-all duration-200">
-                    <span className="text-md ">{category.name}</span>
-                    {category.subcategories?<span className="text-lg font-semibold">&gt;</span>:''}
-                </li>
+const categoriesData = [
+    {
+        name: "Men's Fashion",
+        subcategories: [
+            "Top Wear",
+            "Bottom Wear",
+            "Ethnic Wear",
+            "Casual Wear",
+            "Formal Wear",
+            "Sports Wear"
+        ]
+    },
+    {
+        name: "Women's Fashion",
+        subcategories: [
+            "Ethnic Wear",
+            "Western Wear",
+            "Lingerie & Sleepwear",
+            "Formal Wear",
+            "Maternity Wear",
+            "Sports Wear"
+        ]
+    },
+    {
+        name: "Footwear",
+        subcategories: [
+            "Men's Footwear",
+            "Women's Footwear",
+            "Kids' Footwear",
+            "Sports Shoes",
+            "Sandals & Floaters",
+            "Formal Shoes"
+        ]
+    },
+    {
+        name: "Accessories",
+        subcategories: [
+            "Watches",
+            "Bags & Luggage",
+            "Jewellery",
+            "Sunglasses",
+            "Belts & Wallets",
+            "Hats & Caps"
+        ]
+    },
+    {
+        name: "Kids & Babies",
+        subcategories: [
+            "Clothing",
+            "Footwear",
+            "Toys",
+            "School Supplies",
+            "Feeding",
+            "Baby Care"
+        ]
+    },
+    {
+        name: "Home & Living",
+        subcategories: [
+            "Kitchenware",
+            "Furniture",
+            "Decor",
+            "Bedding",
+            "Gardening",
+            "Storage"
+        ]
+    }
+];
+
+const DesktopCategoriesSidebar = () => {
+
+    return (
+        <div className='space-y-1 p-2'>
+            {categoriesData.map((category) => (
+                <HoverCard key={category.name} openDelay={100} closeDelay={100}>
+                    <HoverCardTrigger asChild>
+                        <button className="w-full text-left px-3 py-2 font-medium hover:bg-accent rounded-lg transition-colors">
+                            {category.name}
+                        </button>
+                    </HoverCardTrigger>
+
+                    <HoverCardContent
+                        align="start"
+                        side="right"
+                        className="w-48 px-5 ml-2"
+                        sideOffset={10}
+                    >
+                        <div className="flex flex-col gap-2">
+                            {category.subcategories.map((sub) => (
+                                <Link
+                                    key={sub}
+                                    href="#"
+                                    className="text-sm p-1 hover:bg-accent rounded-md transition-colors"
+                                >
+                                    {sub}
+                                </Link>
+                            ))}
+                        </div>
+                    </HoverCardContent>
+                </HoverCard>
             ))}
-           
-        </ul>
-    </div>
-  )
+        </div>
+    )
 }
 
-export default CategoriesSidebar
+const MobileCategories = () => {
+    return (
+        <div className="md:hidden px-4 py-2 bg-accent/50">
+            <ScrollArea className="pb-2">
+                <div className="flex gap-2">
+                    {categoriesData.map((category) => (
+                        <HoverCard key={category.name} openDelay={100} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                                <button className="px-4 py-2 text-sm rounded-full bg-background border hover:bg-accent">
+                                    {category.name}
+                                </button>
+                            </HoverCardTrigger>
+
+                            <HoverCardContent
+                                align="start"
+                                className="w-[300px] p-3"
+                                sideOffset={5}
+                            >
+                                <div className="grid grid-cols-2 gap-2">
+                                    {category.subcategories.map((sub) => (
+                                        <Link
+                                            key={sub}
+                                            href="#"
+                                            className="text-sm p-2 hover:bg-accent rounded-md"
+                                        >
+                                            {sub}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </HoverCardContent>
+                        </HoverCard>
+                    ))}
+                </div>
+            </ScrollArea>
+        </div>
+    )
+}
+
+export { DesktopCategoriesSidebar, MobileCategories }

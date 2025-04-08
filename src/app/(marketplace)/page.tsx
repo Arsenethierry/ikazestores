@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProductListSkeleton } from "@/features/products/components/products-list-sekeleton";
 import { StoreProductsList } from "@/features/products/components/store-products-list";
-import StoreHero from "@/features/stores/components/store-hero";
+import { StoreHero } from "@/features/stores/components/store-hero";
+import { StoreHeroSkeleton } from "@/features/stores/components/store-hero-sekeleton";
 import { getAllVirtualStores } from "@/lib/actions/vitual-store.action";
 import { getStoreSubdomainUrl } from "@/lib/domain-utils";
 import { getStoreInitials } from "@/lib/utils";
@@ -18,7 +19,9 @@ export default async function Home() {
     if (!virtualStores || virtualStores.total === 0) {
       return (
         <div className="space-y-5 text-center">
-          <StoreHero />
+          <Suspense fallback={<StoreHeroSkeleton />}>
+            <StoreHero />
+          </Suspense>
           <p className="text-gray-500">No stores available yet. Stay tuned!</p>
         </div>
       );
@@ -26,7 +29,9 @@ export default async function Home() {
 
     return (
       <div>
-        <StoreHero />
+        <Suspense fallback={<StoreHeroSkeleton />}>
+          <StoreHero />
+        </Suspense>
         {virtualStores.documents.map((store) =>
           store.vitualProducts?.length > 0 ? (
             <div className={`md:main-container md:px-5 max-w-[1540px] mx-auto py-3 px-1`} key={store.$id}>

@@ -3,12 +3,12 @@
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
-import {APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, CATEGORIES_COLLECTION_ID, DATABASE_ID, PRODUCTS_BUCKET_ID } from "@/lib/env-config";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, CATEGORIES_COLLECTION_ID, DATABASE_ID, PRODUCTS_BUCKET_ID } from "@/lib/env-config";
 import { CategoryById, CategorySchema, UpdateCategoryActionSchema } from "@/lib/schemas/products-schems";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
-import { deleteSubcategoryById, getSubcategoriesByParentId } from "./sub-categories-actions";
+import { deleteSubcategoryById, getSubcategoriesByParentIds } from "./sub-categories-actions";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -54,38 +54,6 @@ export const createNewCategory = action
             return { error: error instanceof Error ? error.message : "Failed to create category" };
         }
     });
-
-export const getCategoryById = async (categoryId: string) => {
-    try {
-        const { databases } = await createSessionClient();
-        const category = await databases.getDocument(
-            DATABASE_ID,
-            CATEGORIES_COLLECTION_ID,
-            categoryId
-        );
-        return category;
-    } catch (error) {
-        console.log("getCategoryById: ", error)
-        return null
-    }
-}
-
-export const getAllCategories = async () => {
-    try {
-        const { databases } = await createSessionClient();
-        const categories = await databases.listDocuments(
-            DATABASE_ID,
-            CATEGORIES_COLLECTION_ID,
-        );
-        return categories;
-    } catch (error) {
-        return {
-            error: error instanceof Error ? error.message : "Failed to fetch category",
-            documents: [],
-            total: 0
-        };
-    }
-}
 
 export const updateCategory = action
     .use(authMiddleware)
@@ -135,7 +103,7 @@ export const deleteCategoryById = action
     .action(async ({ parsedInput: { categoryId }, ctx }) => {
         const { databases, storage } = ctx;
         try {
-            const subCetegories = await getSubcategoriesByParentId(categoryId);
+            const subCetegories = await getSubcategoriesByParentIds([categoryId]);
             if (subCetegories && subCetegories.total > 0) {
                 await Promise.all(
                     subCetegories.documents.map(async (subcategory) => {
@@ -164,3 +132,65 @@ export const deleteCategoryById = action
             return { error: error instanceof Error ? error.message : "Failed to delete category" };
         }
     });
+
+export const getCategoryById = async (categoryId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const category = await databases.getDocument(
+            DATABASE_ID,
+            CATEGORIES_COLLECTION_ID,
+            categoryId
+        );
+        return category;
+    } catch (error) {
+        console.log("getCategoryById: ", error)
+        return null
+    }
+}
+
+export const getAllCategories = async () => {
+    try {
+        const { databases } = await createSessionClient();
+        const categories = await databases.listDocuments(
+            DATABASE_ID,
+            CATEGORIES_COLLECTION_ID,
+        );
+        return categories;
+    } catch (error) {
+        return {
+            error: error instanceof Error ? error.message : "Failed to fetch category",
+            documents: [],
+            total: 0
+        };
+    }
+}
+
+export const getCategoriesWithSubcategories = async () => {
+    try {
+        const categories = await getAllCategories();
+        const subcategories = await getSubcategoriesByParentIds(categories.documents.map(c => c.$id));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subcategoriesMap: Record<string, any[]> = {};
+        subcategories.documents.forEach((sub) => {
+            sub.parentCategoryIds.forEach((parentId: string) => {
+              if (!subcategoriesMap[parentId]) {
+                subcategoriesMap[parentId] = [];
+              }
+              subcategoriesMap[parentId].push(sub);
+            });
+          });
+
+        return {
+            categories: categories.documents,
+            subcategoriesMap,
+            error: null
+        }
+    } catch (error) {
+        return {
+            categories: [],
+            subcategoriesMap: {},
+            error: error instanceof Error ? error.message : "Failed to fetch categories"
+        };
+    }
+}

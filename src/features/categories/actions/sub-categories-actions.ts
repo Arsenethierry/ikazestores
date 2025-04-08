@@ -98,14 +98,14 @@ export const updateSubCategory = action
         }
     })
 
-export const getSubcategoriesByParentId = async (categoryId: string) => {
+export const getSubcategoriesByParentIds = async (parentCategoryIds: string[]) => {
     try {
         const { databases } = await createSessionClient();
         const subcategories = await databases.listDocuments(
             DATABASE_ID,
             SUB_CATEGORIES_COLLECTION_ID,
             [
-                Query.contains("parentCategoryIds", [categoryId])
+                Query.contains("parentCategoryIds", parentCategoryIds)
             ]
         );
         return subcategories
