@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProductListSkeleton } from "@/features/products/components/products-list-sekeleton";
 import { StoreProductsList } from "@/features/products/components/store-products-list";
-import { StoreCarousel } from "@/features/stores/components/store-carousel";
+import StoreHero from "@/features/stores/components/store-hero";
 import { getAllVirtualStores } from "@/lib/actions/vitual-store.action";
 import { getStoreSubdomainUrl } from "@/lib/domain-utils";
 import { getStoreInitials } from "@/lib/utils";
@@ -18,7 +18,7 @@ export default async function Home() {
     if (!virtualStores || virtualStores.total === 0) {
       return (
         <div className="space-y-5 text-center">
-          <StoreCarousel />
+          <StoreHero />
           <p className="text-gray-500">No stores available yet. Stay tuned!</p>
         </div>
       );
@@ -26,7 +26,7 @@ export default async function Home() {
 
     return (
       <div>
-        <StoreCarousel />
+        <StoreHero />
         {virtualStores.documents.map((store) =>
           store.vitualProducts?.length > 0 ? (
             <div className={`md:main-container md:px-5 max-w-[1540px] mx-auto py-3 px-1`} key={store.$id}>
@@ -70,7 +70,7 @@ export default async function Home() {
     console.error("Error fetching virtual stores:", error);
     return (
       <div className="space-y-5 text-center text-red-500">
-        <StoreCarousel />
+        <StoreHero />
         <p>Something went wrong while fetching virtual stores. Please try again later.</p>
       </div>
     );
