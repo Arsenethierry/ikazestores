@@ -37,7 +37,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
-                        {product?.imageUrls?.map((imageUrl: string, index: string) => (
+                        {product?.generalImageUrls?.map((imageUrl: string, index: string) => (
                             <CarouselItem key={index} className='relative h-60 w-full'>
                                 <Image
                                     src={imageUrl}

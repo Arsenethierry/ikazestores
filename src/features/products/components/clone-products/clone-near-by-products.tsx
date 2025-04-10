@@ -21,12 +21,12 @@ export const CloneNearByProducts = ({
     user: CurrentUserType
 }) => {
     const { data: products, isLoading, isFetching, error } = useGetNearByOriginalProducts();
-    
-    const isLocationError = error && 
-        (error.message.includes("location") || 
-         error.message.includes("permission") || 
-         error.message.includes("denied") ||
-         error.message.includes("position unavailable"));
+
+    const isLocationError = error &&
+        (error.message.includes("location") ||
+            error.message.includes("permission") ||
+            error.message.includes("denied") ||
+            error.message.includes("position unavailable"));
 
     return (
         <div className="w-full max-w-7xl">
@@ -44,12 +44,12 @@ export const CloneNearByProducts = ({
                         <h3 className="font-medium">Location Services Disabled</h3>
                     </div>
                     <p className="text-gray-700 mb-4">
-                        We can&lsquo;t show nearby products because location access is disabled. 
+                        We can&lsquo;t show nearby products because location access is disabled.
                         Please enable location services in your browser settings to see products near you.
                     </p>
                     <div className="mt-2">
-                        <button 
-                            onClick={() => window.location.reload()} 
+                        <button
+                            onClick={() => window.location.reload()}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
                         >
                             Try Again
@@ -71,7 +71,7 @@ export const CloneNearByProducts = ({
                     <p className="text-gray-700">No products found in your area.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div className="flex flex-wrap gap-4">
                     {products && products.documents.map((product: DocumentType) => (
                         <div key={product.$id}>
                             <Suspense fallback={<ProductSekeleton />}>

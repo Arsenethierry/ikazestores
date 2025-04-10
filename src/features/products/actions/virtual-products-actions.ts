@@ -79,8 +79,8 @@ export const addNewVirtualProduct = action
                 VIRTUAL_PRODUCT_ID,
                 [
                     Query.and([
-                        Query.equal("virtualStore", values.storeId),
-                        Query.equal("originalProduct", values.originalProductId)
+                        Query.equal("virtualStoreId", values.storeId),
+                        Query.equal("originalProductId", values.originalProductId)
                     ])
                 ]
             );
@@ -98,10 +98,9 @@ export const addNewVirtualProduct = action
                     virtualStoreId: values.storeId,
                     sellingPrice: values.sellingPrice,
                     purchasePrice: values.purchasePrice,
-                    originalProduct: values.originalProductId,
                     title: values.title,
                     description: values.description,
-                    imageUrls: values.imageUrls,
+                    generalImageUrls: values.generalImageUrls,
                     originalProductId: values.originalProductId,
                     virtualStore: values.storeId,
                 }
@@ -120,28 +119,12 @@ export const addNewVirtualProduct = action
 export const removeProduct = action
     .use(authMiddleware)
     .schema(deleteVirtualProductSchema)
-    .action(async ({ parsedInput: { productId, virtualStoreId }, ctx }) => {
+    .action(async ({ parsedInput: { productId }, ctx }) => {
         try {
-
-            const existingCloneedProduct = await ctx.databases.listDocuments(
-                DATABASE_ID,
-                VIRTUAL_PRODUCT_ID,
-                [
-                    Query.and([
-                        Query.equal("store", virtualStoreId),
-                        Query.equal("originalProduct", productId)
-                    ])
-                ]
-            );
-
-            if (existingCloneedProduct.total < 1) {
-                throw new Error("No product found.")
-            }
-
             await ctx.databases.deleteDocument(
                 DATABASE_ID,
                 VIRTUAL_PRODUCT_ID,
-                existingCloneedProduct.documents[0].$id
+                productId
             );
 
             revalidatePath('/admin/stores/[storeId]/products/clone-products', 'page')
@@ -175,10 +158,10 @@ export const getAllVirtualPropByOriginalProduct = async (originalProductId: stri
 
 export const searchVirtualProducts = async (searchTerm: string) => {
     try {
-        const {databases} = await createSessionClient();
+        const { databases } = await createSessionClient();
 
         const queries = [];
-        if(searchTerm) {
+        if (searchTerm) {
             queries.push(Query.search("title", searchTerm));
             queries.push(Query.search("description", searchTerm));
         }
@@ -186,7 +169,7 @@ export const searchVirtualProducts = async (searchTerm: string) => {
         const results = await databases.listDocuments(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
-            queries.length > 0 ? queries: undefined
+            queries.length > 0 ? queries : undefined
         );
 
         return results

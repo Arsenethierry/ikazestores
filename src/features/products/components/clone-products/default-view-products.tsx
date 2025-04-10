@@ -35,23 +35,21 @@ async function CloneProductsPage({
     }
 
     return (
-        <div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {products.documents.map((product: DocumentType) => (
-                    <div key={product.$id}>
-                        <Suspense fallback={<ProductSekeleton />}>
-                            <PhysicalProductCard
-                                product={product}
-                                storeId={storeId}
-                                user={user}
-                                isSystemAdmin={isSystemAdmin}
-                                isPhysicalStoreOwner={isPhysicalStoreOwner}
-                                isVirtualStoreOwner={isVirtualStoreOwner}
-                            />
-                        </Suspense>
-                    </div>
-                ))}
-            </div>
+        <div className="flex flex-wrap gap-4">
+            {products.documents.map((product: DocumentType) => (
+                <div key={product.$id}>
+                    <Suspense fallback={<ProductSekeleton />}>
+                        <PhysicalProductCard
+                            product={product}
+                            storeId={storeId}
+                            user={user}
+                            isSystemAdmin={isSystemAdmin}
+                            isPhysicalStoreOwner={isPhysicalStoreOwner}
+                            isVirtualStoreOwner={isVirtualStoreOwner}
+                        />
+                    </Suspense>
+                </div>
+            ))}
         </div>
     );
 }

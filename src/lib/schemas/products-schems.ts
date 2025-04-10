@@ -40,7 +40,7 @@ export const VirtualProductSchema = z.object({
     storeId: z.string(),
     description: z.string(),
     title: z.string(),
-    imageUrls: z.string().array(),
+    generalImageUrls: z.string().array(),
     createdBy: z.string(),
 })
 

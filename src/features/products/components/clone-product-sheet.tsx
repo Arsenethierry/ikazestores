@@ -29,7 +29,7 @@ const formSchema = z.object({
     title: z.string(),
     description: z.string(),
     price: z.number().min(1, "Price must be greater than 0"),
-    imageUrls: z.array(z.string()),
+    generalImageUrls: z.array(z.string()),
     imageIds: z.array(z.string()),
 });
 export const CloneProductSheet = ({ currentUser, product, isAlreadyCloned }: { currentUser: CurrentUserType, product: DocumentType, isAlreadyCloned: boolean }) => {
@@ -37,13 +37,15 @@ export const CloneProductSheet = ({ currentUser, product, isAlreadyCloned }: { c
 
     const storeId = useCurrentStoreId();
 
+    console.log("kdkdkd: ", product)
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: product.title,
             description: product.description,
             price: product.price,
-            imageUrls: product.imageUrls || [],
+            generalImageUrls: product.generalProductImages || [],
             imageIds: product.imageIds || [],
         },
         mode: "onChange",
@@ -148,7 +150,7 @@ export const CloneProductSheet = ({ currentUser, product, isAlreadyCloned }: { c
                             <div>
                                 <FormLabel>Images</FormLabel>
                                 <div className="grid grid-cols-3 gap-2 mt-2">
-                                    {product.imageUrls && product.imageUrls.map((url: string, index: number) => (
+                                    {product?.generalProductImages && product?.generalProductImages?.map((url: string, index: number) => (
                                         <div key={index} className="relative h-24 rounded-md overflow-hidden">
                                             <Image
                                                 src={url}
@@ -166,7 +168,7 @@ export const CloneProductSheet = ({ currentUser, product, isAlreadyCloned }: { c
                             <div className="hidden">
                                 <FormField
                                     control={form.control}
-                                    name="imageUrls"
+                                    name="generalImageUrls"
                                     render={({ field }) => <Input {...field} type="hidden" />}
                                 />
                                 <FormField
