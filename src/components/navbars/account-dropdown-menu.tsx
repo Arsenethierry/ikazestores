@@ -5,7 +5,7 @@ import Link from "next/link";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { AuthStatus } from "@/lib/types";
 
-export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner }: AuthStatus) => (
+export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner, isSystemAdmin }: AuthStatus) => (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant={'ghost'} className='text-white font-medium cursor-pointer hidden md:inline-flex'>
@@ -31,7 +31,7 @@ export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtu
                                 </Link>
                             </DropdownMenuItem>
                         </DropdownMenuItem>
-                        {(isPhysicalStoreOwner || isVirtualStoreOwner) && (
+                        {(isPhysicalStoreOwner || isVirtualStoreOwner || isSystemAdmin) && (
                             <DropdownMenuItem className='cursor-pointer w-full'>
                                 <Link href={'/admin'} className='w-full font-medium cursor-pointer inline-flex'>
                                     <LayoutDashboard className='h-4 my-auto' />

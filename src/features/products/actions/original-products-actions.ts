@@ -1,7 +1,7 @@
 "use server";
 
 import { createSafeActionClient } from "next-safe-action"
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCTS_BUCKET_ID, PRODUCTS_IMAGES_COLORS_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
 import { authMiddleware, physicalStoreOwnerMiddleware } from "../../../lib/actions/middlewares";
 import { ID, Query } from "node-appwrite";
 import { AppwriteRollback } from "@/lib/actions/rollback";
@@ -19,26 +19,59 @@ const action = createSafeActionClient({
 export const createNewProduct = action
     .use(authMiddleware)
     .schema(ProductSchema)
-    .action(async ({ parsedInput: { images, storeId, ...values }, ctx }) => {
+    .action(async ({ parsedInput: { images, categoryId, colorImages, storeId, ...values }, ctx }) => {
         const rollback = new AppwriteRollback(ctx.storage, ctx.databases)
         try {
-            const productImagesUploaded = await Promise.all(
+            const generalImageDocuments = await Promise.all(
                 images.map(async (image) => {
                     const imageId = ID.unique();
-
                     const uploadedImage = await ctx.storage.createFile(
                         PRODUCTS_BUCKET_ID,
                         imageId,
                         image
                     );
                     await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
+
                     return {
-                        id: uploadedImage.$id,
-                        name: uploadedImage.name,
-                        url: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`
-                    }
+                        imageUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`
+                    };
                 }) || []
             );
+
+            const colorImagesDocuments = [];
+            for (const colorImage of colorImages) {
+                const color = colorImages.find(c => c.colorHex === colorImage.colorHex);
+                if (!color) {
+                    throw new Error(`Color ${colorImage.colorHex} not found`);
+                }
+
+                const colorDocs = await Promise.all(
+                    colorImage.images.map(async (image) => {
+                        const imageId = ID.unique();
+                        const uploadedImage = await ctx.storage.createFile(
+                            PRODUCTS_BUCKET_ID,
+                            imageId,
+                            image
+                        );
+                        await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
+
+                        const doc = await ctx.databases.createDocument(
+                            DATABASE_ID,
+                            PRODUCTS_IMAGES_COLORS_COLLECTION_ID,
+                            ID.unique(),
+                            {
+                                colorHex: color.colorHex,
+                                colorName: color.colorName,
+                                imageId: uploadedImage.$id,
+                                imageUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`
+                            }
+                        );
+                        await rollback.trackDocument(PRODUCTS_IMAGES_COLORS_COLLECTION_ID, doc.$id);
+                        return doc
+                    })
+                );
+                colorImagesDocuments.push(...colorDocs);
+            }
 
             const newProduct = await ctx.databases.createDocument(
                 DATABASE_ID,
@@ -48,8 +81,10 @@ export const createNewProduct = action
                     ...values,
                     createdBy: ctx.user.$id,
                     store: storeId,
-                    imageIds: productImagesUploaded.map(image => image.id),
-                    imageUrls: productImagesUploaded.map(image => image.url)
+                    colorImages: colorImagesDocuments.map(document => document.$id),
+                    category: categoryId,
+                    // imageIds: productImagesUploaded.map(image => image.id),
+                    generalProductImages: generalImageDocuments.map(image => image.imageUrl)
                 }
             );
             await rollback.trackDocument(ORIGINAL_PRODUCT_ID, newProduct.$id);

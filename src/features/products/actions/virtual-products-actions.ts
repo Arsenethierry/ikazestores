@@ -172,3 +172,30 @@ export const getAllVirtualPropByOriginalProduct = async (originalProductId: stri
         };
     }
 }
+
+export const searchVirtualProducts = async (searchTerm: string) => {
+    try {
+        const {databases} = await createSessionClient();
+
+        const queries = [];
+        if(searchTerm) {
+            queries.push(Query.search("title", searchTerm));
+            queries.push(Query.search("description", searchTerm));
+        }
+
+        const results = await databases.listDocuments(
+            DATABASE_ID,
+            VIRTUAL_PRODUCT_ID,
+            queries.length > 0 ? queries: undefined
+        );
+
+        return results
+    } catch (error) {
+        return {
+            error:
+                error instanceof Error ? error.message : "Failed to search products",
+            total: 0,
+            documents: []
+        };
+    }
+}

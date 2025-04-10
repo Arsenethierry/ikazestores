@@ -19,7 +19,14 @@ export const ProductSchema = z.object({
         }),
     storeLat: z.number().optional(),
     storeLong: z.number().optional(),
-    storeOriginCountry: z.string()
+    storeOriginCountry: z.string(),
+    categoryId: z.string().min(1, { message: "Category is required" }),
+    subcategoryIds: z.array(z.string()).optional(),
+    colorImages: z.array(z.object({
+        colorHex: z.string(),
+        images: z.array(z.any()),
+        colorName: z.string()
+    }))
 })
 
 export const VirtualProductSchema = z.object({

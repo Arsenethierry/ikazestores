@@ -1,0 +1,127 @@
+[
+    {
+        "id": 1,
+        "name": "White",
+        "hex": "#FFFFFF"
+    },
+    {
+        "id": 2,
+        "name": "Black",
+        "hex": "#000000"
+    },
+    {
+        "id": 3,
+        "name": "Red",
+        "hex": "#FF0000"
+    },
+    {
+        "id": 4,
+        "name": "Green",
+        "hex": "#00FF00"
+    },
+    {
+        "id": 5,
+        "name": "Blue",
+        "hex": "#0000FF"
+    },
+    {
+        "id": 6,
+        "name": "Yellow",
+        "hex": "#FFFF99"
+    },
+    {
+        "id": 7,
+        "name": "Magenta",
+        "hex": "#C71585"
+    },
+    {
+        "id": 8,
+        "name": "Orange",
+        "hex": "#FFA500"
+    },
+    {
+        "id": 9,
+        "name": "Purple",
+        "hex": "#FF00FF"
+    },
+    {
+        "id": 10,
+        "name": "Brown",
+        "hex": "#8B0000"
+    },
+    {
+        "id": 11,
+        "name": "Lavender",
+        "hex": "#9EA7E9"
+    },
+    {
+        "id": 12,
+        "name": "Indigo",
+        "hex": "#4B0082"
+    },
+    {
+        "id": 13,
+        "name": "Salmon",
+        "hex": "#FA8072"
+    },
+    {
+        "id": 14,
+        "name": "Teal",
+        "hex": "#008080"
+    },
+    {
+        "id": 15,
+        "name": "Goldenrod",
+        "hex": "#DAA520"
+    },
+    {
+        "id": 16,
+        "name": "Gray",
+        "hex": "#808080"
+    },
+    {
+        "id": 17,
+        "name": "Cyan",
+        "hex": "#00FFFF"
+    },
+    {
+        "id": 18,
+        "name": "Pink",
+        "hex": "#FFC0CB"
+    },
+    {
+        "id": 19,
+        "name": "Navy",
+        "hex": "#000080"
+    },
+    {
+        "id": 20,
+        "name": "Beige",
+        "hex": "#F5F5DC"
+    },
+    {
+        "id": 21,
+        "name": "Maroon",
+        "hex": "#800000"
+    },
+    {
+        "id": 22,
+        "name": "Olive",
+        "hex": "#808000"
+    },
+    {
+        "id": 23,
+        "name": "Turquoise",
+        "hex": "#40E0D0"
+    },
+    {
+        "id": 24,
+        "name": "Mint",
+        "hex": "#98FF98"
+    },
+    {
+        "id": 25,
+        "name": "Peach",
+        "hex": "#FFDAB9"
+    }
+]

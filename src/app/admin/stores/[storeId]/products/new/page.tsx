@@ -1,4 +1,5 @@
 import { AccessDeniedCard } from '@/components/access-denied-card';
+import { getCategoriesWithSubcategories } from '@/features/categories/actions/categories-actions';
 import ProductForm from '@/features/products/components/product-form';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
 import { getAuthState, isStoreOwner } from '@/lib/user-label-permission';
@@ -19,8 +20,10 @@ async function page({
         return <AccessDeniedCard />
     }
 
+    const categoriesData = await getCategoriesWithSubcategories();
+
     return (
-        <ProductForm storeData={storeData} />
+        <ProductForm storeData={storeData} categoriesData={categoriesData} />
     );
 }
 
