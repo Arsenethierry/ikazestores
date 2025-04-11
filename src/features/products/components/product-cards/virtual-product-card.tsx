@@ -34,7 +34,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
         Math.round(((originalPrice - price) / originalPrice) * 100) : null);
 
     return (
-        <Card className="group w-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <Card className="group w-full h-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
