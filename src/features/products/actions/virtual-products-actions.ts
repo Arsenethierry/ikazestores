@@ -156,20 +156,20 @@ export const getAllVirtualPropByOriginalProduct = async (originalProductId: stri
     }
 }
 
-export const searchVirtualProducts = async (searchTerm: string) => {
+export const searchVirtualProducts = async ({ query, limit = 10 }: { query: string, limit: number }) => {
     try {
         const { databases } = await createSessionClient();
-
-        const queries = [];
-        if (searchTerm) {
-            queries.push(Query.search("title", searchTerm));
-            queries.push(Query.search("description", searchTerm));
-        }
 
         const results = await databases.listDocuments(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
-            queries.length > 0 ? queries : undefined
+            [
+                Query.or([
+                    Query.search("title", query),
+                    Query.contains("categoryNames", query),
+                ]),
+                Query.limit(limit)
+            ]
         );
 
         return results

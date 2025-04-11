@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { SearchField } from "../search/search-field";
 import { Heart, ShoppingCart } from "lucide-react";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { AuthStatus } from "@/lib/types";
+import { ProductSearchField } from "../search/search-field";
 
 export const MobileMenuContent = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner }: AuthStatus) => (
     <>
         <div className="mb-4">
-            <SearchField mobile />
+            <ProductSearchField />
         </div>
 
         <Link href="/cart" className="flex items-center gap-2">

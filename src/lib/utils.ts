@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { ImageDimensionConstraints } from "./types";
+import lod from 'lodash';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -68,4 +69,8 @@ export const dateFormatter = (dateObject: Date) => new Intl.DateTimeFormat("en-U
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
-}).format(dateObject)
+}).format(dateObject);
+
+export const slugify = (text: string) => {
+  return lod.kebabCase(text)
+}

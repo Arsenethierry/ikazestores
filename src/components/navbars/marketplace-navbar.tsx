@@ -5,11 +5,11 @@ import { AllCategories } from './all-categories';
 import { NavigationMenuCategories } from './navigation-menu';
 import { getAuthState } from '@/lib/user-label-permission';
 import { Suspense } from 'react';
-import { SearchField } from '../search/search-field';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { AccountDropdown } from './account-dropdown-menu';
 import { MobileMenuContent } from './mobile-menu-contents';
 import { CartNavButton } from '@/features/cart/components/cart-navbar-button';
+import { ProductSearchField } from '../search/search-field';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -62,7 +62,7 @@ export default async function MarketplaceNavbar() {
 
                 {/* Desktop Search - Hidden on mobile */}
                 <div className='hidden md:flex gap-3 w-full max-w-xl mx-8'>
-                    <SearchField />
+                    <ProductSearchField />
                 </div>
 
                 <div className='flex gap-3 items-center'>
@@ -76,7 +76,7 @@ export default async function MarketplaceNavbar() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-screen max-w-full mt-2">
                                 <div className="p-4">
-                                    <SearchField mobile />
+                                    <ProductSearchField />
                                 </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
