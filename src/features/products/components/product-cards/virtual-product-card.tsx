@@ -102,10 +102,14 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
                 </div>
 
                 <div className='flex justify-between items-center'>
-                    <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out group-hover:translate-x-1">
-                        <span className="font-semibold transition-colors duration-300 group-hover:text-gray-900">${price.toFixed(2)}</span>
+                    <div className="flex items-center gap-2 font-sans transition-transform duration-300 ease-in-out group-hover:translate-x-1">
+                        <span className="font-semibold  text-sm transition-colors duration-300 group-hover:text-gray-900">
+                            <ProductPriceDisplay productPrice={price} />
+                        </span>
                         {originalPrice && (
-                            <ProductPriceDisplay productPrice={originalPrice} />
+                            <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">
+                                <ProductPriceDisplay productPrice={originalPrice} />
+                            </span>
                         )}
                     </div>
                 </div>

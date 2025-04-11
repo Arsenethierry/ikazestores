@@ -10,6 +10,7 @@ import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
 import { updateUserLabels } from "./user-labels";
 import { CompletePasswordRecoverySchema, InitiatePasswordRecoverySchema, loginSchema, signupSchema, verifyEmilSchema } from "../schemas/user-schema";
+import countriesData from "@/data/countries.json";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -77,7 +78,7 @@ export const signUpAction = action
                     phoneNumber
                 }
             );
-            
+
             const session = await account.createEmailPasswordSession(email, password);
 
             const cookieStore = await cookies();
@@ -240,6 +241,20 @@ export const getUserLocale = async () => {
     try {
         const { locale } = await createSessionClient();
         const result = await locale.get();
+
+        if (!result.currency || result.currency.trim() === "") {
+            const fallback = countriesData.find(
+                (c) =>
+                    c.code.toLowerCase() === result.countryCode.toLowerCase() ||
+                    c.name.toLowerCase() === result.country.toLowerCase()
+            );
+
+
+            if (fallback?.currency) {
+                result.currency = fallback.currency;
+            }
+        }
+
         return result
     } catch (error) {
         console.error("useUserLocale:", error);
@@ -251,7 +266,7 @@ export const getCountriesLocale = async () => {
     try {
         const { locale } = await createSessionClient();
         const result = await locale.listCountries();
-        
+
         return result
     } catch (error) {
         console.error("getCountriesLocale:", error);
@@ -261,7 +276,7 @@ export const getCurrencyList = async () => {
     try {
         const { locale } = await createSessionClient();
         const result = await locale.listCurrencies();
-        
+
         return result
     } catch (error) {
         console.error("getCurrencyList:", error);
