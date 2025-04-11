@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { AccountDropdown } from './account-dropdown-menu';
 import { MobileMenuContent } from './mobile-menu-contents';
 import { CartNavButton } from '@/features/cart/components/cart-navbar-button';
-import { ProductSearchField } from '../search/search-field';
+import { ProductSearchField } from '../search/virtual-products-search';
 
 export default async function MarketplaceNavbar() {
     const {

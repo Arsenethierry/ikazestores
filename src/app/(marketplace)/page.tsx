@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProductListSkeleton } from "@/features/products/components/products-list-sekeleton";
 import { StoreProductsList } from "@/features/products/components/store-products-list";
@@ -32,6 +32,7 @@ export default async function Home() {
         <Suspense fallback={<StoreHeroSkeleton />}>
           <StoreHero />
         </Suspense>
+        <h3 className="text-center font-extrabold text-2xl text-sky-700 p-2">Shop by featured stores</h3>
         {virtualStores.documents.map((store) =>
           store.vitualProducts?.length > 0 ? (
             <div className={`md:main-container md:px-5 max-w-[1540px] mx-auto py-3 px-1`} key={store.$id}>
@@ -43,11 +44,14 @@ export default async function Home() {
                   </Avatar>
                   <h1 className="text-xl font-bold capitalize truncate">{store.storeName}</h1>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 p-1">
                   <Button className="hidden md:block">Subscribe</Button>
+                  <Link href={getStoreSubdomainUrl({ subdomain: store.subDomain })} target="_blank" className={`${buttonVariants({ variant: "outline" })} hidden md:block`}>
+                    Visit store
+                  </Link>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="outline" aria-label="Select theme">
+                      <Button size="icon" variant="outline" className="md:hidden" aria-label="Select action">
                         <Ellipsis size={16} aria-hidden="true" />
                       </Button>
                     </DropdownMenuTrigger>

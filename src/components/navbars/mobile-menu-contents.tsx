@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Heart, ShoppingCart } from "lucide-react";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { AuthStatus } from "@/lib/types";
-import { ProductSearchField } from "../search/search-field";
+import { ProductSearchField } from "../search/virtual-products-search";
 
 export const MobileMenuContent = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner }: AuthStatus) => (
     <>

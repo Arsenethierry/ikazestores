@@ -12,7 +12,7 @@ import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 // import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { PhysicalProductMenuActions } from '../physical-product-actions';
-import { CloneProductSheet } from '../clone-product-sheet';
+import { CloneProductModal } from '../clone-products/clone-product-modal';
 
 export const PhysicalProductCard = ({
     product,
@@ -119,7 +119,7 @@ export const PhysicalProductCard = ({
                     </div>
                     {isVirtualStoreOwner ? (
                         <div className="transition-transform duration-300 ease-in-out group-hover:scale-105">
-                            <CloneProductSheet
+                            <CloneProductModal
                                 currentUser={user}
                                 product={product}
                                 isAlreadyCloned={isAlreadyCloned()}

@@ -11,6 +11,7 @@ import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
+import { ProductPriceDisplay } from '../converted-price-component';
 
 export const VirtualProductCard = async ({ product, storeId }: { product: DocumentType, storeId: string }) => {
     const {
@@ -104,7 +105,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
                     <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out group-hover:translate-x-1">
                         <span className="font-semibold transition-colors duration-300 group-hover:text-gray-900">${price.toFixed(2)}</span>
                         {originalPrice && (
-                            <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">${originalPrice.toFixed(2)}</span>
+                            <ProductPriceDisplay productPrice={originalPrice} />
                         )}
                     </div>
                 </div>

@@ -243,6 +243,7 @@ export const getUserLocale = async () => {
         return result
     } catch (error) {
         console.error("useUserLocale:", error);
+        return null
     }
 }
 
@@ -253,6 +254,16 @@ export const getCountriesLocale = async () => {
         
         return result
     } catch (error) {
-        console.error("useUserLocale:", error);
+        console.error("getCountriesLocale:", error);
+    }
+}
+export const getCurrencyList = async () => {
+    try {
+        const { locale } = await createSessionClient();
+        const result = await locale.listCurrencies();
+        
+        return result
+    } catch (error) {
+        console.error("getCurrencyList:", error);
     }
 }
