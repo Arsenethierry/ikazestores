@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 export const SellPage = () => {
     return (
         <>
-            <div className="min-h-screen flex items-center pt-10 md:pt-32 justify-center px-4 sm:px-6 bg-gradient-to-b from-background to-muted/20">
+            <div className="min-h-screen flex flex-col items-center pt-10 md:pt-32 justify-center px-4 sm:px-6 bg-gradient-to-b from-background to-muted/20">
                 <HeroSection />
                 <motion.div
                     initial={{ opacity: 0 }}

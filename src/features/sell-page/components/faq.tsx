@@ -132,12 +132,12 @@ const SellPageFaq = () => {
                         </p>
                         <div className="mt-6 flex justify-center gap-4">
                             <Button variant="outline" className="gap-2" asChild>
-                                <Link href="/contact">
+                                <Link href="#">
                                     <HeadsetIcon className="w-4 h-4" /> Support Hub
                                 </Link>
                             </Button>
                             <Button className="gap-2" asChild>
-                                <Link href="/onboarding">
+                                <Link href="/sign-up">
                                     <UserPlus className="w-4 h-4" /> Join Network
                                 </Link>
                             </Button>
