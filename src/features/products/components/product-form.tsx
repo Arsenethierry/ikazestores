@@ -22,7 +22,7 @@ import { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import colorsData from '@/data/products-colors.json';
-
+import { ColorSelectorFormField } from "./product-color-selector";
 
 export default function ProductForm({
     storeData,
@@ -255,52 +255,7 @@ export default function ProductForm({
                             )}
                         />
 
-                        <FormField
-                            control={form.control}
-                            name="colorImages"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Product colors</FormLabel>
-                                    <div className="mb-4">
-                                        <div className="flex flex-wrap gap-4">
-                                            {colorsData.map((color) => {
-                                                const isSelected = field.value?.some(item => item.colorHex === color.hex);
-
-                                                return (
-                                                    <div key={color.id} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={`color-${color.id}`}
-                                                            checked={isSelected}
-                                                            onCheckedChange={(checked) => {
-                                                                const currentColorImages = field.value || [];
-                                                                if (checked) {
-                                                                    if (!currentColorImages.some(item => item.colorHex === color.hex)) {
-                                                                        field.onChange([...currentColorImages, { colorHex: color.hex, images: [], colorName: color.name }])
-                                                                    }
-                                                                } else {
-                                                                    field.onChange(currentColorImages.filter(item => item.colorHex !== color.hex))
-                                                                }
-                                                            }}
-                                                        />
-                                                        <label
-                                                            htmlFor={`color-${color.id}`}
-                                                            className="text-sm font-medium leading-none flex items-center gap-2"
-                                                        >
-                                                            <span
-                                                                className="w-4 h-4 rounded-full inline-block"
-                                                                style={{ backgroundColor: color.hex }}
-                                                            />
-                                                            {color.name}
-                                                        </label>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                        <FormMessage />
-                                    </div>
-                                </FormItem>
-                            )}
-                        />
+                       <ColorSelectorFormField form={form} />
 
                         {form.watch("colorImages")?.map((colorImage, index) => {
                             const color = colorsData.find(c => c.hex === colorImage.colorHex);

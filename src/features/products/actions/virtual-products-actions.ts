@@ -29,7 +29,7 @@ export const getVirtualStoreProducts = async (virtualStoreId: string) => {
         return products
     } catch (error) {
         console.log("getVirtualStoreProducts: ", error)
-        throw error
+        return null
     }
 }
 

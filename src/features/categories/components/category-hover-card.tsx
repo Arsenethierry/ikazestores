@@ -8,16 +8,18 @@ export const CategoriesCard = async ({
 }: {
     mobile?: boolean
 }) => {
-    const { categories, subcategoriesMap, error } = await getCategoriesWithSubcategories();
+    const { categories, subcategoriesMap, error } = await getCategoriesWithSubcategories({ storeId: null });
 
     const getSubcategories = (categoryId: string) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         return subcategoriesMap[categoryId] || [];
     };
+
     if (error) {
         return <div className="text-red-500 p-4">Error loading categories: {error}</div>;
     }
+
     return (
         categories.map((category) => {
             const subcategories = getSubcategories(category.$id);

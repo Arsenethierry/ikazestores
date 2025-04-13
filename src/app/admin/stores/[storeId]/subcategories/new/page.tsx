@@ -6,18 +6,23 @@ import { SubCategoryForm } from '@/features/categories/components/sub-category-f
 import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 
-async function NewCategory() {
+async function NewCategory({
+    params,
+}: {
+    params: Promise<{ storeId: string }>
+}) {
+    const { storeId } = await params;
     const {
         user,
         isSystemAdmin,
+        isVirtualStoreOwner,
+        isPhysicalStoreOwner
     } = await getAuthState();
 
     if (!user) redirect('/');
 
-    if (!isSystemAdmin) return <AccessDeniedCard message="Only system admins can view this page" />
-
+    if (!isSystemAdmin && !isVirtualStoreOwner && !isPhysicalStoreOwner) return <AccessDeniedCard />
     const categories = await getGeneralCategories();
-
     if (!categories.documents || categories.total === 0) return <NoItemsCard />
 
     const categoriesSelectOptions: Option[] = categories.documents.map(category => ({
@@ -29,7 +34,7 @@ async function NewCategory() {
         <SubCategoryForm
             currentUser={user}
             categoriesOptions={categoriesSelectOptions}
-            storeId={null}
+            storeId={storeId}
         />
     )
 }

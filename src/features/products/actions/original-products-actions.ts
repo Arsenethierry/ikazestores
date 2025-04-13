@@ -9,6 +9,7 @@ import { createSessionClient } from "@/lib/appwrite";
 import { revalidatePath } from "next/cache";
 import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
 import { DeleteProductSchema, ProductSchema } from "@/lib/schemas/products-schems";
+import { OriginalProductTypes } from "@/lib/types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -170,7 +171,7 @@ export const getOriginalProductsWithVirtualProducts = action
 export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     try {
         const { databases } = await createSessionClient();
-        const products = await databases.listDocuments(
+        const products = await databases.listDocuments<OriginalProductTypes>(
             DATABASE_ID,
             ORIGINAL_PRODUCT_ID,
             [
@@ -180,7 +181,11 @@ export const getStoreOriginalProducts = async (physicalStoreId: string) => {
 
         return products
     } catch (error) {
-        return { error: error instanceof Error ? error.message : "Failed to fetch products" };
+        console.log("getStoreOriginalProducts: Failed to fetch products", error)
+        return {
+            documents: [],
+            total: 0
+        }
     }
 }
 

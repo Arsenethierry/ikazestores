@@ -92,6 +92,8 @@ export const CategorySchema = z.object({
         .refine(file => file instanceof File, {
             message: "Icon thumbnail is required"
         }),
+    storeId: z.string().nullable(),
+    createdBy: z.string()
 });
 
 export const UpdateCategoryForm = z.object({
@@ -116,6 +118,8 @@ export const SubCategorySchema = z.object({
         .refine(file => file instanceof File, {
             message: "Icon thumbnail is required"
         }),
+    storeId: z.string().nullable(),
+    createdBy: z.string()
 });
 
 export const UpdateSubCategoryForm = z.object({

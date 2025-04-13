@@ -27,10 +27,12 @@ const getCategorySchema = (isEditMode: boolean) => {
 
 export const CategoryForm = ({
     currentUser,
-    initialValues = null
+    initialValues = null,
+    storeId
 }: {
     currentUser: CurrentUserType,
-    initialValues?: DocumentType | null
+    initialValues?: DocumentType | null,
+    storeId: string | null
 }) => {
     const isEditMode = !!initialValues;
     const router = useRouter();
@@ -45,7 +47,11 @@ export const CategoryForm = ({
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
-                router.push(`/admin/categories`)
+                if (storeId) {
+                    router.push(`/admin/stores/${storeId}/categories`)
+                } else {
+                    router.push(`/admin/categories`)
+                }
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -62,7 +68,11 @@ export const CategoryForm = ({
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
-                router.push(`/admin/categories`);
+                if (storeId) {
+                    router.push(`/admin/stores/${storeId}/categories`)
+                } else {
+                    router.push(`/admin/categories`)
+                }
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -83,7 +93,9 @@ export const CategoryForm = ({
         resolver: zodResolver(formSchema),
         defaultValues: {
             categoryName: initialValues?.categoryName ?? "",
-            icon: undefined
+            icon: undefined,
+            storeId,
+            createdBy: currentUser!.$id
         },
         mode: "onChange",
     });

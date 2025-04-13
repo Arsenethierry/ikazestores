@@ -68,7 +68,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 },
                 {
                     title: "Categories",
-                    url: `/admin/stores/${storeId}/products/categories`,
+                    url: `/admin/stores/${storeId}/categories`,
                 },
                 {
                     title: "Flash Sales",
@@ -147,11 +147,11 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 },
                 {
                     title: "Categories",
-                    url: `/admin/stores/${storeId}/products/categories`,
+                    url: `/admin/stores/${storeId}/categories`,
                 },
                 {
-                    title: "Flash Sales",
-                    url: "#",
+                    title: "Sub-categories",
+                    url: `/admin/stores/${storeId}/subcategories`,
                 },
             ],
         },

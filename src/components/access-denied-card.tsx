@@ -1,7 +1,12 @@
-import Link from 'next/link';
-import React from 'react';
+"use client";
 
-export const AccessDeniedCard = () => {
+import { useRouter } from 'next/navigation';
+import React from 'react';
+import { Button } from './ui/button';
+
+export const AccessDeniedCard = ({ message = '' }: { message?: string }) => {
+    const router = useRouter();
+
     return (
         <div className="flex flex-col items-center justify-center min-h-[70vh] bg-gradient-to-r from-red-50 to-red-100 p-4">
             <div className="text-center">
@@ -10,12 +15,17 @@ export const AccessDeniedCard = () => {
                 <p className="text-xl text-red-600 mb-8">
                     You do not have permission to view this page.
                 </p>
-                <Link
-                    href="/"
-                    className="inline-block px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-lg hover:bg-red-700 transition duration-300"
-                >
-                    Go Back Home
-                </Link>
+                <p className="text-xl text-secondary-foreground mb-8">
+                    {message}
+                </p>
+                <div className='flex gap-2 flex-col md:flex-row mx-auto justify-center'>
+                    <Button variant={'outline'} onClick={() => router.back()}>
+                        Go Back
+                    </Button>
+                    <Button variant={'teritary'} onClick={() => router.push("/")}>
+                        Go Home
+                    </Button>
+                </div>
             </div>
         </div>
     );

@@ -2,7 +2,7 @@
 
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DocumentType } from '@/lib/types';
+import { CategoryTypes, CurrentUserType } from '@/lib/types';
 import Link from 'next/link';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,16 @@ import { toast } from 'sonner';
 import { useAction } from 'next-safe-action/hooks';
 import { deleteCategoryById } from '../actions/categories-actions';
 
-export const AllCategories = ({ categories, isSystemAdmin }: { categories: DocumentType[], isSystemAdmin: boolean }) => {
+interface PageProps {
+    categories: CategoryTypes[],
+    isSystemAdmin: boolean,
+    currentUser: CurrentUserType
+}
+
+export const AllCategories = ({
+    categories,
+    currentUser
+}: PageProps) => {
 
     const [DeleteProductDialog, confirmDeleteProduct] = useConfirm(
         "Are you sure you want to delete this category?",
@@ -22,8 +31,12 @@ export const AllCategories = ({ categories, isSystemAdmin }: { categories: Docum
     );
 
     const { executeAsync } = useAction(deleteCategoryById, {
-        onSuccess: () => {
-            toast.success("Category deleted successfully")
+        onSuccess: ({data}) => {
+            if(data?.success) {
+                toast.success("Category deleted successfully")
+            } else if (data?.error) {
+                toast.error(data.error)
+            }
         },
         onError: ({ error }) => {
             toast.error(error.serverError)
@@ -31,13 +44,14 @@ export const AllCategories = ({ categories, isSystemAdmin }: { categories: Docum
     })
 
     const handleDelete = async (categoryId: string) => {
-        if (!isSystemAdmin) {
-            toast.error("Only admins can perform this action")
-        }
         const ok = await confirmDeleteProduct();
         if (!ok) return;
         executeAsync({ categoryId })
     };
+
+
+    const canDelete = (category: CategoryTypes) => currentUser!.$id === category.createdBy
+
     return (
         <Card>
             <DeleteProductDialog />
@@ -48,13 +62,15 @@ export const AllCategories = ({ categories, isSystemAdmin }: { categories: Docum
                         className='flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg'
                     >
                         <div className='flex items-center gap-4'>
-                            <Image
-                                src={category.iconUrl}
-                                alt={category.categoryName}
-                                width={100}
-                                height={100}
-                                className='h-10 w-10 object-cover rounded-full'
-                            />
+                            {category.iconUrl && (
+                                <Image
+                                    src={category.iconUrl}
+                                    alt={category.categoryName}
+                                    width={100}
+                                    height={100}
+                                    className='h-10 w-10 object-cover rounded-full'
+                                />
+                            )}
                             <span className='font-medium'>{category.categoryName}</span>
                         </div>
                         <div className='flex items-center gap-2'>
@@ -65,7 +81,7 @@ export const AllCategories = ({ categories, isSystemAdmin }: { categories: Docum
                                 <Pencil className='h-4 w-4 mr-2' />
                                 Edit
                             </Link>
-                            {isSystemAdmin && (
+                            {canDelete(category) && (
                                 <Button
                                     variant='destructive'
                                     size='sm'

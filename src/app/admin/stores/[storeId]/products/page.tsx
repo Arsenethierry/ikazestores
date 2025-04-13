@@ -1,6 +1,6 @@
 import SpinningLoader from '@/components/spinning-loader';
 import { buttonVariants } from '@/components/ui/button';
-import { getOriginalProducts } from '@/features/products/actions/original-products-actions';
+import { getStoreOriginalProducts } from '@/features/products/actions/original-products-actions';
 import { getVirtualStoreProducts } from '@/features/products/actions/virtual-products-actions';
 import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
@@ -18,25 +18,23 @@ async function StoreProductsPage({
 }) {
     const { storeId } = await params;
 
-    const { isPhysicalStoreOwner, isVirtualStoreOwner } = await getAuthState();
+    const {
+        isPhysicalStoreOwner,
+        isVirtualStoreOwner
+    } = await getAuthState();
 
-    const originalProducts = isPhysicalStoreOwner ? await getOriginalProducts() : { data: { products: { documents: [] } }, serverError: null };
-    const virtualProducts = isVirtualStoreOwner ? await getVirtualStoreProducts(storeId) : null;
+    const originalProducts = isPhysicalStoreOwner
+        ? await getStoreOriginalProducts(storeId) : {
+            documents: [],
+            total: 0
+        }
 
-    if (originalProducts === undefined) {
-        return <p>Loading...</p>;
-    }
-
-    if (originalProducts.serverError) {
-        return <p>Error: {originalProducts.serverError}</p>;
-    }
-
-    const products = originalProducts.data?.products;
-
-    if (!products || !products.documents) {
-        return <p>No products found</p>;
-    }
-
+    const virtualProducts = isVirtualStoreOwner
+        ? await getVirtualStoreProducts(storeId)
+        : {
+            documents: [],
+            total: 0
+        };
 
     return (
         isVirtualStoreOwner ? (
@@ -55,7 +53,7 @@ async function StoreProductsPage({
         ) : isPhysicalStoreOwner ? (
             <div className="container mx-auto py-10">
                 <Suspense fallback={<SpinningLoader />}>
-                    <ProductsDataTable columns={productListColumns} data={products.documents} />
+                    <ProductsDataTable columns={productListColumns} data={originalProducts.documents} />
                 </Suspense>
             </div>
         ) : <></>

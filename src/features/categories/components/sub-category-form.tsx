@@ -23,7 +23,8 @@ import MultipleSelector, { type Option } from '@/components/ui/multiselect';
 interface Props {
     currentUser: CurrentUserType,
     initialValues?: DocumentType | null,
-    categoriesOptions: Option[]
+    categoriesOptions: Option[],
+    storeId: string | null
 }
 
 const getSubCategorySchema = (isEditMode: boolean) => {
@@ -35,7 +36,8 @@ const getSubCategorySchema = (isEditMode: boolean) => {
 export const SubCategoryForm = ({
     currentUser,
     initialValues = null,
-    categoriesOptions
+    categoriesOptions,
+    storeId
 }: Props) => {
     const isEditMode = !!initialValues;
     const router = useRouter();
@@ -50,7 +52,11 @@ export const SubCategoryForm = ({
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
-                router.push(`/admin/subcategories`)
+                if (storeId) {
+                    router.push(`/admin/stores/${storeId}/subcategories`)
+                } else {
+                    router.push(`/admin/subcategories`)
+                }
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -67,7 +73,11 @@ export const SubCategoryForm = ({
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success)
-                router.push(`/admin/subcategories`);
+                if (storeId) {
+                    router.push(`/admin/stores/${storeId}/subcategories`)
+                } else {
+                    router.push(`/admin/subcategories`)
+                }
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -88,7 +98,9 @@ export const SubCategoryForm = ({
         resolver: zodResolver(formSchema),
         defaultValues: {
             subCategoryName: initialValues?.subCategoryName ?? "",
-            icon: undefined
+            icon: undefined,
+            storeId,
+            createdBy: currentUser!.$id
         },
         mode: "onChange",
     });
@@ -129,7 +141,7 @@ export const SubCategoryForm = ({
             createSubCategoryAction(values as z.infer<typeof SubCategorySchema>)
         }
     }
-console.log("categgg: ", form.watch())
+
     const handleCancel = async () => {
         const ok = await confirmCancelEdit()
         if (!ok) return;
@@ -216,7 +228,7 @@ console.log("categgg: ", form.watch())
                                     disabled={isLoading}
                                 >
                                     <Loader className={isLoading ? "animate-spin" : "hidden"} /> {" "}
-                                    {isEditMode ? 'Save changes' : 'Create category'}
+                                    {isEditMode ? 'Save changes' : 'Create sub-category'}
                                 </Button>
                             </div>
                         </form>

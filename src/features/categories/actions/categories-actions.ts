@@ -7,8 +7,9 @@ import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, CATEGORIES_COLLECTION_ID, DATAB
 import { CategoryById, CategorySchema, UpdateCategoryActionSchema } from "@/lib/schemas/products-schems";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { deleteSubcategoryById, getSubcategoriesByParentIds } from "./sub-categories-actions";
+import { CategoryTypes } from "@/lib/types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -21,7 +22,9 @@ export const createNewCategory = action
     .schema(CategorySchema)
     .action(async ({ parsedInput: {
         categoryName,
-        icon
+        icon,
+        storeId,
+        createdBy
     }, ctx }) => {
         const { databases, storage } = ctx;
         const rollback = new AppwriteRollback(storage, databases);
@@ -41,6 +44,8 @@ export const createNewCategory = action
                 {
                     categoryName,
                     iconFileId: uploadedIcon.$id,
+                    storeId,
+                    createdBy,
                     iconUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedIcon.$id}/view?project=${APPWRITE_PROJECT_ID}`
                 }
             );
@@ -115,18 +120,22 @@ export const deleteCategoryById = action
             if (!category) {
                 return { error: "Category not found" };
             }
-            if (category.iconFileId) {
-                await storage.deleteFile(
-                    PRODUCTS_BUCKET_ID,
-                    category.iconFileId
-                )
-            }
+
             await databases.deleteDocument(
                 DATABASE_ID,
                 CATEGORIES_COLLECTION_ID,
                 category.$id
             );
+            revalidatePath('/admin/stores/[storeId]/categories', 'page')
             revalidatePath("/admin/categories");
+            if (category.iconFileId) {
+                try {
+                    await storage.deleteFile(PRODUCTS_BUCKET_ID, category.iconFileId);
+                } catch (fileError) {
+                    console.warn("Failed to delete icon file:", fileError);
+                    return { success: "category deleted successfully" }
+                }
+            }
             return { success: "category deleted successfully" }
         } catch (error) {
             return { error: error instanceof Error ? error.message : "Failed to delete category" };
@@ -148,12 +157,15 @@ export const getCategoryById = async (categoryId: string) => {
     }
 }
 
-export const getAllCategories = async () => {
+export const getGeneralCategories = async () => {
     try {
         const { databases } = await createSessionClient();
-        const categories = await databases.listDocuments(
+        const categories = await databases.listDocuments<CategoryTypes>(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
+            [
+                Query.isNull("storeId")
+            ]
         );
         return categories;
     } catch (error) {
@@ -165,21 +177,45 @@ export const getAllCategories = async () => {
     }
 }
 
-export const getCategoriesWithSubcategories = async () => {
+export const getAllCategoriesByStoreId = async ({ storeId }: { storeId: string }) => {
     try {
-        const categories = await getAllCategories();
+        const { databases } = await createSessionClient();
+        const categories = await databases.listDocuments<CategoryTypes>(
+            DATABASE_ID,
+            CATEGORIES_COLLECTION_ID,
+            [
+                Query.or([
+                    Query.equal("storeId", storeId),
+                    Query.isNull("storeId")
+                ])
+            ]
+        );
+        return categories;
+    } catch (error) {
+        console.warn(error)
+        return {
+            documents: [],
+            total: 0
+        };
+    }
+}
+
+export const getCategoriesWithSubcategories = async ({ storeId }: { storeId: string | null }) => {
+    try {
+        const categories = storeId
+            ? await getAllCategoriesByStoreId({ storeId }) : await getGeneralCategories();
         const subcategories = await getSubcategoriesByParentIds(categories.documents.map(c => c.$id));
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subcategoriesMap: Record<string, any[]> = {};
         subcategories.documents.forEach((sub) => {
             sub.parentCategoryIds.forEach((parentId: string) => {
-              if (!subcategoriesMap[parentId]) {
-                subcategoriesMap[parentId] = [];
-              }
-              subcategoriesMap[parentId].push(sub);
+                if (!subcategoriesMap[parentId]) {
+                    subcategoriesMap[parentId] = [];
+                }
+                subcategoriesMap[parentId].push(sub);
             });
-          });
+        });
 
         return {
             categories: categories.documents,

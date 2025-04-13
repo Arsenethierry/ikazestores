@@ -8,12 +8,12 @@ import React from 'react';
 async function page({
     params,
 }: {
-    params: Promise<{ categoryId: string }>
+    params: Promise<{ categoryId: string, storeId: string }>
 }) {
-    const { categoryId } = await params;
+    const { categoryId, storeId } = await params;
     const {
         user,
-        isSystemAdmin
+        isSystemAdmin,
     } = await getAuthState();
 
     if (!user) redirect('/');
@@ -25,8 +25,8 @@ async function page({
     return <CategoryForm
         currentUser={user}
         initialValues={category}
-        storeId={null}
-        />
+        storeId={storeId}
+    />
 }
 
 export default page;

@@ -4,17 +4,23 @@ import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
-async function NewCategory() {
+async function NewCategory({
+    params,
+}: {
+    params: Promise<{ storeId: string }>
+}) {
     const {
         user,
-        isSystemAdmin
+        isPhysicalStoreOwner
     } = await getAuthState();
 
+    const { storeId } = await params;
+    
     if(!user) redirect('/');
 
-    if(!isSystemAdmin) return <AccessDeniedCard />
+    if(!isPhysicalStoreOwner) return <AccessDeniedCard message='Only real store owners can create category' />
     
-    return <CategoryForm currentUser={user} storeId={null} />
+    return <CategoryForm currentUser={user} storeId={storeId} />
 }
 
 export default NewCategory;

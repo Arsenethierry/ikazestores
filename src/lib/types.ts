@@ -72,4 +72,45 @@ export interface PhysicalStoreTypes extends DocumentType {
     storeLogoUrl: string,
     createFrom?: string,
     storeLogoId?: string
+};
+
+export interface CategoryTypes extends DocumentType {
+    categoryName: string,
+    iconUrl?: string,
+    subCategoriesIds?: string[],
+    iconFileId?: string,
+    storeId?: string,
+    createdBy: string
+}
+export interface SubCategoryTypes extends DocumentType {
+    subCategoryName: string,
+    iconUrl?: string,
+    parentCategoryIds: string[],
+    iconFileId?: string,
+    storeId?: string,
+    createdBy: string
+}
+
+export interface OriginalProductTypes extends DocumentType {
+    title: string,
+    description: string,
+    price: string,
+    createdBy: string,
+    store: PhysicalStoreTypes,
+    category: CategoryTypes,
+    seeded: boolean,
+    isPublished: boolean,
+    storeLat: number,
+    storeLong: number,
+    storeOriginCountry: string,
+    colorImages: ColorImagesTypes[],
+    subcategoryIds: string[],
+    generalProductImages: string[]
+}
+
+export interface ColorImagesTypes extends DocumentType {
+    colorName: string,
+    imageId: string,
+    imageUrl: string,
+    colorHex?: string
 }

@@ -20,10 +20,13 @@ async function page({
         return <AccessDeniedCard />
     }
 
-    const categoriesData = await getCategoriesWithSubcategories();
+    const categoriesData = await getCategoriesWithSubcategories({ storeId });
 
     return (
-        <ProductForm storeData={storeData} categoriesData={categoriesData} />
+        <ProductForm
+            storeData={storeData}
+            categoriesData={categoriesData}
+        />
     );
 }
 
