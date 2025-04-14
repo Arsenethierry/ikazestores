@@ -125,7 +125,7 @@ export const getOriginalProductsWithVirtualProducts = action
     .action(async () => {
         try {
             const { databases } = await createSessionClient();
-            const products = await databases.listDocuments(
+            const products = await databases.listDocuments<OriginalProductTypes>(
                 DATABASE_ID,
                 ORIGINAL_PRODUCT_ID,
                 [
@@ -195,7 +195,7 @@ export const getNearbyStoresOriginalProducts = async (
 ) => {
     try {
         const { databases } = await createSessionClient();
-        const nearbyProducts = await databases.listDocuments(
+        const nearbyProducts = await databases.listDocuments<OriginalProductTypes>(
             DATABASE_ID,
             ORIGINAL_PRODUCT_ID,
             [

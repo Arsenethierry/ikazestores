@@ -71,7 +71,25 @@ export interface PhysicalStoreTypes extends DocumentType {
     country: string,
     storeLogoUrl: string,
     createFrom?: string,
+    storeLogoId?: string;
+    currency: string
+};
+
+export interface VirtualStoreTypes extends DocumentType {
+    storeName: string,
+    owner: string,
+    description?: string,
+    storeBio?: string,
+    bannerUrls?: string[];
+    bannerIds?: string[];
+    storeType: 'physicalStore' | 'virtualVirtual',
+    address?: string,
+    country: string,
+    storeLogoUrl: string,
     storeLogoId?: string
+    subDomain: string;
+    vitualProducts: VirtualProductTypes[],
+    locale?: string;
 };
 
 export interface CategoryTypes extends DocumentType {
@@ -94,7 +112,7 @@ export interface SubCategoryTypes extends DocumentType {
 export interface OriginalProductTypes extends DocumentType {
     title: string,
     description: string,
-    price: string,
+    price: number,
     createdBy: string,
     store: PhysicalStoreTypes,
     category: CategoryTypes,
@@ -108,6 +126,20 @@ export interface OriginalProductTypes extends DocumentType {
     generalProductImages: string[]
 }
 
+export interface VirtualProductTypes extends DocumentType {
+    purchasePrice: number;
+    sellingPrice: number;
+    createdBy: string;
+    title: string;
+    description: string;
+    generalImageUrls: string[];
+    originalProductId: string;
+    virtualStore: VirtualStoreTypes;
+    virtualStoreId: string;
+    archived: boolean;
+    categoryNames?: string[];
+    currency: string
+}
 export interface ColorImagesTypes extends DocumentType {
     colorName: string,
     imageId: string,

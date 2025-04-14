@@ -42,6 +42,7 @@ export const VirtualProductSchema = z.object({
     title: z.string(),
     generalImageUrls: z.string().array(),
     createdBy: z.string(),
+    currency: z.string()
 })
 
 export const deleteVirtualProductSchema = z.object({

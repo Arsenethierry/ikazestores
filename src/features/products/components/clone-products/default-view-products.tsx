@@ -1,7 +1,7 @@
 import { getOriginalProductsWithVirtualProducts } from '@/features/products/actions/original-products-actions';
 import { PhysicalProductCard } from '@/features/products/components/product-cards/physical-product-card';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
-import { CurrentUserType, DocumentType } from '@/lib/types';
+import { CurrentUserType, OriginalProductTypes } from '@/lib/types';
 import React, { Suspense } from 'react';
 
 async function CloneProductsPage({
@@ -36,7 +36,7 @@ async function CloneProductsPage({
 
     return (
         <div className="flex flex-wrap gap-4">
-            {products.documents.map((product: DocumentType) => (
+            {products.documents.map((product: OriginalProductTypes) => (
                 <div key={product.$id}>
                     <Suspense fallback={<ProductSekeleton />}>
                         <PhysicalProductCard

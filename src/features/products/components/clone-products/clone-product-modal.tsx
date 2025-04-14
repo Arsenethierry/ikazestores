@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CurrentUserType, DocumentType } from "@/lib/types";
+import { CurrentUserType, OriginalProductTypes } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import Image from "next/image";
@@ -24,7 +24,13 @@ const formSchema = z.object({
     imageIds: z.array(z.string()),
 });
 
-export const CloneProductModal = ({ currentUser, product, isAlreadyCloned }: { currentUser: CurrentUserType, product: DocumentType, isAlreadyCloned: boolean }) => {
+type CloneProductProps = {
+    currentUser: CurrentUserType,
+    product: OriginalProductTypes,
+    isAlreadyCloned: boolean
+}
+
+export const CloneProductModal = ({ currentUser, product, isAlreadyCloned }: CloneProductProps) => {
     const [open, setOpen] = useState(false);
 
     const storeId = useCurrentStoreId();
@@ -62,6 +68,7 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned }: { c
             originalProductId: product.$id,
             storeId,
             purchasePrice: product.price,
+            currency: product.store.currency,
             ...values
         };
 
@@ -73,15 +80,15 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned }: { c
 
     return (
         <>
-            <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={isAlreadyCloned} 
+            <Button
+                variant="outline"
+                size="sm"
+                disabled={isAlreadyCloned}
                 onClick={() => setOpen(true)}
             >
                 {isAlreadyCloned ? 'Added' : 'Add'}
             </Button>
-            
+
             <ResponsiveModal open={open} onOpenChange={setOpen}>
                 <div className="p-6 space-y-6">
                     <div className="space-y-2">

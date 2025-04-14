@@ -1,6 +1,6 @@
 "use client";
 
-import { CurrentUserType, DocumentType } from "@/lib/types";
+import { CurrentUserType, OriginalProductTypes } from "@/lib/types";
 import { Suspense } from "react";
 import { ProductSekeleton } from "../products-list-sekeleton";
 import { PhysicalProductCard } from "../product-cards/physical-product-card";
@@ -72,7 +72,7 @@ export const CloneNearByProducts = ({
                 </div>
             ) : (
                 <div className="flex flex-wrap gap-4">
-                    {products && products.documents.map((product: DocumentType) => (
+                    {products && products.documents.map((product: OriginalProductTypes) => (
                         <div key={product.$id}>
                             <Suspense fallback={<ProductSekeleton />}>
                                 <PhysicalProductCard

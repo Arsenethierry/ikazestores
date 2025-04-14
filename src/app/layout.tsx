@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/components/providers/react-query-provider";
 import NextTopLoader from "nextjs-toploader"
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { CurrencyProvider } from "@/features/products/currency/currency-context";
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -61,7 +62,9 @@ export default function RootLayout({
           <Toaster />
           <main className="flex flex-col min-h-screen">
             <NuqsAdapter>
-              {children}
+              <CurrencyProvider>
+                {children}
+              </CurrencyProvider>
             </NuqsAdapter>
           </main>
         </ReactQueryProvider>

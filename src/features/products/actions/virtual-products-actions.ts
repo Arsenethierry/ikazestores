@@ -5,6 +5,7 @@ import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { DATABASE_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
 import { deleteVirtualProductSchema, VirtualProductSchema } from "@/lib/schemas/products-schems";
+import { VirtualProductTypes } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
@@ -103,6 +104,7 @@ export const addNewVirtualProduct = action
                     generalImageUrls: values.generalImageUrls,
                     originalProductId: values.originalProductId,
                     virtualStore: values.storeId,
+                    currency: values.currency
                 }
             );
 
@@ -137,7 +139,7 @@ export const removeProduct = action
 export const getAllVirtualPropByOriginalProduct = async (originalProductId: string) => {
     try {
         const { databases } = await createSessionClient()
-        const products = await databases.listDocuments(
+        const products = await databases.listDocuments<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [

@@ -4,13 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CurrentUserType, DocumentType } from '@/lib/types';
+import { CurrentUserType, OriginalProductTypes, VirtualProductTypes } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-// import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { PhysicalProductMenuActions } from '../physical-product-actions';
 import { CloneProductModal } from '../clone-products/clone-product-modal';
 
@@ -22,7 +21,7 @@ export const PhysicalProductCard = ({
     isPhysicalStoreOwner,
     isVirtualStoreOwner
 }: {
-    product: DocumentType,
+    product: OriginalProductTypes,
     storeId: string,
     isVirtualStoreOwner: boolean,
     isPhysicalStoreOwner: boolean,
@@ -34,7 +33,7 @@ export const PhysicalProductCard = ({
 
     let discount;
     const originalPrice = product?.price ?? product?.sellingPrice;
-    const price = (product?.price ?? product?.sellingPrice) - 5;
+    const price = (product.price ?? product.sellingPrice) - 5;
 
     const rating = 3;
     const reviews = 135
@@ -42,14 +41,14 @@ export const PhysicalProductCard = ({
     const discountPercentage = discount || (originalPrice && price ?
         Math.round(((originalPrice - price) / originalPrice) * 100) : null);
 
-    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: DocumentType) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.virtualStoreId === storeId));
+    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: VirtualProductTypes) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.virtualStoreId === storeId));
 
     return (
         <Card className="group w-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
-                        {product?.generalProductImages?.map((imageUrl: string, index: string) => (
+                        {product?.generalProductImages?.map((imageUrl: string, index: number) => (
                             <CarouselItem key={index} className='relative h-60 w-full'>
                                 <Image
                                     src={imageUrl}

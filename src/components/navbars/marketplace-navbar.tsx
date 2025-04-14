@@ -10,6 +10,7 @@ import { AccountDropdown } from './account-dropdown-menu';
 import { MobileMenuContent } from './mobile-menu-contents';
 import { CartNavButton } from '@/features/cart/components/cart-navbar-button';
 import { ProductSearchField } from '../search/virtual-products-search';
+import { CurrencySelector } from '@/features/products/currency/currency-selector';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -24,7 +25,7 @@ export default async function MarketplaceNavbar() {
             <div className='main-container hidden md:flex justify-between items-center bg-primary font-sans text-white font-medium flex-between border-b border-blue-50/20 h-8'>
                 <div className='flex gap-3'>
                     <Link href={'/'} className='text-sm hover:text-white/80'>Language: English</Link>
-                    <Link href={'/'} className='text-sm hover:text-white/80'>Currency</Link>
+                    <CurrencySelector />
                 </div>
 
                 <div className='flex gap-3'>
