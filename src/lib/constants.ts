@@ -35,3 +35,8 @@ export enum OrderStatus {
     DELIVERED = "delivered",
     CANCELLED = "cancelled"
 }
+
+export const PRICE_FILTER_VALUE = {
+    min: 1,
+    max: 10000
+}

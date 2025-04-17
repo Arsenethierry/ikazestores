@@ -18,7 +18,7 @@ import ErrorAlert from "@/components/error-alert";
 import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { SingleImageUploader } from "@/components/file-uploader";
-import { CurrentUserType, DocumentType } from "@/lib/types";
+import { CurrentUserType, VirtualStoreTypes } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
@@ -36,7 +36,7 @@ export function VirtualStoreForm({
     currentUser, initialValues = null
 }: {
     currentUser: CurrentUserType,
-    initialValues?: DocumentType | null
+    initialValues?: VirtualStoreTypes | null
 }) {
     const isEditMode = !!initialValues;
     const router = useRouter();

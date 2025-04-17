@@ -20,25 +20,33 @@ async function EditStorePage({
 
     const { storeId } = await params;
 
-    const currentStore = isVirtualStoreOwner
-        ? await getVirtualStoreById(storeId)
-        : isPhysicalStoreOwner ? await getPhysicalStoreById(storeId) : null
+    if (isVirtualStoreOwner) {
+        const currentStore = await getVirtualStoreById(storeId);
+        if (!currentStore) {
+            redirect("/admin")
+        }
+        const isOwner = isStoreOwner(user, currentStore);
 
-    if (!currentStore) {
-        redirect("/admin/stores/new")
+        return (
+            isOwner
+                ? <VirtualStoreForm currentUser={user} initialValues={currentStore} />
+                : <AccessDeniedCard message='Only owner / admin of this store can view this page' />
+        )
+    } else if (isPhysicalStoreOwner) {
+        const currentStore = await getPhysicalStoreById(storeId);
+        if (!currentStore) {
+            redirect("/admin")
+        }
+        const isOwner = isStoreOwner(user, currentStore);
+
+        return (
+            isOwner
+                ? <PhysicalStoreForm currentUser={user} initialValues={currentStore} />
+                : <AccessDeniedCard message='Only owner / admin of this store can view this page' />
+        )
+    } else {
+        return <AccessDeniedCard />
     }
-
-    const isOwner = isStoreOwner(user, currentStore)
-
-    return (
-        <div>
-            {(isVirtualStoreOwner && isOwner) ? (
-                <VirtualStoreForm currentUser={user} initialValues={currentStore} />
-            ) : (isPhysicalStoreOwner && isOwner) ? (
-                <PhysicalStoreForm currentUser={user} initialValues={currentStore} />
-            ) : <AccessDeniedCard />}
-        </div>
-    );
 }
 
 export default EditStorePage;

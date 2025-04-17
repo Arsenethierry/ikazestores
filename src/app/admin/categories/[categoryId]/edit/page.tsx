@@ -26,7 +26,7 @@ async function page({
         currentUser={user}
         initialValues={category}
         storeId={null}
-        />
+    />
 }
 
 export default page;

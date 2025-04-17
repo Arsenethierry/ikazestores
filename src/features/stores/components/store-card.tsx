@@ -1,5 +1,5 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { CurrentUserType, DocumentType } from '@/lib/types';
+import { CurrentUserType, VirtualStoreTypes } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -8,10 +8,10 @@ import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { Badge } from '@/components/ui/badge';
 import { isStoreOwner } from '@/lib/user-label-permission';
 
-export const StoreCard = ({ store, currentUser }: {store: DocumentType, currentUser: CurrentUserType}) => {
+export const StoreCard = ({ store, currentUser }: { store: VirtualStoreTypes, currentUser: CurrentUserType }) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?
-        store.bannerUrls[0] :
-        store.bannerUrls[0];
+        store?.bannerUrls[0] :
+        store?.bannerUrls;
 
     const isOwner = isStoreOwner(currentUser, store)
 

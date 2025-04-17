@@ -27,11 +27,9 @@ export interface StoreTypes {
 
 export type UserRoleType = 'physicalStoreOwner' | 'virtualStoreOwner' | 'buyer' | 'sysAdmin';
 
-export type DocumentType = Models.Document
-
 export type AppwriteDocumentResponse = {
     total: number;
-    documents: DocumentType;
+    documents: Models.Document;
 };
 
 export type AdminDashboardType = 'systemAdmin' | 'virtualStoreAdmin' | 'physicalStoreAdmin' | undefined;
@@ -58,58 +56,58 @@ export type AuthStatus = {
     isSystemAdmin: boolean;
 }
 
-export interface PhysicalStoreTypes extends DocumentType {
+export interface PhysicalStoreTypes extends Models.Document {
     storeName: string,
     owner: string,
     description?: string,
     bio?: string,
     storeType: 'physicalStore' | 'virtualVirtual',
-    products?: DocumentType[],
+    products?: Models.Document[],
     latitude?: number,
     longitude?: number,
     address?: string,
     country: string,
-    storeLogoUrl: string,
+    storeLogoUrl: string & File | undefined,
     createFrom?: string,
     storeLogoId?: string;
     currency: string
 };
 
-export interface VirtualStoreTypes extends DocumentType {
+export interface VirtualStoreTypes extends Models.Document {
     storeName: string,
     owner: string,
     description?: string,
     storeBio?: string,
-    bannerUrls?: string[];
+    bannerUrls?: string[] & File[] | undefined;
     bannerIds?: string[];
     storeType: 'physicalStore' | 'virtualVirtual',
     address?: string,
     country: string,
-    storeLogoUrl: string,
+    storeLogoUrl: string & File | undefined,
     storeLogoId?: string
     subDomain: string;
     vitualProducts: VirtualProductTypes[],
     locale?: string;
 };
 
-export interface CategoryTypes extends DocumentType {
+export interface CategoryTypes extends Models.Document {
     categoryName: string,
-    iconUrl?: string,
+    iconUrl?: File | undefined & string,
     subCategoriesIds?: string[],
     iconFileId?: string,
     storeId?: string,
     createdBy: string
 }
-export interface SubCategoryTypes extends DocumentType {
+export interface SubCategoryTypes extends Models.Document {
     subCategoryName: string,
-    iconUrl?: string,
+    iconUrl?: File | undefined & string,
     parentCategoryIds: string[],
     iconFileId?: string,
     storeId?: string,
     createdBy: string
 }
 
-export interface OriginalProductTypes extends DocumentType {
+export interface OriginalProductTypes extends Models.Document {
     title: string,
     description: string,
     price: number,
@@ -126,7 +124,7 @@ export interface OriginalProductTypes extends DocumentType {
     generalProductImages: string[]
 }
 
-export interface VirtualProductTypes extends DocumentType {
+export interface VirtualProductTypes extends Models.Document {
     purchasePrice: number;
     sellingPrice: number;
     createdBy: string;
@@ -140,9 +138,42 @@ export interface VirtualProductTypes extends DocumentType {
     categoryNames?: string[];
     currency: string
 }
-export interface ColorImagesTypes extends DocumentType {
+export interface ColorImagesTypes extends Models.Document {
     colorName: string,
     imageId: string,
     imageUrl: string,
     colorHex?: string
 }
+
+enum OrderStatus {
+    pending = 'pending',
+    shipped = 'shipped',
+    delivered = 'delivered',
+    cancelled = 'cancelled'
+}
+
+
+export interface OrderItem {
+    quantity: number;
+    price: number;
+    order: OrderTypes;
+    productId: string
+}
+export interface OrderTypes extends Models.Document {
+    customerId: string;
+    orderDate: Date;
+    status:  OrderStatus;
+    totalAmount: number;
+    notes: string;
+    orderItems: OrderItem[];
+    deliveryAddressId: string;
+}
+
+export interface FilterState {
+    price: {
+        min: number;
+        max: number;
+    };
+    sizes: string[];
+    productTypes: string[];
+};

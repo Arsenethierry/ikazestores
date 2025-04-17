@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DocumentType } from '@/lib/types';
+import { VirtualProductTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import { cn } from '@/lib/utils';
 import { Heart, StarIcon } from 'lucide-react';
@@ -13,7 +13,7 @@ import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 
-export const VirtualProductCard = async ({ product, storeId }: { product: DocumentType, storeId: string }) => {
+export const VirtualProductCard = async ({ product, storeId }: { product: VirtualProductTypes, storeId: string }) => {
     const {
         isPhysicalStoreOwner,
         isVirtualStoreOwner,
@@ -39,7 +39,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Docume
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
-                        {product?.generalImageUrls?.map((imageUrl: string, index: string) => (
+                        {product?.generalImageUrls?.map((imageUrl: string, index: number) => (
                             <CarouselItem key={index} className='relative h-60 w-full'>
                                 <Image
                                     src={imageUrl}

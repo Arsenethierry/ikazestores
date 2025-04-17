@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DocumentType } from "@/lib/types";
+import { VirtualProductTypes } from "@/lib/types";
 import { useCartStore } from "../use-cart-store";
 import { toast } from "sonner";
 
-export const AddToCartButton = ({ item }: { item: DocumentType }) => {
+export const AddToCartButton = ({ item }: { item: VirtualProductTypes }) => {
     const { addToCart } = useCartStore.getState()
 
     // const { isPending, executeAsync } = useAction(addToCart, {
@@ -29,7 +29,7 @@ export const AddToCartButton = ({ item }: { item: DocumentType }) => {
             $id: item.$id,
             title: item.title,
             sellingPrice: item.sellingPrice,
-            imageUrl: item.imageUrls[0],
+            imageUrl: item.generalImageUrls[0],
             quantity: 1,
         };
         await addToCart(cartData)
@@ -40,7 +40,6 @@ export const AddToCartButton = ({ item }: { item: DocumentType }) => {
         <TooltipProvider delayDuration={0}>
             <Tooltip>
                 <TooltipTrigger asChild>
-
                     <Button
                         variant="ghost"
                         size="icon"

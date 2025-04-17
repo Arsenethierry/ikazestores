@@ -6,10 +6,13 @@ import React from 'react';
 import { removeProduct } from '../actions/virtual-products-actions';
 import { useAction } from 'next-safe-action/hooks';
 import { toast } from 'sonner';
-import { useCurrentStoreId } from '@/hooks/use-workspace-id';
 
-export const RemoveClonedProductButton = ({ productId }: { productId: string }) => {
-    const storeId = useCurrentStoreId();
+type Props = {
+    productId: string;
+    storeId: string
+}
+
+export const RemoveClonedProductButton = ({ productId, storeId }: Props) => {
 
     const [RemoveProductDialog, confirmRemoveProduct] = useConfirm(
         "Are you sure you want to remove this product from your store?",

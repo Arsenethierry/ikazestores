@@ -6,7 +6,7 @@ import { VirtualProductCard } from '@/features/products/components/product-cards
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
 import { productListColumns } from '@/features/products/components/products-list-table/columns';
 import { ProductsDataTable } from '@/features/products/components/products-list-table/data-table';
-import { DocumentType } from '@/lib/types';
+import { VirtualProductTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import Link from 'next/link';
 import React, { Suspense } from 'react';
@@ -41,7 +41,7 @@ async function StoreProductsPage({
             <>
                 <Link href={`/admin/stores/${storeId}/products/clone-products`} className={`${buttonVariants()} mb-5`}>Add Products</Link>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {virtualProducts && virtualProducts.documents.map((product: DocumentType) => (
+                    {virtualProducts && virtualProducts.documents.map((product: VirtualProductTypes) => (
                         <div key={product.$id}>
                             <Suspense fallback={<ProductSekeleton />}>
                                 <VirtualProductCard product={product} storeId={storeId} />
@@ -53,7 +53,11 @@ async function StoreProductsPage({
         ) : isPhysicalStoreOwner ? (
             <div className="container mx-auto py-10">
                 <Suspense fallback={<SpinningLoader />}>
-                    <ProductsDataTable columns={productListColumns} data={originalProducts.documents} />
+                    <ProductsDataTable
+                        columns={productListColumns}
+                        data={originalProducts.documents}
+                        currentStoreId={storeId}
+                    />
                 </Suspense>
             </div>
         ) : <></>

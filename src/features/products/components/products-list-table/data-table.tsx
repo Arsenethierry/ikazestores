@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useCurrentStoreId } from "@/hooks/use-workspace-id";
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -20,15 +19,16 @@ import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
-    data: TData[]
+    data: TData[],
+    currentStoreId: string
 }
 
 export function ProductsDataTable<TData, TValue>({
     columns,
-    data
+    data,
+    currentStoreId
 }: DataTableProps<TData, TValue>) {
     const router = useRouter();
-    const storeId = useCurrentStoreId()
 
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
@@ -61,7 +61,7 @@ export function ProductsDataTable<TData, TValue>({
                     }
                     className="max-w-sm"
                 />
-                <Button onClick={() => router.push(`/admin/stores/${storeId}/products/new`)}>New product</Button>
+                <Button onClick={() => router.push(`/admin/stores/${currentStoreId}/products/new`)}>New product</Button>
             </div >
             <div className="rounded-md border">
                 <Table>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getAllCustomerOrders } from '@/features/order/actions/order-actions';
 import { OrderItemRow } from '@/features/order/my-orders/order-item-row';
-import { DocumentType } from '@/lib/types';
+import { OrderTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import { dateFormatter } from '@/lib/utils';
 import { redirect } from 'next/navigation';
@@ -50,7 +50,7 @@ async function page() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {order.orderItems.map((item: DocumentType) => (
+                                    {order.orderItems.map((item: OrderTypes) => (
                                         <OrderItemRow
                                             item={item}
                                             key={item.$id}

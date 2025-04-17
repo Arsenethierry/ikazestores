@@ -1,19 +1,16 @@
 import { NoItemsCard } from '@/components/no-items-card';
 import { buttonVariants } from '@/components/ui/button';
 import { getVirtualStoreProducts } from '@/features/products/actions/virtual-products-actions';
-import { loadSearchParams } from '@/lib/searchParams';
 import Link from 'next/link';
-import { SearchParams } from 'nuqs';
 import React from 'react';
 
-type PageProps = {
-    searchParams: Promise<SearchParams>
-}
-
-const StoreProductsPage = async ({ searchParams }: PageProps) => {
-    const { storeId } = await loadSearchParams(searchParams);
-
-    const products = await getVirtualStoreProducts(storeId);
+const StoreProductsPage = async ({
+    params,
+}: {
+    params: Promise<{ currentStoreId: string }>
+}) => {
+    const { currentStoreId } = await params;
+    const products = await getVirtualStoreProducts(currentStoreId);
 
     return (
         <div>

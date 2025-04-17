@@ -5,14 +5,13 @@ import Image from "next/image";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { DocumentType } from "@/lib/types";
 
 type ImageUploaderProps = {
     files: any[];
     onChange: (files: File[]) => void;
     caption?: string;
     maxFiles?: number;
-    initialValues?: DocumentType | null;
+    initialValues?: any | null;
     isEditMode?: boolean;
 }
 export const MultiImageUploader = ({

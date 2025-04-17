@@ -31,8 +31,8 @@ export const AllCategories = ({
     );
 
     const { executeAsync } = useAction(deleteCategoryById, {
-        onSuccess: ({data}) => {
-            if(data?.success) {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
                 toast.success("Category deleted successfully")
             } else if (data?.error) {
                 toast.error(data.error)
@@ -62,7 +62,7 @@ export const AllCategories = ({
                         className='flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg'
                     >
                         <div className='flex items-center gap-4'>
-                            {category.iconUrl && (
+                            {(category.iconUrl && typeof category.iconUrl === 'string') && (
                                 <Image
                                     src={category.iconUrl}
                                     alt={category.categoryName}

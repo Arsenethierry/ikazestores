@@ -122,6 +122,7 @@ export const PhysicalProductCard = ({
                                 currentUser={user}
                                 product={product}
                                 isAlreadyCloned={isAlreadyCloned()}
+                                storeId={storeId}
                             />
                         </div>
                     ) : null}

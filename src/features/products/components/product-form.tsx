@@ -15,8 +15,7 @@ import { createNewProduct } from "../actions/original-products-actions";
 import { toast } from "sonner";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
-import { useCurrentStoreId } from "@/hooks/use-workspace-id";
-import { DocumentType, PhysicalStoreTypes } from "@/lib/types";
+import { CategoryTypes, PhysicalStoreTypes } from "@/lib/types";
 import { ProductSchema } from "@/lib/schemas/products-schems";
 import { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,17 +25,18 @@ import { ColorSelectorFormField } from "./product-color-selector";
 
 export default function ProductForm({
     storeData,
-    categoriesData
+    categoriesData,
+    storeId
 }: {
     storeData: PhysicalStoreTypes,
     categoriesData: {
-        categories: DocumentType[];
+        categories: CategoryTypes[];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         subcategoriesMap: Record<string, any[]>;
         error: string | null;
     };
+    storeId: string
 }) {
-    const storeId = useCurrentStoreId();
     const router = useRouter();
 
     const form = useForm<z.infer<typeof ProductSchema>>({

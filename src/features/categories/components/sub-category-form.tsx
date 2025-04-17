@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormLabel } from '@/components/ui/form';
 import { useConfirm } from '@/hooks/use-confirm';
 import { SubCategorySchema, UpdateSubCategoryForm } from '@/lib/schemas/products-schems';
-import { CurrentUserType, DocumentType } from '@/lib/types';
+import { CurrentUserType, SubCategoryTypes } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
@@ -22,7 +22,7 @@ import MultipleSelector, { type Option } from '@/components/ui/multiselect';
 
 interface Props {
     currentUser: CurrentUserType,
-    initialValues?: DocumentType | null,
+    initialValues?: SubCategoryTypes | null,
     categoriesOptions: Option[],
     storeId: string | null
 }

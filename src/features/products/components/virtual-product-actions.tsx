@@ -9,14 +9,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
-import { DocumentType } from "@/lib/types";
 import { MoreHorizontal, TrashIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
 import { removeProduct } from "../actions/virtual-products-actions";
+import { VirtualProductTypes } from "@/lib/types";
 
-export const VirtualProductMenuActions = ({ product, storeId }: { product: DocumentType, storeId: string }) => {
+export const VirtualProductMenuActions = ({ product, storeId }: { product: VirtualProductTypes, storeId: string }) => {
     const { data: user } = useCurrentUser();
 
     const [RemoveProductDialog, confirmRemoveProduct] = useConfirm(

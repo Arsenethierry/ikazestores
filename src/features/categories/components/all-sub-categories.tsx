@@ -55,7 +55,7 @@ export const AllSubCategories = ({
                         className='flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg'
                     >
                         <div className='flex items-center gap-4'>
-                            {subCategory.iconUrl && (
+                            {(subCategory.iconUrl && typeof subCategory.iconUrl === 'string') && (
                                 <Image
                                     src={subCategory.iconUrl}
                                     alt={subCategory.subCategoryName}

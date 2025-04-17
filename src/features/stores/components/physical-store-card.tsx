@@ -1,5 +1,5 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { CurrentUserType, DocumentType } from "@/lib/types";
+import { CurrentUserType, PhysicalStoreTypes } from "@/lib/types";
 import { StoreQuickActions } from "./store-action-button";
 import { isStoreOwner } from "@/lib/user-label-permission";
 import Link from "next/link";
@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin } from "lucide-react";
 
-export const PhyscalStoreCard = ({ store, currentUser }: { store: DocumentType, currentUser: CurrentUserType }) => {
+export const PhyscalStoreCard = ({ store, currentUser }: { store: PhysicalStoreTypes, currentUser: CurrentUserType }) => {
     const isOwner = isStoreOwner(currentUser, store);
 
     return (

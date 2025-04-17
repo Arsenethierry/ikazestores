@@ -6,8 +6,6 @@ import { MAIN_DOMAIN } from "./lib/env-config";
 import { getVirtualStoreByDomain } from "./lib/actions/vitual-store.action";
 import { UserRole } from "./lib/constants";
 import { getAuthState } from "./lib/user-label-permission";
-import { getAllVirtualStoresByOwnerId } from "./lib/actions/vitual-store.action"; // Assuming this import path
-import { checkDomain } from "./lib/domain-utils";
 
 const PROTECTED_SUBDOMAINS = ["www", "admin", "api", "dashboard"];
 
@@ -42,38 +40,14 @@ export async function middleware(request: NextRequest) {
         const hostname = request.headers.get("host");
         const path = request.nextUrl.pathname;
         const { searchParams } = request.nextUrl;
-        const url = request.nextUrl.clone();
-
 
         if (!hostname) {
             throw new Error("No hostname found in request");
         }
 
-        const { isSubdomain } = checkDomain(hostname);
-
         const { isLocalhost, subdomain } = parseSubdomain(hostname);
         const isProtected = isProtectedRoute(path);
         const authConfig = isProtected ? getRouteAuthConfig(path) : null;
-
-        // Check if storeId already exists in query params
-        if (!searchParams.has('storeId') && isSubdomain) {
-            // Get auth state to access user info
-            const auth = await getAuthState();
-
-            if (auth.isAuthenticated && auth?.user) {
-                // Get the user's stores
-                const stores = await getAllVirtualStoresByOwnerId(auth?.user.$id);
-
-                if (stores && stores.documents.length > 0) {
-                    // Use the first store or default store
-                    const defaultStoreId = stores.documents[0].$id;
-
-                    // Append storeId to URL
-                    url.searchParams.set('storeId', defaultStoreId);
-                    return NextResponse.redirect(url);
-                }
-            }
-        }
 
         // Check authentication for protected routes
         if (isProtected && authConfig) {
@@ -122,7 +96,7 @@ export async function middleware(request: NextRequest) {
         if (stores && stores.total > 0 && stores.documents[0]) {
             // Set storeId as query param instead of path param
             const rewrittenUrl = new URL(
-                `/store/${subdomain}${request.nextUrl.pathname}?storeId=${stores.documents[0].$id}${searchParams.toString() ? '&' + searchParams.toString() : ''
+                `/store/${stores.documents[0].$id}${request.nextUrl.pathname}?storeId=${stores.documents[0].$id}${searchParams.toString() ? '&' + searchParams.toString() : ''
                 }`,
                 request.url
             );

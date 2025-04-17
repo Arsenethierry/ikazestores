@@ -19,7 +19,7 @@ const action = createSafeActionClient({
 export const getVirtualStoreProducts = async (virtualStoreId: string) => {
     try {
         const { databases } = await createSessionClient();
-        const products = await databases.listDocuments(
+        const products = await databases.listDocuments<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [
@@ -162,7 +162,7 @@ export const searchVirtualProducts = async ({ query, limit = 10 }: { query: stri
     try {
         const { databases } = await createSessionClient();
 
-        const results = await databases.listDocuments(
+        const results = await databases.listDocuments<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [

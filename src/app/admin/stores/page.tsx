@@ -6,6 +6,7 @@ import { PhyscalStoreCard } from '@/features/stores/components/physical-store-ca
 import { StoreCard } from '@/features/stores/components/store-card';
 import { getAllPshyicalStores, getAllPshyicalStoresByOwnerId } from '@/lib/actions/physical-store.action';
 import { getAllVirtualStores, getAllVirtualStoresByOwnerId } from '@/lib/actions/vitual-store.action';
+import { PhysicalStoreTypes, VirtualStoreTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -67,7 +68,7 @@ const AllStoresPage = async () => {
                         {virtualStores && virtualStores.total > 0 ? virtualStores.documents.map((store) => (
                             <StoreCard
                                 key={store.$id}
-                                store={store}
+                                store={store as VirtualStoreTypes}
                                 currentUser={user}
                             />
                         )) : (
@@ -81,7 +82,7 @@ const AllStoresPage = async () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                         {physicalStores && physicalStores.total > 0 ? physicalStores.documents.map((store) => (
                             <PhyscalStoreCard
-                                store={store}
+                                store={store as PhysicalStoreTypes}
                                 currentUser={user}
                                 key={store.$id}
                             />

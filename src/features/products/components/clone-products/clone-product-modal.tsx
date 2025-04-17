@@ -12,7 +12,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useCurrentStoreId } from "@/hooks/use-workspace-id";
 import { ResponsiveModal } from "@/components/responsive-modal";
 import { addNewVirtualProduct } from "../../actions/virtual-products-actions";
 
@@ -27,13 +26,12 @@ const formSchema = z.object({
 type CloneProductProps = {
     currentUser: CurrentUserType,
     product: OriginalProductTypes,
-    isAlreadyCloned: boolean
+    isAlreadyCloned: boolean;
+    storeId: string
 }
 
-export const CloneProductModal = ({ currentUser, product, isAlreadyCloned }: CloneProductProps) => {
+export const CloneProductModal = ({ currentUser, product, isAlreadyCloned, storeId }: CloneProductProps) => {
     const [open, setOpen] = useState(false);
-
-    const storeId = useCurrentStoreId();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

@@ -10,6 +10,7 @@ import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
 import { getUserLocale } from "./auth.action";
 import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "../schemas/stores-schema";
+import { VirtualStoreTypes } from "../types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -90,7 +91,7 @@ export const createVirtualStoreAction = action
 export const getAllVirtualStores = async () => {
     try {
         const { databases } = await createSessionClient();
-        const allVirtualStores = await databases.listDocuments(
+        const allVirtualStores = await databases.listDocuments<VirtualStoreTypes>(
             DATABASE_ID,
             VIRTUAL_STORE_ID
         );
@@ -141,7 +142,7 @@ export const getVirtualStoreByDomain = async (domain: string) => {
 export const getVirtualStoreById = async (storeId: string) => {
     try {
         const { databases } = await createSessionClient();
-        const store = await databases.getDocument(
+        const store = await databases.getDocument<VirtualStoreTypes>(
             DATABASE_ID,
             VIRTUAL_STORE_ID,
             storeId

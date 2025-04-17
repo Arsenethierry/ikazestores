@@ -145,7 +145,7 @@ export const deleteCategoryById = action
 export const getCategoryById = async (categoryId: string) => {
     try {
         const { databases } = await createSessionClient();
-        const category = await databases.getDocument(
+        const category = await databases.getDocument<CategoryTypes>(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
             categoryId

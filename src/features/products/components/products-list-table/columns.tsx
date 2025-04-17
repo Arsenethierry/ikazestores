@@ -4,12 +4,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { DocumentType } from "@/lib/types"
 import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, CheckIcon } from "lucide-react"
 import { PhysicalProductMenuActions } from "../physical-product-actions"
+import { OriginalProductTypes } from "@/lib/types"
 
-export const productListColumns: ColumnDef<DocumentType>[] = [
+export const productListColumns: ColumnDef<OriginalProductTypes>[] = [
     {
         accessorKey: "$id",
         header: "ID",

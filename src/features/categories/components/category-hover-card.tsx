@@ -1,7 +1,7 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import Link from "next/link"
 import { getCategoriesWithSubcategories } from "../actions/categories-actions";
-import { DocumentType } from "@/lib/types";
+import { SubCategoryTypes } from "@/lib/types";
 
 export const CategoriesCard = async ({
     mobile = false,
@@ -39,7 +39,7 @@ export const CategoriesCard = async ({
                             sideOffset={8}
                         >
                             <div className="grid grid-cols-2 gap-3">
-                                {subcategories.map((sub: DocumentType) => (
+                                {subcategories.map((sub: SubCategoryTypes) => (
                                     <Link
                                         href={'#'}
                                         key={sub.$id}

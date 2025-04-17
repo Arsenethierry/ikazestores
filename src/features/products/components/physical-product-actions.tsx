@@ -9,14 +9,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
-import { DocumentType } from "@/lib/types";
 import { MoreHorizontal, TrashIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { deleteOriginalProduct } from "../actions/original-products-actions";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
+import { OriginalProductTypes } from "@/lib/types";
 
-export const PhysicalProductMenuActions = ({ product }: { product: DocumentType }) => {
+export const PhysicalProductMenuActions = ({ product }: { product: OriginalProductTypes }) => {
     const { data: user } = useCurrentUser();
 
     const [DeleteProductDialog, confirmDeleteProduct] = useConfirm(

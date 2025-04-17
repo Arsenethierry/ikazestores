@@ -5,11 +5,11 @@ import { JSX, useEffect, useRef, useState } from "react";
 import { useDebounce } from "../ui/multiselect";
 import { useQuery } from "@tanstack/react-query";
 import { searchVirtualProducts } from "@/features/products/actions/virtual-products-actions";
-import { DocumentType } from "@/lib/types";
+import { VirtualProductTypes } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
 interface SearchResults {
-  documents: DocumentType[];
+  documents: VirtualProductTypes[];
   total: number;
   error?: string;
 }

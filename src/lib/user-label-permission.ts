@@ -1,7 +1,7 @@
 import { Models } from "node-appwrite";
 import { getLoggedInUser } from "./actions/auth.action";
 import { UserRole } from "./constants";
-import { DocumentType, UserRoleType } from "./types";
+import { UserRoleType } from "./types";
 
 export interface AuthResult {
     isAuthenticated: boolean;
@@ -56,8 +56,7 @@ export const getAuthState = async () => {
     };
 };
 
-export const isStoreOwner = (user: Models.User<Models.Preferences> | null, store: DocumentType | null): boolean => {
-    console.log("store", store?.$id)
+export const isStoreOwner = (user: Models.User<Models.Preferences> | null, store: Models.Document | null): boolean => {
     if(!user || !store) return false;
     return user && (user.$id === store.owner)
 }

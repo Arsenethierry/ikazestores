@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorAlert from "@/components/error-alert";
 import { Check, ChevronsUpDown, Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
-import { CurrentUserType, DocumentType } from "@/lib/types";
+import { CurrentUserType, PhysicalStoreTypes } from "@/lib/types";
 import { SingleImageUploader } from "@/components/file-uploader";
 import { toast } from "sonner";
 import { getUserLocation } from "@/lib/geolocation";
@@ -38,7 +38,7 @@ export function PhysicalStoreForm({
     currentUser, initialValues = null
 }: {
     currentUser: CurrentUserType,
-    initialValues?: DocumentType | null
+    initialValues?: PhysicalStoreTypes | null
 }) {
     const isEditMode = !!initialValues;
     const router = useRouter();
