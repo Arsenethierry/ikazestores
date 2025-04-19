@@ -13,7 +13,7 @@ import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 
-export const VirtualProductCard = async ({ product, storeId }: { product: VirtualProductTypes, storeId: string }) => {
+export const VirtualProductCard = async ({ product, storeId }: { product: VirtualProductTypes, storeId?: string }) => {
     const {
         isPhysicalStoreOwner,
         isVirtualStoreOwner,
@@ -85,7 +85,7 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Virtua
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                    {isMyProduct && <VirtualProductMenuActions storeId={storeId} product={product} />}
+                    {(isMyProduct && storeId) && <VirtualProductMenuActions storeId={storeId} product={product} />}
                 </div>
             </div>
             <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">

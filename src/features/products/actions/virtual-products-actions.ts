@@ -5,7 +5,7 @@ import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { DATABASE_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
 import { deleteVirtualProductSchema, VirtualProductSchema } from "@/lib/schemas/products-schems";
-import { VirtualProductTypes } from "@/lib/types";
+import { SortBy, VirtualProductsSearchParams, VirtualProductTypes } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
@@ -16,14 +16,15 @@ const action = createSafeActionClient({
     },
 })
 
-export const getVirtualStoreProducts = async (virtualStoreId: string) => {
+export const getVirtualStoreProducts = async ({ virtualStoreId, limit }: { virtualStoreId: string, limit: number }) => {
     try {
         const { databases } = await createSessionClient();
         const products = await databases.listDocuments<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [
-                Query.equal("virtualStore", virtualStoreId)
+                Query.equal("virtualStore", virtualStoreId),
+                Query.limit(limit)
             ]
         );
 
@@ -184,3 +185,84 @@ export const searchVirtualProducts = async ({ query, limit = 10 }: { query: stri
         };
     }
 }
+
+export const getPaginatedVirtualProducts = async (searchParams: VirtualProductsSearchParams) => {
+    try {
+        const { databases } = await createSessionClient();
+        const queries = [Query.limit(5)];
+
+        if (searchParams.category && searchParams.category !== '') {
+            queries.push(Query.search('categoryNames', searchParams.category));
+        }
+
+        if (searchParams.minPrice !== undefined && parseFloat(searchParams.minPrice) > 0) {
+            queries.push(Query.greaterThanEqual('sellingPrice', parseFloat(searchParams.minPrice)));
+        }
+
+        if (searchParams.maxPrice !== undefined && parseFloat(searchParams.maxPrice) < 60000) {
+            queries.push(Query.lessThanEqual('sellingPrice', parseFloat(searchParams.maxPrice)));
+        }
+
+        let sortDirection = 'DESC';
+        let sortField = '$createdAt';
+
+        switch (searchParams.sortBy) {
+            case SortBy.priceLowToHigh:
+                sortField = 'sellingPrice';
+                sortDirection = 'ASC';
+                queries.push(Query.orderAsc('sellingPrice'));
+                break;
+            case SortBy.priceHighToLow:
+                sortField = 'sellingPrice';
+                sortDirection = 'DESC';
+                queries.push(Query.orderDesc('sellingPrice'));
+                break;
+            case SortBy.newestFirst:
+            default:
+                sortField = '$createdAt';
+                sortDirection = 'DESC';
+                queries.push(Query.orderDesc('$createdAt'));
+                break;
+        }
+
+        if (searchParams.lastId && searchParams.lastId !== '') {
+            const lastDoc = await databases.getDocument(
+                DATABASE_ID,
+                VIRTUAL_PRODUCT_ID,
+                searchParams.lastId
+            );
+
+            if (sortDirection === 'DESC') {
+                queries.push(Query.lessThan(sortField, lastDoc[sortField]));
+            } else {
+                queries.push(Query.greaterThan(sortField, lastDoc[sortField]));
+            }
+        } else if (searchParams.firstId && searchParams.firstId !== '') {
+            const firstDoc = await databases.getDocument(
+                DATABASE_ID,
+                VIRTUAL_PRODUCT_ID,
+                searchParams.firstId
+            );
+
+            if (sortDirection === 'DESC') {
+                queries.push(Query.greaterThan(sortField, firstDoc[sortField]));
+            } else {
+                queries.push(Query.lessThan(sortField, firstDoc[sortField]));
+            }
+        }
+
+        const products = await databases.listDocuments<VirtualProductTypes>(
+            DATABASE_ID,
+            VIRTUAL_PRODUCT_ID,
+            queries
+        );
+
+        return products;
+    } catch (error) {
+        console.log("getVirtualStoreProducts: ", error);
+        return {
+            total: 0,
+            documents: []
+        };
+    }
+};

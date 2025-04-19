@@ -11,7 +11,6 @@ import { ChevronDown, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useCurrency } from './currency-context';
 
-// Map of currency codes to country flags (emoji)
 const currencyFlags: Record<string, string> = {
   USD: '🇺🇸',
   EUR: '🇪🇺',
@@ -21,10 +20,20 @@ const currencyFlags: Record<string, string> = {
   AUD: '🇦🇺',
   CNY: '🇨🇳',
   INR: '🇮🇳',
-  // Add more as needed
+  RWF: '🇷🇼',
+  KES: '🇰🇪',
+  UGX: '🇺🇬',
+  TZS: '🇹🇿',
+  BIF: '🇧🇮',
+  CDF: '🇨🇩',
+  SSP: '🇸🇸',
+  ETB: '🇪🇹',
+  SOS: '🇸🇴',
+  SDG: '🇸🇩',
+  ZMW: '🇿🇲',
+  MWK: '🇲🇼',
 };
 
-// Map of currency codes to full names
 const currencyNames: Record<string, string> = {
   USD: 'US Dollar',
   EUR: 'Euro',
@@ -34,7 +43,18 @@ const currencyNames: Record<string, string> = {
   AUD: 'Australian Dollar',
   CNY: 'Chinese Yuan',
   INR: 'Indian Rupee',
-  // Add more as needed
+  RWF: 'Rwandan Franc',
+  KES: 'Kenyan Shilling',
+  UGX: 'Ugandan Shilling',
+  TZS: 'Tanzanian Shilling',
+  BIF: 'Burundian Franc',
+  CDF: 'Congolese Franc',
+  SSP: 'South Sudanese Pound',
+  ETB: 'Ethiopian Birr',
+  SOS: 'Somali Shilling',
+  SDG: 'Sudanese Pound',
+  ZMW: 'Zambian Kwacha',
+  MWK: 'Malawian Kwacha',
 };
 
 export const CurrencySelector = () => {

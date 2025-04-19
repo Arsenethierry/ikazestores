@@ -61,7 +61,9 @@ export const CartPage = () => {
                             </div>
 
                             <div className='flex-1'>
-                                <h3 className='font-medium text-base truncate'>{item.name}</h3>
+                                <h3 className='font-medium text-base truncate max-w-[250px] w-full' title={item.name}>
+                                    {item.name}
+                                </h3>
                                 <p className='text-sm text-gray-500'>${item.price.toFixed(2)} each</p>
 
                                 <div className='flex items-center gap-3 mt-2'>

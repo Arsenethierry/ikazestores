@@ -162,7 +162,7 @@ export interface OrderItem {
 export interface OrderTypes extends Models.Document {
     customerId: string;
     orderDate: Date;
-    status:  OrderStatus;
+    status: OrderStatus;
     totalAmount: number;
     notes: string;
     orderItems: OrderItem[];
@@ -177,3 +177,19 @@ export interface FilterState {
     sizes: string[];
     productTypes: string[];
 };
+
+export enum SortBy {
+    newestFirst = 'newest',
+    priceLowToHigh = 'price_asc',
+    priceHighToLow = 'price_desc',
+}
+
+export type VirtualProductsSearchParams = {
+    category?: string,
+    subcategory?: string,
+    sortBy?: SortBy,
+    lastId?: string;
+    firstId?: string;
+    minPrice?: string;
+    maxPrice?: string;
+}

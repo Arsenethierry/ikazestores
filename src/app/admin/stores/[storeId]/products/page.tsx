@@ -30,7 +30,7 @@ async function StoreProductsPage({
         }
 
     const virtualProducts = isVirtualStoreOwner
-        ? await getVirtualStoreProducts(storeId)
+        ? await getVirtualStoreProducts({ virtualStoreId: storeId, limit: 20 })
         : {
             documents: [],
             total: 0

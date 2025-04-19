@@ -57,7 +57,7 @@ export const CurrencyProvider = ({ children }: { children: React.ReactNode }) =>
                 console.error('Failed to initialize currency:', error);
                 setCurrentCurrency('USD');
             } finally {
-                setIsLoading(false)
+                setIsLoading(false);
             }
         };
 
