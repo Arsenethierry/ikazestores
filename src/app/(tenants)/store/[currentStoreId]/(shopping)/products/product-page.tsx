@@ -3,8 +3,15 @@ import { getPaginatedVirtualProducts } from '@/features/products/actions/virtual
 import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
 import { VirtualProductsSearchParams } from '@/lib/types';
 
-async function ProductPage({ searchParams }: { searchParams: VirtualProductsSearchParams }) {
-    const products = await getPaginatedVirtualProducts(searchParams);
+async function ProductPage({
+    currentStoreId,
+    searchParams
+}: {
+    currentStoreId: string,
+    searchParams: VirtualProductsSearchParams
+}) {
+    
+    const products = await getPaginatedVirtualProducts({searchParams, storeId: currentStoreId});
 
     if (products.total > 0) {
         return (

@@ -26,7 +26,7 @@ async function page({
                 <SortControl />
                 <div className='flex-1 flex flex-wrap gap-2 p-5'>
                     <Suspense fallback={<ProductListSkeleton />}>
-                        <ProductPage searchParams={queries} />
+                        <ProductPage currentStoreId={currentStoreId} searchParams={queries} />
                     </Suspense>
                 </div>
             </section>

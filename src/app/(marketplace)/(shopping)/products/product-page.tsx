@@ -4,7 +4,7 @@ import { VirtualProductCard } from '@/features/products/components/product-cards
 import { VirtualProductsSearchParams } from '@/lib/types';
 
 async function ProductPage({ params }: { params: VirtualProductsSearchParams }) {
-    const products = await getPaginatedVirtualProducts(params);
+    const products = await getPaginatedVirtualProducts({ searchParams: params });
 
     if (products.total > 0) {
         return (

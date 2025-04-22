@@ -186,10 +186,14 @@ export const searchVirtualProducts = async ({ query, limit = 10 }: { query: stri
     }
 }
 
-export const getPaginatedVirtualProducts = async (searchParams: VirtualProductsSearchParams) => {
+export const getPaginatedVirtualProducts = async ({ searchParams, storeId }: { searchParams: VirtualProductsSearchParams, storeId?: string }) => {
     try {
         const { databases } = await createSessionClient();
         const queries = [Query.limit(5)];
+
+        if (storeId) {
+            queries.push(Query.equal("virtualStoreId", storeId))
+        }
 
         if (searchParams.category && searchParams.category !== '') {
             queries.push(Query.search('categoryNames', searchParams.category));
