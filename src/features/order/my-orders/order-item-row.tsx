@@ -3,20 +3,25 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { getVirtualProductById } from '@/features/products/actions/virtual-products-actions';
 import Image from 'next/image';
 import { OrderTypes } from '@/lib/types';
+import { NoItemsCard } from '@/components/no-items-card';
 
 export const OrderItemRow = async ({ item }: { item: OrderTypes }) => {
     const product = await getVirtualProductById(item.productId);
+
+    if(!product) return <NoItemsCard />
 
     return (
         <TableRow>
             <TableCell>
                 <div className="relative h-16 w-16">
-                    <Image
-                        src={product.generalImageUrls[0]}
-                        alt={product.title}
-                        fill
-                        className="object-contain rounded-lg"
-                    />
+                    {product?.generalImageUrls && (
+                        <Image
+                            src={product.generalImageUrls[0]}
+                            alt={product.title}
+                            fill
+                            className="object-contain rounded-lg"
+                        />
+                    )}
                 </div>
             </TableCell>
             <TableCell className="font-medium">

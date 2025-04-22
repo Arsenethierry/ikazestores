@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VirtualProductTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
@@ -12,6 +12,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
+import Link from 'next/link';
 
 export const VirtualProductCard = async ({ product, storeId }: { product: VirtualProductTypes, storeId?: string }) => {
     const {
@@ -38,18 +39,20 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Virtua
         <Card className="group w-full h-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
-                    <CarouselContent>
-                        {product?.generalImageUrls?.map((imageUrl: string, index: number) => (
-                            <CarouselItem key={index} className='relative h-60 w-full'>
-                                <Image
-                                    src={imageUrl}
-                                    alt={product?.title}
-                                    fill
-                                    className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
-                                />
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
+                    <Link href={`/products/${slugify(product.title)}/${product.$id}`}>
+                        <CarouselContent>
+                            {product?.generalImageUrls?.map((imageUrl: string, index: number) => (
+                                <CarouselItem key={index} className='relative h-60 w-full'>
+                                    <Image
+                                        src={imageUrl}
+                                        alt={product?.title}
+                                        fill
+                                        className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                                    />
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                    </Link>
                     <CarouselPrevious className='absolute left-0 top-1/2 z-10 opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-90' />
                     <CarouselNext className='absolute right-0 top-1/2 z-10 opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-90' />
                 </Carousel>
@@ -88,39 +91,41 @@ export const VirtualProductCard = async ({ product, storeId }: { product: Virtua
                     {(isMyProduct && storeId) && <VirtualProductMenuActions storeId={storeId} product={product} />}
                 </div>
             </div>
-            <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">
-                <h3 className="font-medium text-sm mb-1 truncate transition-colors duration-300 group-hover:text-gray-900">{product.title}</h3>
-                <div className="flex items-center gap-1 mb-2">
-                    {[...Array(5)].map((_, i) => (
-                        <StarIcon
-                            key={i}
-                            className={`h-3 w-3 transition-all duration-300 ${i < Math.floor(rating) ? "fill-current text-yellow-500 group-hover:text-yellow-400" : "text-gray-300"}`}
-                        />
-                    ))}
-                    {reviews && (
-                        <span className="text-xs text-gray-500 ml-1 transition-opacity duration-300 group-hover:opacity-80">({reviews})</span>
-                    )}
-                </div>
-
-                <div className='flex justify-between items-center'>
-                    <div className="flex items-center gap-2 font-sans transition-transform duration-300 ease-in-out group-hover:translate-x-1">
-                        <span className="font-semibold  text-sm transition-colors duration-300 group-hover:text-gray-900">
-                            <ProductPriceDisplay
-                                productPrice={price}
-                                productCurrency={productCurrency}
+            <Link href={`/products/${slugify(product.title)}/${product.$id}`}>
+                <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">
+                    <h3 className="font-medium text-sm mb-1 truncate transition-colors duration-300 group-hover:text-gray-900">{product.title}</h3>
+                    <div className="flex items-center gap-1 mb-2">
+                        {[...Array(5)].map((_, i) => (
+                            <StarIcon
+                                key={i}
+                                className={`h-3 w-3 transition-all duration-300 ${i < Math.floor(rating) ? "fill-current text-yellow-500 group-hover:text-yellow-400" : "text-gray-300"}`}
                             />
-                        </span>
-                        {originalPrice && (
-                            <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">
+                        ))}
+                        {reviews && (
+                            <span className="text-xs text-gray-500 ml-1 transition-opacity duration-300 group-hover:opacity-80">({reviews})</span>
+                        )}
+                    </div>
+
+                    <div className='flex justify-between items-center'>
+                        <div className="flex items-center gap-2 font-sans transition-transform duration-300 ease-in-out group-hover:translate-x-1">
+                            <span className="font-semibold  text-sm transition-colors duration-300 group-hover:text-gray-900">
                                 <ProductPriceDisplay
-                                    productPrice={originalPrice}
+                                    productPrice={price}
                                     productCurrency={productCurrency}
                                 />
                             </span>
-                        )}
+                            {originalPrice && (
+                                <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">
+                                    <ProductPriceDisplay
+                                        productPrice={originalPrice}
+                                        productCurrency={productCurrency}
+                                    />
+                                </span>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </CardContent>
+                </CardContent>
+            </Link>
         </Card >
     );
 }

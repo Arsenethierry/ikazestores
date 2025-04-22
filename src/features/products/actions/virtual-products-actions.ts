@@ -38,16 +38,16 @@ export const getVirtualStoreProducts = async ({ virtualStoreId, limit }: { virtu
 export const getVirtualProductById = async (productId: string) => {
     try {
         const { databases } = await createSessionClient();
-        const product = await databases.getDocument(
+        const product = await databases.getDocument<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             productId
-        )
+        );
 
         return product
     } catch (error) {
         console.log("getVirtualProductById: ", error)
-        throw error
+        return null
     }
 }
 
