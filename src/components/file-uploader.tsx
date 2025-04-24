@@ -6,7 +6,7 @@ import { useDropzone } from "react-dropzone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 type ImageUploaderProps = {
-    file: File | undefined;
+    file: string | File | undefined;
     onChange: (file: File | undefined) => void;
     caption?: string;
     imageHeight?: number;
@@ -44,7 +44,7 @@ export const SingleImageUploader = ({
         multiple: false,
         disabled: !!file
     });
-    
+
     return (
         <div className="flex flex-col">
             {!file && (
@@ -89,7 +89,7 @@ export const SingleImageUploader = ({
                             alt="uploaded image"
                             className={`h-[${imageHeight}px] w-[${imageWidth}px] object-cover rounded-lg`}
                         />
-                    ) : (
+                    ) : file instanceof File ? (
                         <Image
                             src={convertFileToUrl(file)}
                             width={imageWidth}
@@ -97,7 +97,7 @@ export const SingleImageUploader = ({
                             alt="uploaded image"
                             className={`h-[${imageHeight}px] w-[${imageWidth}px] object-cover rounded-lg`}
                         />
-                    )}
+                    ) : null}
                 </div>
             )}
         </div>

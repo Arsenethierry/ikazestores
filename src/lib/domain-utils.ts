@@ -1,6 +1,6 @@
 import { MAIN_DOMAIN } from "./env-config";
 
-const IS_DEVELOPMENT = process.env.NODE_ENV === 'development' || MAIN_DOMAIN.includes('localhost');
+export const IS_DEVELOPMENT = process.env.NODE_ENV === 'development' || MAIN_DOMAIN.includes('localhost');
 
 
 interface UrlOptions {

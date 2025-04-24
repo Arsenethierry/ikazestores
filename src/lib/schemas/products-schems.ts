@@ -97,6 +97,7 @@ export const CategorySchema = z.object({
     createdBy: z.string()
 });
 
+
 export const UpdateCategoryForm = z.object({
     categoryName: z.string().max(50, { message: "Category name must not exceed 20 characters long" }).optional(),
     icon: z.custom<File>().optional(),
@@ -133,4 +134,61 @@ export const UpdateSubCategoryForm = z.object({
 
 export const UpdateSubCategoryActionSchema = UpdateSubCategoryForm.extend({
     subCategoryId: z.string()
+});
+
+export const CollectionSchema = z.object({
+    collectionName: z.string().min(2, {
+        message: "Collection name must be at least 2 characters."
+    }),
+    description: z.string().max(500, {
+        message: "Collection name must not exceed 500 characters."
+    }).nullable(),
+    type: z.enum(["simple", "grouped"]),
+    featured: z.boolean().default(false),
+    bannerImage: z.any().optional(),
+    storeId: z.string().nullable(),
+    createdBy: z.string()
+});
+
+export const DeleteCollectionSchema = z.object({
+    collectionId: z.string(),
+    bannerImageId: z.string().optional().nullable()
 })
+
+export const UpdateCollectionForm = z.object({
+    collectionName: z.string().min(2, {
+        message: "Collection name must be at least 2 characters."
+    }).optional(),
+    description: z.string().optional(),
+    type: z.enum(["simple", "grouped"]).optional(),
+    featured: z.boolean().optional(),
+    bannerImage: z.any().optional(),
+    collectionId: z.string().optional()
+});
+
+export const CollectionGroupSchema = z.object({
+    id: z.string(),
+    groupName: z.string().min(1, "Group name is required"),
+    groupImage: z.any().optional(),
+    displayOrder: z.number()
+});
+
+export const SaveCollectionGroupsSchema = z.object({
+    collectionId: z.string(),
+    groups: z.array(CollectionGroupSchema)
+});
+
+export const DeleteCollectionGroupSchema = z.object({
+    groupId: z.string(),
+    collectionId: z.string(),
+    imageId: z.string().nullable(),
+});
+
+export const UpdateCollectionGroupSchema = z.object({
+    groupId: z.string(),
+    collectionId: z.string(),
+    groupName: z.string().min(1, "Group name is required"),
+    groupImage: z.any().optional(),
+    displayOrder: z.number(),
+    oldImageId: z.string().optional()
+});

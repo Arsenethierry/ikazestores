@@ -193,3 +193,24 @@ export type VirtualProductsSearchParams = {
     minPrice?: string;
     maxPrice?: string;
 }
+
+export interface CollectionTypes extends Models.Document {
+    collectionName: string;
+    bannerImageUrl?: string;
+    bannerImageId?: string;
+    productIds?: string[];
+    description?: string;
+    storeId?: string;
+    createdBy: string;
+    featured: boolean;
+    type: 'simple' | 'grouped';
+    groups: string[],
+}
+
+export interface CollectionGroupsTypes extends Models.Document {
+    groupImageUrl: string;
+    groupImageId: string;
+    groupName: string;
+    displayOrder: number;
+    collectionId: number;
+}

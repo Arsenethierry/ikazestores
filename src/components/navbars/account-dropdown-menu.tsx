@@ -4,6 +4,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import Link from "next/link";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { AuthStatus } from "@/lib/types";
+import { MAIN_DOMAIN } from "@/lib/env-config";
+import { IS_DEVELOPMENT } from "@/lib/domain-utils";
 
 export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner, isSystemAdmin }: AuthStatus) => (
     <DropdownMenu>
@@ -33,9 +35,13 @@ export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtu
                         </DropdownMenuItem>
                         {(isPhysicalStoreOwner || isVirtualStoreOwner || isSystemAdmin) && (
                             <DropdownMenuItem className='cursor-pointer w-full'>
-                                <Link href={'/admin'} className='w-full font-medium cursor-pointer inline-flex'>
+                                <Link
+                                    href={`${IS_DEVELOPMENT ? 'http://' : 'https://'}` + MAIN_DOMAIN + '/admin'}
+                                    className='w-full font-medium cursor-pointer inline-flex'
+                                    target="_blank"
+                                >
                                     <LayoutDashboard className='h-4 my-auto' />
-                                    <span>Dashboard</span>
+                                    <span>Dashboards</span>
                                 </Link>
                             </DropdownMenuItem>
                         )}

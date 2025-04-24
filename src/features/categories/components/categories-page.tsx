@@ -50,7 +50,7 @@ export const AllCategories = ({
     };
 
 
-    const canDelete = (category: CategoryTypes) => currentUser!.$id === category.createdBy
+    const canModify = (category: CategoryTypes) => currentUser!.$id === category.createdBy
 
     return (
         <Card>
@@ -73,15 +73,15 @@ export const AllCategories = ({
                             )}
                             <span className='font-medium'>{category.categoryName}</span>
                         </div>
-                        <div className='flex items-center gap-2'>
-                            <Link
-                                href={`/admin/categories/${category.$id}/edit`}
-                                className={buttonVariants({ variant: 'outline', size: 'sm' })}
-                            >
-                                <Pencil className='h-4 w-4 mr-2' />
-                                Edit
-                            </Link>
-                            {canDelete(category) && (
+                        {canModify(category) && (
+                            <div className='flex items-center gap-2'>
+                                <Link
+                                    href={`/admin/categories/${category.$id}/edit`}
+                                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                                >
+                                    <Pencil className='h-4 w-4 mr-2' />
+                                    Edit
+                                </Link>
                                 <Button
                                     variant='destructive'
                                     size='sm'
@@ -90,8 +90,8 @@ export const AllCategories = ({
                                     <Trash2 className='h-4 w-4 mr-2' />
                                     Delete
                                 </Button>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 ))}
             </CardContent>
