@@ -304,18 +304,23 @@ export const updateCollectionGroup = action
     });
 
 
-export const getAllCollectionsByStoreId = async ({ storeId }: { storeId: string }) => {
+export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId: string, limit?: number, featured?: boolean }) => {
     try {
         const { databases } = await createSessionClient();
+        const queries = [
+            Query.or([
+                Query.equal("storeId", storeId),
+                Query.isNull("storeId")
+            ]),
+            Query.limit(limit)
+        ];
+        if (featured) {
+            queries.push(Query.equal("featured", true))
+        }
         const collections = await databases.listDocuments<CollectionTypes>(
             DATABASE_ID,
             PRODUCTS_COLLECTIONS_COLLECTION_ID,
-            [
-                Query.or([
-                    Query.equal("storeId", storeId),
-                    Query.isNull("storeId")
-                ])
-            ]
+            queries
         );
         return collections;
     } catch (error) {

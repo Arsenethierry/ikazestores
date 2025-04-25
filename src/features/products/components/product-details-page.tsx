@@ -3,12 +3,14 @@ import { ProductImagesZoomComponent } from './product-images-zoom-component';
 import DOMPurify from "isomorphic-dompurify";
 import { Suspense } from 'react';
 import SpinningLoader from '@/components/spinning-loader';
+import { ProductViewer } from '../use-recently-viewed-products';
 
 export const ProductDetails = ({ product }: { product: VirtualProductTypes, }) => {
     const productDesc = DOMPurify.sanitize(product.description, { USE_PROFILES: { html: true } });
 
     return (
         <div className='container mx-auto px-4 py-8'>
+            <ProductViewer product={product} />
             <div className='flex flex-col md:flex-row gap-8 relative min-h-screen'>
                 <div className='md:w-1/2 lg:w-2/5'>
                     <Suspense fallback={<SpinningLoader />}>
