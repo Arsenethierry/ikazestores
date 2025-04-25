@@ -59,7 +59,7 @@ const testimonials = [
 ];
 
 const SellPageTestimonials = () => (
-  <div className="flex justify-center items-center py-12 px-6 bg-muted/50">
+  <div className="flex justify-center items-center py-12 px-6 bg-muted/50" id="success-stories">
     <div className="w-full">
       <h2 className="mb-8 sm:mb-14 text-5xl md:text-6xl font-bold text-center tracking-tight">
         Success Stories from Our Network

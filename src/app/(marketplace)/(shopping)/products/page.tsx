@@ -11,9 +11,9 @@ async function page({
 }: {
     searchParams: Promise<SearchParams>
 }) {
-    const params = await searchParams
+    const params = await searchParams;
     const categories = await getGeneralCategories();
-    
+
     return (
         <div className='flex gap-4 main-container py-5'>
             <aside className='w-64 shrink-0'>

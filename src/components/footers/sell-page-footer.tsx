@@ -45,7 +45,6 @@ const footerSections = [
         links: [
             { title: "Become a Partner", href: "/partners" },
             { title: "Enterprise Solutions", href: "/enterprise" },
-            { title: "API Documentation", href: "/docs" },
             { title: "Affiliate Program", href: "/affiliates" },
             { title: "Success Stories", href: "/success" },
             { title: "Global Network", href: "/network" },
@@ -59,7 +58,6 @@ const footerSections = [
             { title: "Seller Academy", href: "/academy" },
             { title: "Webinars", href: "/webinars" },
             { title: "Community Forum", href: "/forum" },
-            { title: "API Documentation", href: "/api-docs" },
             { title: "Status Page", href: "/status" },
         ],
     },

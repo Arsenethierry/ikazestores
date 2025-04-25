@@ -1,29 +1,30 @@
 import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
+import Link from "next/link";
 
 const sections = [
     {
         title: "For Shoppers",
         links: [
             { name: "Browse Stores", href: "#" },
-            { name: "Featured Products", href: "#" },
-            { name: "How It Works", href: "#" },
+            { name: "Featured Products", href: "/products" },
+            { name: "How It Works", href: "/sell" },
             { name: "Customer Support", href: "#" },
         ],
     },
     {
         title: "For Store Owners",
         links: [
-            { name: "Create Virtual Store", href: "#" },
-            { name: "Partner Physical Stores", href: "#" },
-            { name: "Seller Dashboard", href: "#" },
-            { name: "Success Stories", href: "#" },
+            { name: "Create Virtual Store", href: "/sell/new-store" },
+            { name: "Partner Physical Stores", href: "/sell/new-store" },
+            { name: "Seller Dashboard", href: "/admin" },
+            { name: "Success Stories", href: "/sell#success-stories" },
         ],
     },
     {
         title: "Company",
         links: [
-            { name: "About Us", href: "#" },
-            { name: "Terms of Service", href: "#" },
+            { name: "About Us", href: "/sell" },
+            { name: "Terms of Service", href: "/sell" },
             { name: "Privacy Policy", href: "#" },
             { name: "Contact Us", href: "#" },
         ],
@@ -83,7 +84,7 @@ export const HomePageFooter = () => {
                                                 key={linkIdx}
                                                 className="font-medium hover:text-primary"
                                             >
-                                                <a href={link.href}>{link.name}</a>
+                                                <Link href={link.href}>{link.name}</Link>
                                             </li>
                                         ))}
                                     </ul>

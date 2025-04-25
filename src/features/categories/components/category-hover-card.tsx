@@ -27,9 +27,11 @@ export const CategoriesCard = async ({
             return (
                 <HoverCard openDelay={100} closeDelay={100} key={category.$id}>
                     <HoverCardTrigger asChild>
-                        <button className={`${mobile ? 'px-4 py-2 text-sm rounded-full bg-background border' : 'w-full text-left px-3 py-2 font-medium hover:bg-accent rounded-lg'}`}>
-                            {category.categoryName}
-                        </button>
+                        <Link href={`/products?category=${category.categoryName}`}>
+                            <button className={`${mobile ? 'px-4 py-2 text-sm rounded-full bg-background border' : 'w-full text-left px-3 py-2 font-medium hover:bg-accent hover:underline rounded-lg'}`}>
+                                {category.categoryName}
+                            </button>
+                        </Link>
                     </HoverCardTrigger>
                     {subcategories.length > 0 && (
                         <HoverCardContent
@@ -41,8 +43,9 @@ export const CategoriesCard = async ({
                             <div className="grid grid-cols-2 gap-3">
                                 {subcategories.map((sub: SubCategoryTypes) => (
                                     <Link
-                                        href={'#'}
+                                        href={`/products?category=${sub.subCategoryName}`}
                                         key={sub.$id}
+                                        className="hover:bg-accent hover:underline w-max px-2 rounded-lg py-1"
                                     >
                                         {sub.subCategoryName}
                                     </Link>

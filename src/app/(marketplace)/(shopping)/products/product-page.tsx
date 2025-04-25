@@ -2,6 +2,7 @@ import React from 'react';
 import { getPaginatedVirtualProducts } from '@/features/products/actions/virtual-products-actions';
 import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
 import { VirtualProductsSearchParams } from '@/lib/types';
+import { NoItemsCard } from '@/components/no-items-card';
 
 async function ProductPage({ params }: { params: VirtualProductsSearchParams }) {
     const products = await getPaginatedVirtualProducts({ searchParams: params });
@@ -16,6 +17,8 @@ async function ProductPage({ params }: { params: VirtualProductsSearchParams }) 
                 </div>
             ))
         )
+    } else {
+        return <NoItemsCard />
     }
 }
 

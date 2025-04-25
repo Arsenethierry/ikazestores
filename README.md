@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IKAZESTORES - Multi-Tenant SaaS Platform
+
+A Next.js 14 powered SaaS platform enabling physical and virtual store management with integrated e-commerce capabilities.
+
+## Key Features
+
+### Role-Based Access Control
+- **Super Admin**: Full system control, user management, and platform analytics
+- **Business Owner**: 
+  - Create/manage physical store profiles
+  - Add/update physical inventory items
+  - Set base prices and product availability
+- **Virtual Store Owner**:
+  - Create custom virtual storefronts
+  - Curate products from multiple physical stores
+  - Set custom markup prices and promotions
+  - Manage virtual store design and layout
+- **Buyer**:
+  - Browse virtual stores
+  - Purchase products across multiple vendors
+  - Order tracking and history
+
+## Technology Stack
+- **Framework**: Next.js 14 (App Router)
+- **Backend**: Appwrite (Authentication, Database, Storage)
+- **Styling**: Tailwind CSS + Shadcn/ui components
+- **Form Handling**: React Hook Form + Zod validation
+- **State Management**: Zustand
+- **Internationalization**: next-intl
+- **Testing**: Jest + React Testing Library
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+
+- Appwrite instance (local or cloud)
+- Google Cloud account (for OAuth)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Environment Setup
+1. Clone repository:
+   ```bash
+   git clone https://github.com/Arsenethierry/ikazestores.git
