@@ -213,4 +213,5 @@ export interface CollectionGroupsTypes extends Models.Document {
     groupName: string;
     displayOrder: number;
     collectionId: number;
+    productsIds?: string[]
 }

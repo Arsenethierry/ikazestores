@@ -3,9 +3,9 @@
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PRODUCTS_BUCKET_ID, PRODUCTS_COLLECTION_GROUPS_ID, PRODUCTS_COLLECTIONS_COLLECTION_ID } from "@/lib/env-config";
-import { CollectionSchema, DeleteCollectionGroupSchema, DeleteCollectionSchema, SaveCollectionGroupsSchema, UpdateCollectionGroupSchema } from "@/lib/schemas/products-schems";
-import { CollectionGroupsTypes, CollectionTypes } from "@/lib/types";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PRODUCTS_BUCKET_ID, PRODUCTS_COLLECTION_GROUPS_ID, PRODUCTS_COLLECTIONS_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
+import { AddProductToCollectionSchema, CollectionSchema, DeleteCollectionGroupSchema, DeleteCollectionSchema, RemoveProductFromCollection, SaveCollectionGroupsSchema, UpdateCollectionGroupSchema } from "@/lib/schemas/products-schems";
+import { CollectionGroupsTypes, CollectionTypes, VirtualProductTypes } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { ID, Query } from "node-appwrite";
 
@@ -303,6 +303,126 @@ export const updateCollectionGroup = action
         }
     });
 
+export const addProductsToCollection = action
+    .use(authMiddleware)
+    .schema(AddProductToCollectionSchema)
+    .action(async ({ parsedInput: {
+        collectionId,
+        productsIds,
+        groupId
+    }, ctx }) => {
+        const { databases } = ctx;
+        try {
+            const collection = await databases.getDocument<CollectionTypes>(
+                DATABASE_ID,
+                PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                collectionId
+            );
+
+            if (collection.type === 'grouped') {
+                // add products ids to group of collection
+                if (!groupId) return { error: 'Group not selected, group ID is required' }
+                try {
+                    await databases.updateDocument(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTION_GROUPS_ID,
+                        groupId,
+                        {
+                            productsIds
+                        }
+                    );
+                    return { success: "Products added to group successfully" };
+                } catch (error) {
+                    console.log("add product in group error: ", error);
+                    return { error: error instanceof Error ? error.message : "Failed to add products to group in collection" };
+                }
+            } else if (collection.type === 'simple') {
+                try {
+                    await databases.updateDocument(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                        collectionId,
+                        {
+                            productsIds
+                        }
+                    );
+                    return { success: "Products added to collection successfully" };
+                } catch (error) {
+                    console.log("add product in collection error: ", error);
+                    return { error: error instanceof Error ? error.message : "Failed to add products to collection" };
+                }
+            } else {
+                return { error: "Something went wrong while grouping products" }
+            }
+        } catch (error) {
+            console.log("addProductsToCollection error: ", error);
+            return { error: error instanceof Error ? error.message : "Failed to add product to collection" };
+        }
+    })
+
+export const removeProductFromCollection = action
+    .use(authMiddleware)
+    .schema(RemoveProductFromCollection)
+    .action(async ({ parsedInput: {
+        collectionId,
+        productId,
+        groupId
+    }, ctx }) => {
+        const { databases } = ctx;
+        try {
+            const collection = await databases.getDocument<CollectionTypes>(
+                DATABASE_ID,
+                PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                collectionId
+            );
+            if (collection.type === 'grouped' && groupId) {
+                try {
+                    const group = await databases.getDocument<CollectionGroupsTypes>(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTION_GROUPS_ID,
+                        groupId
+                    );
+
+                    const updatedProductIds = group.productsIds?.filter(id => id !== productId);
+
+                    await databases.updateDocument(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTION_GROUPS_ID,
+                        groupId,
+                        {
+                            productsIds: updatedProductIds
+                        }
+                    );
+
+                    return { success: "Product removed from group successfully" };
+                } catch (error) {
+                    console.log("remove product from group error: ", error);
+                    return { error: error instanceof Error ? error.message : "Failed to remove product from group" };
+                }
+            } else if (collection.type === 'simple' && collection?.productsIds) {
+                try {
+                    const updatedProductIds = collection.productsIds.filter((id: string) => id !== productId);
+                    await databases.updateDocument(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                        collectionId,
+                        {
+                            productsIds: updatedProductIds
+                        }
+                    );
+                    return { success: "Product removed from collection successfully" };
+                } catch (error) {
+                    console.log("remove product from collection error: ", error);
+                    return { error: error instanceof Error ? error.message : "Failed to remove product from collection" };
+                }
+            } else {
+                return { error: "Invalid collection type or missing group ID" };
+            }
+        } catch (error) {
+            console.log("removeProductFromCollection error: ", error);
+            return { error: error instanceof Error ? error.message : "Failed to remove product from collection" };
+        }
+    })
 
 export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId: string, limit?: number, featured?: boolean }) => {
     try {
@@ -374,4 +494,76 @@ export const getCollectionGroupsByCollectionId = async ({ collectionId }: { coll
         console.warn("getCollectionById ", error)
         return null;
     }
-}
+};
+
+export const getCollectionProducts = async ({
+    collectionId,
+    groupId = null,
+    page = 1,
+    limit = 10
+}: {
+    collectionId: string;
+    groupId?: string | null;
+    page?: number;
+    limit?: number;
+}) => {
+    try {
+        const { databases } = await createSessionClient();
+
+        let productsIds: string[] = [];
+
+        if (groupId) {
+            const group = await databases.getDocument<CollectionGroupsTypes>(
+                DATABASE_ID,
+                PRODUCTS_COLLECTION_GROUPS_ID,
+                groupId
+            );
+            productsIds = group.productsIds || [];
+        } else {
+            const collection = await databases.getDocument<CollectionTypes>(
+                DATABASE_ID,
+                PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                collectionId
+            );
+            productsIds = collection.productsIds || [];
+        }
+
+        if (productsIds.length === 0) {
+            return {
+                documents: [],
+                total: 0,
+                totalPages: 0
+            };
+        }
+
+        const startIndex = (page - 1) * limit;
+        const endIndex = Math.min(startIndex + limit, productsIds.length);
+        const paginatedProductIds = productsIds.slice(startIndex, endIndex);
+
+        if (paginatedProductIds.length > 0) {
+            const products = await databases.listDocuments<VirtualProductTypes>(
+                DATABASE_ID,
+                VIRTUAL_PRODUCT_ID,
+                [
+                    Query.equal("$id", paginatedProductIds),
+                    Query.limit(limit)
+                ]
+            );
+
+            return {
+                documents: products.documents,
+                total: productsIds.length,
+                totalPages: Math.ceil(productsIds.length / limit)
+            };
+        } else {
+            return {
+                documents: [],
+                total: productsIds.length,
+                totalPages: Math.ceil(productsIds.length / limit)
+            };
+        }
+    } catch (error) {
+        console.log("getCollectionProducts: ", error);
+        return null;
+    }
+};

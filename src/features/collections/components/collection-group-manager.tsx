@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GripVertical, Loader2, Plus, Save, Trash } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -12,6 +12,7 @@ import { deleteCollectionGroup, saveCollectionGroups, updateCollectionGroup } fr
 import { CollectionGroupsTypes } from "@/lib/types";
 import { useAction } from "next-safe-action/hooks";
 import { debounce } from "lodash";
+import Link from "next/link";
 
 type CollectionGroup = {
     id: string;
@@ -23,9 +24,11 @@ type CollectionGroup = {
 export const CollectionGroupManager = ({
     collectionId,
     initialGroups = [],
+    storeId,
 }: {
     collectionId: string;
     initialGroups?: CollectionGroupsTypes[];
+    storeId: string;
 }) => {
 
     const formattedInitialGroups: CollectionGroup[] = initialGroups.map(group => ({
@@ -261,7 +264,7 @@ export const CollectionGroupManager = ({
                                                 <div
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    className={`flex items-start gap-4 p-4 border rounded-md bg-card transition-opacity ${isDeletePending ? 'opacity-50' : ''}`}
+                                                    className={`flex gap-4 items-center p-4 border rounded-md bg-card transition-opacity ${isDeletePending ? 'opacity-50' : ''}`}
                                                 >
                                                     <div
                                                         {...provided.dragHandleProps}
@@ -298,6 +301,14 @@ export const CollectionGroupManager = ({
                                                             </p>
                                                         </div>
                                                     </div>
+                                                    {!group.id.startsWith('temp-') && (
+                                                        <Link
+                                                            href={`/admin/stores/${storeId}/collections/${collectionId}/groups/${group.id}`}
+                                                            className={buttonVariants({ variant: "teritary", size: "xs" })}
+                                                        >
+                                                            <Plus className="h-3 w-3 mr-1" /> Add Products
+                                                        </Link>
+                                                    )}
                                                     <Button
                                                         type="button"
                                                         variant="ghost"

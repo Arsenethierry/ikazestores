@@ -16,19 +16,37 @@ const action = createSafeActionClient({
     },
 })
 
-export const getVirtualStoreProducts = async ({ virtualStoreId, limit }: { virtualStoreId: string, limit: number }) => {
+export const getVirtualStoreProducts = async ({
+    virtualStoreId,
+    limit = 10,
+    page = 1,
+    search
+}: {
+    virtualStoreId: string;
+    limit?: number;
+    page?: number;
+    search?: string
+}) => {
     try {
         const { databases } = await createSessionClient();
+        const query = search ? [Query.search("title", search)] : []
         const products = await databases.listDocuments<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [
+                ...query,
                 Query.equal("virtualStore", virtualStoreId),
-                Query.limit(limit)
+                Query.offset((page - 1) * limit),
+                Query.limit(limit),
+                Query.orderDesc('$createdAt')
             ]
         );
 
-        return products
+        return {
+            documents: products.documents,
+            total: products.total,
+            totalPages: Math.ceil(products.total / limit)
+        }
     } catch (error) {
         console.log("getVirtualStoreProducts: ", error)
         return null
@@ -51,18 +69,41 @@ export const getVirtualProductById = async (productId: string) => {
     }
 }
 
-export const getAllVirtualProducts = async () => {
+export const getAllVirtualProducts = async ({
+    limit = 10,
+    page = 1,
+    search
+}: {
+    search?: string;
+    page?: number;
+    limit?: number
+}) => {
     try {
         const { databases } = await createSessionClient();
+        const query = search ? [Query.search("title", search)] : []
         const products = await databases.listDocuments(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
+            [
+                ...query,
+                Query.offset((page - 1) * limit),
+                Query.limit(limit),
+                Query.orderDesc('$createdAt')
+            ]
         );
 
-        return products
+        return {
+            documents: products.documents,
+            total: products.total,
+            totalPages: Math.ceil(products.total / limit)
+        }
     } catch (error) {
         console.log("getVirtualStoreProducts: ", error)
-        throw error
+        return {
+            documents: [],
+            total: 0,
+            totalPages: 0
+        }
     }
 }
 

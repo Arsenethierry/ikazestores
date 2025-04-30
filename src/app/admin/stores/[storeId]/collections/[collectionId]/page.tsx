@@ -1,4 +1,3 @@
-import { getCollectionById } from '@/features/collections/actions/collections-actions';
 import { CollectionGroupManager } from '@/features/collections/components/collection-group-manager';
 import { getAuthState } from '@/lib/user-label-permission';
 import { redirect } from 'next/navigation';
@@ -6,13 +5,18 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from 'next/image';
 import { DeleteCollectionButton } from '@/features/collections/components/delete-collection-button';
+import { Suspense } from 'react';
+import { getCollectionById } from '@/features/collections/actions/collections-actions';
+import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
+import { GroupProductsComponents } from '@/features/collections/components/group-products-component';
 
 async function CollectionPage({
-    params,
+    params
 }: {
-    params: Promise<{ collectionId: string, storeId: string }>
+    params: Promise<{ collectionId: string, storeId: string }>;
 }) {
     const { collectionId, storeId } = await params;
+    
     const collectionData = await getCollectionById({ collectionId, withGroups: true });
 
     if (!collectionData) {
@@ -24,8 +28,19 @@ async function CollectionPage({
     } = await getAuthState();
 
     if (!user) {
-        redirect('/sign-in')
-    };
+        redirect('/sign-in');
+    }
+
+    // const productsData = await getVirtualStoreProducts({
+    //     virtualStoreId: storeId,
+    //     limit: 2,
+    //     page,
+    //     search: search || undefined
+    // });
+
+    // const products = productsData?.documents || [];
+    // const totalPages = productsData?.totalPages || 0;
+    // const totalProducts = productsData?.total || 0;
 
     return (
         <div className="container mx-auto py-8 space-y-6">
@@ -65,13 +80,26 @@ async function CollectionPage({
                     )}
                 </CardContent>
             </Card>
+            
             {collectionData.type === 'grouped' ? (
                 <CollectionGroupManager
                     collectionId={collectionId}
                     initialGroups={collectionData?.groupsData || []}
+                    storeId={storeId}
                 />
             ) : (
-                <p>hbdhe deh</p>
+                <Suspense fallback={<ProductSekeleton />}>
+                    <GroupProductsComponents 
+                        collectionId={collectionId}
+                        virtualStoreId={storeId}
+                        // storeId={storeId}
+                        collectionType={collectionData.type}
+                        // initialProducts={products}
+                        // initialTotalPages={totalPages}
+                        // initialTotal={totalProducts}
+                        alreadySelectedProducts={collectionData.productsIds || []}
+                    />
+                </Suspense>
             )}
         </div>
     );

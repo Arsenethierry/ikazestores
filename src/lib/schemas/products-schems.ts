@@ -192,3 +192,22 @@ export const UpdateCollectionGroupSchema = z.object({
     displayOrder: z.number(),
     oldImageId: z.string().optional()
 });
+
+export const AddProductToCollectionSchema = z.object({
+    collectionId: z.string(),
+    productsIds: z.array(z.string()),
+    groupId: z.string().optional().nullable()
+});
+
+export const RemoveProductFromCollection = z.object({
+    collectionId: z.string(),
+    productId: z.string(),
+    groupId: z.string().optional()
+});
+
+export const CreateCollectionGroup = z.object({
+    collectionId: z.string(),
+    groupName: z.string().min(1, "Group name is required"),
+    groupImageUrl: z.string().optional(),
+    displayOrder: z.number().optional()
+})

@@ -14,7 +14,13 @@ import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
 
-export const VirtualProductCard = async ({ product, storeId }: { product: VirtualProductTypes, storeId?: string }) => {
+export const VirtualProductCard = async ({
+    product,
+    storeId,
+}: {
+    product: VirtualProductTypes,
+    storeId?: string
+}) => {
     const {
         isPhysicalStoreOwner,
         isVirtualStoreOwner,
