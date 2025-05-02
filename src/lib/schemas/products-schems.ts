@@ -146,7 +146,7 @@ export const CollectionSchema = z.object({
     type: z.enum(["simple", "grouped"]),
     featured: z.boolean().default(false),
     bannerImage: z.any().optional(),
-    storeId: z.string().nullable(),
+    storeId: z.string().nullable().optional(),
     createdBy: z.string()
 });
 

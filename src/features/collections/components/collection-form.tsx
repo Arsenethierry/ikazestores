@@ -30,11 +30,11 @@ const getCollectionSchema = (isEditMode: boolean) => {
 export const CollectionForm = ({
     currentUser,
     initialValues = null,
-    storeId
+    storeId,
 }: {
     currentUser: CurrentUserType,
     initialValues?: CollectionTypes | null,
-    storeId: string | null
+    storeId: string | null;
 }) => {
     const isEditMode = !!initialValues;
     const router = useRouter();

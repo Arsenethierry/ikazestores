@@ -11,10 +11,12 @@ import { useRouter } from "next/navigation";
 
 export const DeleteCollectionButton = ({
     collection,
-    storeId
+    storeId,
+    isSystemAdmin = false
 }: {
     collection: CollectionTypes;
-    storeId: string;
+    storeId: string | null;
+    isSystemAdmin?: boolean
 }) => {
     const router = useRouter();
 
@@ -31,7 +33,11 @@ export const DeleteCollectionButton = ({
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data?.success);
-                router.push(`/admin/stores/${storeId}/collections`)
+                if (isSystemAdmin) {
+                    router.push(`/admin/collections`)
+                } else {
+                    router.push(`/admin/stores/${storeId}/collections`)
+                }
             } else if (data?.error) {
                 toast.error(data?.error)
             }

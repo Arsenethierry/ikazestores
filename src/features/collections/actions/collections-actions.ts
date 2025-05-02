@@ -424,16 +424,20 @@ export const removeProductFromCollection = action
         }
     })
 
-export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId: string, limit?: number, featured?: boolean }) => {
+export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId?: string, limit?: number, featured?: boolean }) => {
     try {
         const { databases } = await createSessionClient();
-        const queries = [
-            Query.or([
+        const queries = [Query.limit(limit)];
+
+        if(storeId) {
+            queries.push(Query.or([
                 Query.equal("storeId", storeId),
                 Query.isNull("storeId")
-            ]),
-            Query.limit(limit)
-        ];
+            ]))
+        } else {
+            queries.push(Query.isNull('storeId'))
+        }
+        
         if (featured) {
             queries.push(Query.equal("featured", true))
         }

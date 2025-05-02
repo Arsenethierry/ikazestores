@@ -43,6 +43,21 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 },
             ],
         },
+        {
+            title: "Products Management",
+            url: "#",
+            icon: Bot,
+            items: [
+                {
+                    title: "Products",
+                    url: `/admin/products`,
+                },
+                {
+                    title: "Collections",
+                    url: `/admin/collections`,
+                },
+            ],
+        },
     ],
     virtualStoreAdmin: [
         {

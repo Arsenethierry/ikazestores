@@ -11,6 +11,8 @@ import { MobileMenuContent } from './mobile-menu-contents';
 import { CartNavButton } from '@/features/cart/components/cart-navbar-button';
 import { ProductSearchField } from '../search/virtual-products-search';
 import { CurrencySelector } from '@/features/products/currency/currency-selector';
+import { Skeleton } from '../ui/skeleton';
+import { ProductsCollectionsList } from './tenant/products-collections-list';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -99,10 +101,9 @@ export default async function MarketplaceNavbar() {
             <div className='main-container hidden md:flex justify-between bg-primary font-sans flex-between text-white font-medium border-b border-blue-50/20 h-14'>
                 <div className='flex gap-6 items-center'>
                     <AllCategories />
-                    <Link href={'/'} className='hover:text-white/80'>Top Deals</Link>
-                    <Link href={'/'} className='hover:text-white/80'>Deal of the day</Link>
-                    <Link href={'/'} className='hover:text-white/80'>Men</Link>
-                    <Link href={'/'} className='hover:text-white/80'>Women</Link>
+                    <Suspense fallback={<Skeleton className="h-2 w-7" />}>
+                        <ProductsCollectionsList currentStore={undefined} />
+                    </Suspense>
                 </div>
                 <div className='flex gap-6 items-center'>
                     <NavigationMenuCategories />
