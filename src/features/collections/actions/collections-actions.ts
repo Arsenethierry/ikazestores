@@ -427,25 +427,35 @@ export const removeProductFromCollection = action
 export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId?: string, limit?: number, featured?: boolean }) => {
     try {
         const { databases } = await createSessionClient();
-        const queries = [Query.limit(limit)];
+        const baseQueries = [Query.limit(limit)];
 
-        if(storeId) {
-            queries.push(Query.or([
-                Query.equal("storeId", storeId),
-                Query.isNull("storeId")
-            ]))
+        if (storeId) {
+            baseQueries.push(
+                Query.or([Query.equal("storeId", storeId), Query.isNull("storeId")])
+            );
         } else {
-            queries.push(Query.isNull('storeId'))
+            baseQueries.push(Query.isNull("storeId"));
         }
-        
+
+        const queries = [...baseQueries];
+
         if (featured) {
-            queries.push(Query.equal("featured", true))
+            queries.push(Query.equal("featured", true));
         }
-        const collections = await databases.listDocuments<CollectionTypes>(
+
+        let collections = await databases.listDocuments<CollectionTypes>(
             DATABASE_ID,
             PRODUCTS_COLLECTIONS_COLLECTION_ID,
             queries
         );
+        if (collections.total === 0 && featured) {
+            collections = await databases.listDocuments<CollectionTypes>(
+                DATABASE_ID,
+                PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                baseQueries
+            );
+        }
+
         return collections;
     } catch (error) {
         console.warn(error)

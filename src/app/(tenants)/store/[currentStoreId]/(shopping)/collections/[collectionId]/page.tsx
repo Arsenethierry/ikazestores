@@ -2,14 +2,15 @@ import { NoItemsCard } from '@/components/no-items-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCollectionById } from '@/features/collections/actions/collections-actions';
+import { CollectionProducts } from '@/features/collections/components/collection-products';
 import { CollectionGroupsTypes } from '@/lib/types';
 import Image from 'next/image';
 import React from 'react';
 
 async function page({ params }: {
-    params: Promise<{ collectionId: string }>
+    params: Promise<{ collectionId: string, currentStoreId: string }>
 }) {
-    const { collectionId } = await params;
+    const { collectionId, currentStoreId } = await params;
     if (!collectionId) return;
     const collectionData = await getCollectionById({ collectionId, withGroups: true });
     if (!collectionData) return <NoItemsCard />
@@ -62,7 +63,12 @@ async function page({ params }: {
                     </div>
                 ))
             ) : (
-                <p>hbdhe deh</p>
+                <CollectionProducts
+                    collectionId={collectionId}
+                    collectionName={collectionData.collectionName}
+                    collectionType={collectionData.type}
+                    virtualStoreId={currentStoreId}
+                />
             )}
         </div>
     );

@@ -128,4 +128,6 @@ export const getAllCustomerOrders = async (customerId: string) => {
         console.log("getDeliveryAddresses error: ", error);
         return { documents: [], total: 0 };
     }
-}
+};
+
+// export const getAllOrders = async ()

@@ -81,7 +81,7 @@ export const getAllVirtualProducts = async ({
     try {
         const { databases } = await createSessionClient();
         const query = search ? [Query.search("title", search)] : []
-        const products = await databases.listDocuments(
+        const products = await databases.listDocuments<VirtualProductTypes>(
             DATABASE_ID,
             VIRTUAL_PRODUCT_ID,
             [

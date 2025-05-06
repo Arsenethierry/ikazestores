@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from 'next/image';
 import { CollectionGroupsTypes } from '@/lib/types';
 import SpinningLoader from '@/components/spinning-loader';
-import { GroupProductsComponents } from '@/features/collections/components/group-products-component';
+import { CollectionProducts } from '@/features/collections/components/collection-products';
 
 async function CollectionGroupPage({
     params,
@@ -62,9 +62,10 @@ async function CollectionGroupPage({
             </Card>
 
             <Suspense fallback={<SpinningLoader />}>
-                <GroupProductsComponents
+                <CollectionProducts
                     collectionType='grouped'
                     virtualStoreId={storeId}
+                    collectionName={collectionData.collectionName}
                     collectionId={collectionId}
                     currentGroupId={currentGroup.$id}
                     alreadySelectedProducts={alreadyAddedProductsIds}

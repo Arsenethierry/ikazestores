@@ -8,7 +8,7 @@ import { DeleteCollectionButton } from '@/features/collections/components/delete
 import { Suspense } from 'react';
 import { getCollectionById } from '@/features/collections/actions/collections-actions';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
-import { GroupProductsComponents } from '@/features/collections/components/group-products-component';
+import { CollectionProducts } from '@/features/collections/components/collection-products';
 
 async function CollectionPage({
     params
@@ -16,7 +16,7 @@ async function CollectionPage({
     params: Promise<{ collectionId: string, storeId: string }>;
 }) {
     const { collectionId, storeId } = await params;
-    
+
     const collectionData = await getCollectionById({ collectionId, withGroups: true });
 
     if (!collectionData) {
@@ -80,7 +80,7 @@ async function CollectionPage({
                     )}
                 </CardContent>
             </Card>
-            
+
             {collectionData.type === 'grouped' ? (
                 <CollectionGroupManager
                     collectionId={collectionId}
@@ -89,7 +89,7 @@ async function CollectionPage({
                 />
             ) : (
                 <Suspense fallback={<ProductSekeleton />}>
-                    <GroupProductsComponents 
+                    <CollectionProducts
                         collectionId={collectionId}
                         virtualStoreId={storeId}
                         // storeId={storeId}
@@ -97,6 +97,7 @@ async function CollectionPage({
                         // initialProducts={products}
                         // initialTotalPages={totalPages}
                         // initialTotal={totalProducts}
+                        collectionName={collectionData.collectionName}
                         alreadySelectedProducts={collectionData.productsIds || []}
                     />
                 </Suspense>

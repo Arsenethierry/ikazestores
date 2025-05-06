@@ -3,6 +3,7 @@ import {
     Bot,
     Settings2,
     SquareTerminal,
+    ShoppingCart
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -63,12 +64,12 @@ export const getSidebarLinks = (storeId: string | null) => ({
         {
             title: "Order Management",
             url: "#",
-            icon: SquareTerminal,
+            icon: ShoppingCart,
             isActive: true,
             items: [
                 {
                     title: "All orders",
-                    url: "/dashboard",
+                    url: `/admin/stores/${storeId}/orders`,
                 },
             ],
         },
