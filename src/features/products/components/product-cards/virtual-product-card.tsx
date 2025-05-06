@@ -13,6 +13,7 @@ import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
+import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 
 export const VirtualProductCard = async ({
     product,
@@ -45,7 +46,7 @@ export const VirtualProductCard = async ({
         <Card className="group w-full h-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
-                    <Link href={`/products/${slugify(product.title)}/${product.$id}`}>
+                    <Link href={`${getStoreSubdomainUrl({ subdomain: product.virtualStore.subDomain })}/products/${slugify(product.title)}/${product.$id}`} target='_blank'>
                         <CarouselContent>
                             {product?.generalImageUrls?.map((imageUrl: string, index: number) => (
                                 <CarouselItem key={index} className='relative h-60 w-full'>

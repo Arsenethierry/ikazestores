@@ -20,7 +20,7 @@ async function page({
     return (
         <div className='flex gap-4 main-container py-5'>
             <aside className='w-64 shrink-0'>
-                Filter: <FilterSidebar categories={categories.documents} />
+                <FilterSidebar categories={categories.documents} />
             </aside>
             <section>
                 <SortControl />

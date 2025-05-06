@@ -4,7 +4,7 @@ import { VirtualProductCard } from '@/features/products/components/product-cards
 import { VirtualProductsSearchParams } from '@/lib/types';
 import { NoItemsCard } from '@/components/no-items-card';
 
-async function ProductPage({ params }: { params: VirtualProductsSearchParams }) {
+async function ProductFilterPage({ params }: { params: VirtualProductsSearchParams }) {
     const products = await getPaginatedVirtualProducts({ searchParams: params });
 
     if (products.total > 0) {
@@ -22,4 +22,4 @@ async function ProductPage({ params }: { params: VirtualProductsSearchParams }) 
     }
 }
 
-export default ProductPage;
+export default ProductFilterPage;
