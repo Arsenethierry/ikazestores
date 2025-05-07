@@ -6,7 +6,7 @@ import { useDebounce } from "../ui/multiselect";
 import { useQuery } from "@tanstack/react-query";
 import { searchVirtualProducts } from "@/features/products/actions/virtual-products-actions";
 import { VirtualProductTypes } from "@/lib/types";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
 interface SearchResults {
   documents: VirtualProductTypes[];
@@ -45,6 +45,8 @@ export const ProductSearchField = (): JSX.Element => {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const searchRef = useRef<HTMLDivElement | null>(null);
 
+  const { currentStoreId } = useParams()
+
   const router = useRouter();
 
   const debounceSearchValue = useDebounce(searchValue, 300);
@@ -69,11 +71,17 @@ export const ProductSearchField = (): JSX.Element => {
     };
   }, [searchRef]);
 
+  const storeId = Array.isArray(currentStoreId) ? currentStoreId[0] : currentStoreId;
+  
   const { data: results = { documents: [], total: 0 }, isLoading } = useQuery<SearchResults>({
-    queryKey: ['search', debounceSearchValue],
+    queryKey: ['search', debounceSearchValue, storeId],
     queryFn: () =>
       debounceSearchValue.trim().length >= 2
-        ? searchVirtualProducts({ query: debounceSearchValue, limit: 10 })
+        ? searchVirtualProducts({ 
+            query: debounceSearchValue, 
+            limit: 10, 
+            ...(storeId !== undefined && { currentStoreId: storeId })
+          })
         : Promise.resolve({ documents: [], total: 0 }),
     enabled: debounceSearchValue.trim().length >= 2,
     staleTime: 1000 * 60 * 5,
@@ -152,7 +160,7 @@ export const ProductSearchField = (): JSX.Element => {
                           setRecentSearches(updatedRecent);
                           localStorage.setItem('recentSearches', JSON.stringify(updatedRecent));
                           setSearchValue('')
-                          router.push(`/products/${result.$id}/${slugify(result.title)}`);
+                          router.push(`/products/${slugify(result.title)}/${result.$id}`);
                         }}
                       >
                         <div className="flex justify-between items-center w-full">
