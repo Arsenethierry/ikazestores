@@ -2,8 +2,8 @@ import { getAllCollectionsByStoreId } from '@/features/collections/actions/colle
 import Link from 'next/link';
 import React from 'react';
 
-export const ProductsCollectionsList = async ({ currentStore = undefined }: { currentStore: string | undefined }) => {
-    const collections = await getAllCollectionsByStoreId({ storeId: currentStore, limit: 5, featured: true });
+export const ProductsCollectionsList = async ({ currentStoreId = undefined }: { currentStoreId: string | undefined }) => {
+    const collections = await getAllCollectionsByStoreId({ storeId: currentStoreId, limit: 5, featured: true });
 
     if (collections.total === 0 || !collections) return;
     return (

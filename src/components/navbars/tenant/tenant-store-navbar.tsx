@@ -13,8 +13,9 @@ import { MobileMenuContent } from "../mobile-menu-contents";
 import { CurrencySelector } from "@/features/products/currency/currency-selector";
 import { ProductsCollectionsList } from "./products-collections-list";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CurrentStoreLogo } from "./store-logo";
 
-export const TenantStoreNavbar = async ({ currentStore }: { currentStore: string }) => {
+export const TenantStoreNavbar = async ({ currentStoreId }: { currentStoreId: string }) => {
   const {
     isSystemAdmin,
     isAuthenticated,
@@ -59,9 +60,9 @@ export const TenantStoreNavbar = async ({ currentStore }: { currentStore: string
           </Sheet>
         </div>
 
-        <Link href={'/'} className='font-bold text-2xl text-white md:ml-0'>
-          Ikaze<span className='text-yellow-400'>Stores</span>
-        </Link>
+        <Suspense fallback={<></>}>
+          <CurrentStoreLogo currentStoreId={currentStoreId} />
+        </Suspense>
 
         {/* Desktop Search - Hidden on mobile */}
         <div className='hidden md:flex gap-3 w-full max-w-xl mx-8'>
@@ -102,14 +103,12 @@ export const TenantStoreNavbar = async ({ currentStore }: { currentStore: string
         <div className='flex gap-6 items-center'>
           <AllCategories />
           <Suspense fallback={<Skeleton className="h-2 w-7" />}>
-            <ProductsCollectionsList currentStore={currentStore} />
+            <ProductsCollectionsList currentStoreId={currentStoreId} />
           </Suspense>
         </div>
         <div className='flex gap-6 items-center'>
           <NavigationMenuCategories />
-          <Link href={'/sell'} className='hover:text-white/80'>Start selling</Link>
-          <Link href={'/products'} className='hover:text-white/80'>Shop products</Link>
-          {/* <Link href={'/explore-stores'} className='hover:text-white/80'>Explore</Link> */}
+          <Link href={'/products'} className='hover:text-white/80 hover:underline'>Shop products</Link>
         </div>
       </div>
     </>

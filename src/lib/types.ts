@@ -215,3 +215,9 @@ export interface CollectionGroupsTypes extends Models.Document {
     collectionId: number;
     productsIds?: string[]
 }
+
+export interface SavedItemType extends Models.Document {
+    userId: string;
+    productId: string;
+    productData?: VirtualProductTypes
+}

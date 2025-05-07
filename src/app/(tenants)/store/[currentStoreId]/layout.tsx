@@ -12,7 +12,7 @@ export default async function StoreRootLayout({
     
     return (
         <div className="min-h-screen">
-            <TenantStoreNavbar currentStore={currentStoreId} />
+            <TenantStoreNavbar currentStoreId={currentStoreId} />
             {children}
         </div>
     );

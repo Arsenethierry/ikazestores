@@ -102,14 +102,15 @@ export default async function MarketplaceNavbar() {
                 <div className='flex gap-6 items-center'>
                     <AllCategories />
                     <Suspense fallback={<Skeleton className="h-2 w-7" />}>
-                        <ProductsCollectionsList currentStore={undefined} />
+                        <ProductsCollectionsList currentStoreId={undefined} />
                     </Suspense>
                 </div>
                 <div className='flex gap-6 items-center'>
                     <NavigationMenuCategories />
-                    <Link href={'/sell'} className='hover:text-white/80'>Start selling</Link>
-                    <Link href={'/products'} className='hover:text-white/80'>Shop products</Link>
-                    <Link href={'/explore-stores'} className='hover:text-white/80'>Explore</Link>
+                    <Link href={'/saved-items'} className='hover:text-white/80 hover:underline'>Saved items</Link>
+                    <Link href={'/sell'} className='hover:text-white/80 hover:underline'>Start selling</Link>
+                    <Link href={'/products'} className='hover:text-white/80 hover:underline'>Shop products</Link>
+                    <Link href={'/explore-stores'} className='hover:text-white/80 hover:underline'>Explore</Link>
                 </div>
             </div>
         </>

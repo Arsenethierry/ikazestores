@@ -1,11 +1,9 @@
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VirtualProductTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-label-permission';
 import { cn, slugify } from '@/lib/utils';
-import { Heart, StarIcon } from 'lucide-react';
+import { StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -14,6 +12,7 @@ import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
+import { SaveItemButton } from '../save-item-button';
 
 export const VirtualProductCard = async ({
     product,
@@ -78,22 +77,7 @@ export const VirtualProductCard = async ({
                         <AddToCartButton
                             item={product}
                         />
-                        <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="rounded-full bg-white/80 transition-all duration-300 ease-in-out hover:bg-white hover:scale-110 active:scale-95"
-                                    >
-                                        <Heart className="h-4 w-4 text-gray-500 transition-colors duration-300 ease-in-out group-hover:text-gray-800" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="dark px-2 py-1 text-xs" showArrow={true}>
-                                    Save item
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <SaveItemButton productId={product.$id} />
                     </div>
                     {(isMyProduct && storeId) && <VirtualProductMenuActions storeId={storeId} product={product} />}
                 </div>

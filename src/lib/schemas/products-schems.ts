@@ -210,4 +210,12 @@ export const CreateCollectionGroup = z.object({
     groupName: z.string().min(1, "Group name is required"),
     groupImageUrl: z.string().optional(),
     displayOrder: z.number().optional()
-})
+});
+
+export const SaveItemSchema = z.object({
+    productId: z.string().min(1, "Product ID is required"),
+});
+
+export const RemoveSavedItemSchema = z.object({
+    savedItemId: z.string().min(1, "Saved item ID is required"),
+});
