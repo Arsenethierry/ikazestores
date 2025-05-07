@@ -119,6 +119,9 @@ importers:
       isomorphic-dompurify:
         specifier: ^2.24.0
         version: 2.24.0
+      jsdom:
+        specifier: ^26.1.0
+        version: 26.1.0
       libphonenumber-js:
         specifier: ^1.12.6
         version: 1.12.6
