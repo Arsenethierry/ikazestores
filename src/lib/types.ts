@@ -187,11 +187,12 @@ export enum SortBy {
 export type VirtualProductsSearchParams = {
     category?: string,
     subcategory?: string,
-    sortBy?: SortBy,
+    sortBy?: SortBy | undefined | string,
     lastId?: string;
     firstId?: string;
     minPrice?: string;
     maxPrice?: string;
+    query?: string;
 }
 
 export interface CollectionTypes extends Models.Document {

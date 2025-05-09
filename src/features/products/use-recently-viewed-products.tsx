@@ -105,7 +105,7 @@ export const RecentlyViewedProducts = () => {
                     Clear all
                 </button>
             </div>
-            <ul className="grid gap-2">
+            <ul className="grid gap-2 max-h-[300px] overflow-y-auto">
                 {recentProducts.map(product => (
                     <li
                         key={product.$id}

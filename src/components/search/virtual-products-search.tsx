@@ -78,7 +78,7 @@ export const ProductSearchField = (): JSX.Element => {
     queryFn: () =>
       debounceSearchValue.trim().length >= 2
         ? searchVirtualProducts({ 
-            query: debounceSearchValue, 
+            query: debounceSearchValue,
             limit: 10, 
             ...(storeId !== undefined && { currentStoreId: storeId })
           })

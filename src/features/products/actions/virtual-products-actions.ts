@@ -242,6 +242,10 @@ export const getPaginatedVirtualProducts = async ({ searchParams, storeId }: { s
             queries.push(Query.equal("virtualStoreId", storeId))
         }
 
+        if(searchParams.query && searchParams.query !== '') {
+            queries.push(Query.search('title', searchParams.query));
+        }
+
         if (searchParams.category && searchParams.category !== '') {
             queries.push(Query.search('categoryNames', searchParams.category));
         }

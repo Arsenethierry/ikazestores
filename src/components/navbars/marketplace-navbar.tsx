@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { Loader, Menu } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AllCategories } from './all-categories';
-import { NavigationMenuCategories } from './navigation-menu';
 import { getAuthState } from '@/lib/user-label-permission';
 import { Suspense } from 'react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
@@ -13,6 +12,8 @@ import { ProductSearchField } from '../search/virtual-products-search';
 import { CurrencySelector } from '@/features/products/currency/currency-selector';
 import { Skeleton } from '../ui/skeleton';
 import { ProductsCollectionsList } from './tenant/products-collections-list';
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger, NavigationMenuViewport } from '../ui/navigation-menu';
+import { RecentlyViewedProducts } from '@/features/products/use-recently-viewed-products';
 
 export default async function MarketplaceNavbar() {
     const {
@@ -104,9 +105,21 @@ export default async function MarketplaceNavbar() {
                     <Suspense fallback={<Skeleton className="h-2 w-7" />}>
                         <ProductsCollectionsList currentStoreId={undefined} />
                     </Suspense>
+                    <NavigationMenu>
+                        <NavigationMenuList>
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className="bg-transparent">Recently viewed</NavigationMenuTrigger>
+                                <NavigationMenuContent>
+                                    <div className="md:w-[400px] lg:w-[500px] max-h-[400px] overflow-y-auto">
+                                        <RecentlyViewedProducts />
+                                    </div>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
+                        </NavigationMenuList>
+                        <NavigationMenuViewport className="origin-top-right" />
+                    </NavigationMenu>
                 </div>
                 <div className='flex gap-6 items-center'>
-                    <NavigationMenuCategories />
                     <Link href={'/saved-items'} className='hover:text-white/80 hover:underline'>Saved items</Link>
                     <Link href={'/sell'} className='hover:text-white/80 hover:underline'>Start selling</Link>
                     <Link href={'/products'} className='hover:text-white/80 hover:underline'>Shop products</Link>

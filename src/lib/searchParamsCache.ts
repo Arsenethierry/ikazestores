@@ -8,5 +8,6 @@ export const searchParamsCache = createSearchParamsCache({
     subcategory: parseAsString.withDefault(''),
     sort: parseAsString.withDefault(''),
     lastId: parseAsString.withDefault(''),
-    firstId: parseAsString.withDefault('')
+    firstId: parseAsString.withDefault(''),
+    query: parseAsString.withDefault('')
 });

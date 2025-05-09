@@ -1,68 +1,132 @@
-import { PRICE_FILTER_VALUE } from "@/lib/constants";
+"use client";
+
 import { SortBy } from "@/lib/types";
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useTransition } from "react";
 
 export function useProductParams() {
+    const pathname = usePathname();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
 
-    const [{
-        category,
-        sortBy,
-        lastId,
-        firstId,
-        minPrice,
-        maxPrice
-    }, setParams] = useQueryStates({
-        category: parseAsString.withDefault(''),
-        sortBy: parseAsString.withDefault("" as SortBy),
-        firstId: parseAsString.withDefault(''),
-        lastId: parseAsString.withDefault(''),
-        minPrice: parseAsInteger.withDefault(PRICE_FILTER_VALUE.min),
-        maxPrice: parseAsInteger.withDefault(PRICE_FILTER_VALUE.max)
-    }, {
-        history: 'push',
-        shallow: false,
-        startTransition
-    });
+    const query = searchParams.get("query") || "";
+    const category = searchParams.get("category") || "";
+    const sortBy = (searchParams.get("sortBy") as SortBy) || SortBy.newestFirst;
+    const minPrice = searchParams.get("minPrice") || undefined;
+    const maxPrice = searchParams.get("maxPrice") || undefined;
+    const lastId = searchParams.get("lastId") || undefined;
+    const firstId = searchParams.get("firstId") || undefined;
 
-    const setCategory = (newCategory: string) => {
-        setParams({ category: newCategory, firstId: '', lastId: '' })
-    }
+    const createQueryString = useCallback(
+        (name: string, value: string | number | undefined) => {
+            const params = new URLSearchParams(searchParams.toString());
 
-    const setSortBy = (newSort: SortBy) => {
-        setParams({ sortBy: newSort, firstId: '', lastId: '' })
-    }
+            if (value === undefined || value === null || value === "") {
+                params.delete(name);
+            } else {
+                params.set(name, value.toString());
+            }
 
-    const setLastId = (lastId: string) => {
-        setParams({ firstId: '', lastId: lastId })
-    }
+            if (name !== "lastId" && name !== "firstId") {
+                params.delete("lastId");
+                params.delete("firstId");
+            }
 
-    const setFirstId = (firstId: string) => {
-        setParams({ firstId: firstId, lastId: '' })
-    }
+            return params.toString();
+        },
+        [searchParams]
+    );
 
-    const setMinPrice = (price: number) => {
-        setParams({ minPrice: price, firstId: '', lastId: '' });
-    };
+    const setQuery = useCallback(
+        (value: string) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("query", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
 
-    const setMaxPrice = (price: number) => {
-        setParams({ maxPrice: price, firstId: '', lastId: '' });
-    };
+    const setCategory = useCallback(
+        (value: string) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("category", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
+
+    const setSortBy = useCallback(
+        (value: SortBy) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("sortBy", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
+
+    const setMinPrice = useCallback(
+        (value: number) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("minPrice", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
+
+    const setMaxPrice = useCallback(
+        (value: number) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("maxPrice", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
+
+    const setLastId = useCallback(
+        (value: string) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("lastId", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
+
+    const setFirstId = useCallback(
+        (value: string) => {
+            startTransition(() => {
+                router.push(`${pathname}?${createQueryString("firstId", value)}`);
+            });
+        },
+        [pathname, router, createQueryString]
+    );
+
+    const clearFilters = useCallback(() => {
+        startTransition(() => {
+            const newParams = new URLSearchParams();
+            if (query) {
+                newParams.set("query", query);
+            }
+            router.push(`${pathname}?${newParams.toString()}`);
+        });
+    }, [pathname, router, query]);
 
     return {
+        query,
         category,
-        setCategory,
         sortBy,
-        setSortBy,
+        minPrice: minPrice ? parseInt(minPrice) : undefined,
+        maxPrice: maxPrice ? parseInt(maxPrice) : undefined,
         lastId,
-        setLastId,
         firstId,
-        setFirstId,
-        minPrice,
+        isPending,
+        setQuery,
+        setCategory,
+        setSortBy,
         setMinPrice,
-        maxPrice,
         setMaxPrice,
-        isPending
-    }
+        setLastId,
+        setFirstId,
+        clearFilters
+    };
 }
