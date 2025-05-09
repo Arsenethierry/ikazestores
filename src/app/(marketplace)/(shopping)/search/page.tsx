@@ -6,19 +6,20 @@ import { SearchResultsHeader } from '@/features/products/components/search/searc
 import { SortControl } from '@/features/products/components/sort-controls';
 import React, { Suspense } from 'react';
 
-export default async function SearchPage({
-    searchParams
-}: {
-    searchParams: {
-        query?: string;
-        category?: string;
-        minPrice?: string;
-        maxPrice?: string;
-        sortBy?: string;
-        lastId?: string;
-        firstId?: string;
+export default async function SearchPage(
+    props: {
+        searchParams: Promise<{
+            query?: string;
+            category?: string;
+            minPrice?: string;
+            maxPrice?: string;
+            sortBy?: string;
+            lastId?: string;
+            firstId?: string;
+        }>
     }
-}) {
+) {
+    const searchParams = await props.searchParams;
     const categories = await getGeneralCategories();
     const searchQuery = searchParams.query || '';
 

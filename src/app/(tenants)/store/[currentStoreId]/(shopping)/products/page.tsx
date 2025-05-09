@@ -6,17 +6,17 @@ import { ProductListSkeleton } from '@/features/products/components/products-lis
 import { FilterSidebar } from '@/features/products/components/filter-side-bar';
 import { SortControl } from '@/features/products/components/sort-controls';
 
-async function page({
-    params,
-    searchParams
-}: {
-    params: Promise<{ currentStoreId: string }>,
-    searchParams: Promise<SearchParams>
-}) {
-    const { currentStoreId } = await params;
+async function page(
+    props: {
+        params: Promise<{ currentStoreId: string }>,
+        searchParams: Promise<SearchParams>
+    }
+) {
+    const searchParams = await props.searchParams;
+    const { currentStoreId } = await props.params;
     const queries = await searchParams
     const categories = await getAllCategoriesByStoreId({ storeId: currentStoreId });
-    
+
     return (
         <div className='flex gap-4 main-container py-5'>
             <aside className='w-64 shrink-0'>
