@@ -20,7 +20,7 @@ const action = createSafeActionClient({
 export const createNewProduct = action
     .use(authMiddleware)
     .schema(ProductSchema)
-    .action(async ({ parsedInput: { images, categoryId, colorImages, storeId, ...values }, ctx }) => {
+    .action(async ({ parsedInput: { images, categoryId, colorImages = [], storeId, ...values }, ctx }) => {
         const rollback = new AppwriteRollback(ctx.storage, ctx.databases)
         try {
             const generalImageDocuments = await Promise.all(
@@ -82,6 +82,7 @@ export const createNewProduct = action
                     ...values,
                     createdBy: ctx.user.$id,
                     store: storeId,
+                    storeId,
                     colorImages: colorImagesDocuments.map(document => document.$id),
                     category: categoryId,
                     // imageIds: productImagesUploaded.map(image => image.id),

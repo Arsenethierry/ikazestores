@@ -113,6 +113,7 @@ export interface OriginalProductTypes extends Models.Document {
     price: number,
     createdBy: string,
     store: PhysicalStoreTypes,
+    storeId: string,
     category: CategoryTypes,
     seeded: boolean,
     isPublished: boolean,

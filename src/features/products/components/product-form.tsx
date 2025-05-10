@@ -133,18 +133,18 @@ export default function ProductForm({
                             name="price"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Product Price</FormLabel>
+                                    <FormLabel>Product Base Price</FormLabel>
                                     <FormControl>
                                         <div className="flex items-center gap-2">
                                             <DollarSign
                                                 size={36}
-                                                className="p-2 bg-muted  rounded-md"
+                                                className="p-2 bg-muted rounded-md"
                                             />
                                             <Input
                                                 {...field}
                                                 type="number"
-                                                placeholder="Your price in USD"
-                                                step="0.1"
+                                                placeholder="Your base price in USD"
+                                                step="0.01"
                                                 min={0}
                                             />
                                         </div>
@@ -255,24 +255,33 @@ export default function ProductForm({
                             )}
                         />
 
-                       <ColorSelectorFormField form={form} />
+                        <ColorSelectorFormField form={form} />
 
-                        {form.watch("colorImages")?.map((colorImage, index) => {
+                        {(form.watch("colorImages") ?? []).map((colorImage, index) => {
                             const color = colorsData.find(c => c.hex === colorImage.colorHex);
 
                             return (
                                 <div key={colorImage.colorHex} className="mb-6">
                                     <FormItem>
-                                        <FormLabel>{color?.name} Images</FormLabel>
+                                        <FormLabel className="flex items-center">
+                                            <span>{color?.name || "Custom"} Images</span>
+                                            {colorImage.additionalPrice > 0 && (
+                                                <span className="ml-2 text-sm font-normal text-green-600">
+                                                    (+${colorImage.additionalPrice.toFixed(2)})
+                                                </span>
+                                            )}
+                                        </FormLabel>
                                         <FormControl>
                                             <MultiImageUploader
                                                 files={colorImage.images}
                                                 onChange={(newFiles) => {
+                                                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                                    // @ts-ignore
                                                     const updatedColorImages = [...form.getValues("colorImages")];
                                                     updatedColorImages[index].images = newFiles;
                                                     form.setValue("colorImages", updatedColorImages);
                                                 }}
-                                                caption={`Upload images for ${color?.name} (Ratio 1:1, 500x500px max 5)`}
+                                                caption={`Upload images for ${color?.name || "Custom"} (Ratio 1:1, 500x500px max 5)`}
                                                 maxFiles={5}
                                             />
                                         </FormControl>

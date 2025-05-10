@@ -22,11 +22,14 @@ export const ProductSchema = z.object({
     storeOriginCountry: z.string(),
     categoryId: z.string().min(1, { message: "Category is required" }),
     subcategoryIds: z.array(z.string()).optional(),
-    colorImages: z.array(z.object({
-        colorHex: z.string(),
-        images: z.array(z.any()),
-        colorName: z.string()
-    }))
+    colorImages: z.array(
+        z.object({
+            colorHex: z.string(),
+            colorName: z.string().optional(),
+            images: z.array(z.any()),
+            additionalPrice: z.coerce.number().min(0, "Additional price must be a positive number").default(0),
+        })
+    ).optional(),
 })
 
 export const VirtualProductSchema = z.object({

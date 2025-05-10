@@ -50,10 +50,6 @@ export const getSidebarLinks = (storeId: string | null) => ({
             icon: Bot,
             items: [
                 {
-                    title: "Products",
-                    url: `/admin/products`,
-                },
-                {
                     title: "Collections",
                     url: `/admin/collections`,
                 },

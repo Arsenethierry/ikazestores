@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Check } from "lucide-react";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Check, DollarSign } from "lucide-react";
+import { useState } from "react";
 import colorsData from '@/data/products-colors.json';
+import { Input } from "@/components/ui/input";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 interface ColorOption {
     id: number;
@@ -16,9 +18,14 @@ interface ColorSelectorProps {
     selectedColors: string[];
     onChange: (colorHexes: string[]) => void;
     error?: string;
-}
+};
 
-export function ColorSelector({ colors, selectedColors, onChange, error }: ColorSelectorProps) {
+export function ColorSelector({
+    colors,
+    onChange,
+    selectedColors,
+    error
+}: ColorSelectorProps) {
     const toggleColor = (colorHex: string) => {
         if (selectedColors.includes(colorHex)) {
             onChange(selectedColors.filter(hex => hex !== colorHex));
@@ -41,8 +48,8 @@ export function ColorSelector({ colors, selectedColors, onChange, error }: Color
             </div>
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
-    );
-}
+    )
+};
 
 interface ColorSwatchProps {
     color: ColorOption;
@@ -85,18 +92,18 @@ function ColorSwatch({ color, isSelected, onSelect }: ColorSwatchProps) {
     );
 }
 
+
 export function ColorSelectorFormField({ form, name = "colorImages" }: any) {
     const selectedColorHexes = form.watch(name)?.map((item: any) => item.colorHex) || [];
+    const [showPriceInputs, setShowPriceInputs] = useState(false);
 
     const handleColorChange = (newSelectedHexes: string[]) => {
         const currentColorImages = form.getValues(name) || [];
 
-        // Remove colors that were deselected
         const filteredColors = currentColorImages.filter((item: any) =>
             newSelectedHexes.includes(item.colorHex)
         );
 
-        // Add new selected colors
         const colorsToAdd = newSelectedHexes.filter(hex =>
             !currentColorImages.some((item: any) => item.colorHex === hex)
         ).map(hex => {
@@ -104,31 +111,95 @@ export function ColorSelectorFormField({ form, name = "colorImages" }: any) {
             return {
                 colorHex: hex,
                 images: [],
-                colorName: colorData?.name || ""
+                colorName: colorData?.name || "",
+                additionalPrice: 0
             };
         });
 
         form.setValue(name, [...filteredColors, ...colorsToAdd]);
+
+        if ([...filteredColors, ...colorsToAdd].length > 0) {
+            setShowPriceInputs(true);
+        }
+    };
+
+    const handleAdditionalPriceChange = (colorHex: string, value: string) => {
+        const currentColorImages = form.getValues(name) || [];
+        const updatedColorImages = currentColorImages.map((colorImg: any) =>
+            colorImg.colorHex === colorHex
+                ? { ...colorImg, additionalPrice: parseFloat(value) || 0 }
+                : colorImg
+        );
+
+        form.setValue(name, updatedColorImages, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+        });
     };
 
     return (
-        <FormField
-            control={form.control}
-            name={name}
-            render={() => (
-                <FormItem>
-                    <FormLabel>Product Colors</FormLabel>
-                    <FormControl>
-                        <ColorSelector
-                            colors={colorsData}
-                            selectedColors={selectedColorHexes}
-                            onChange={handleColorChange}
-                            error={form.formState.errors[name]?.message as string}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
+        <div className="space-y-5">
+            <FormField
+                control={form.control}
+                name={name}
+                render={() => (
+                    <FormItem>
+                        <FormLabel>Product Colors</FormLabel>
+                        <FormControl>
+                            <ColorSelector
+                                colors={colorsData}
+                                selectedColors={selectedColorHexes}
+                                onChange={handleColorChange}
+                                error={form.formState.errors[name]?.message as string}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            {showPriceInputs && form.watch(name)?.length > 0 && (
+                <div className="space-y-4 border rounded-md p-4 bg-gray-50">
+                    <h3 className="font-medium text-sm">Color Variant Pricing</h3>
+                    <p className="text-xs text-gray-500">Set additional prices for each color variant</p>
+
+                    <div className="grid gap-3">
+                        {form.watch(name)?.map((colorImage: any) => {
+                            const color = colorsData.find(c => c.hex === colorImage.colorHex);
+
+                            return (
+                                <div key={colorImage.colorHex} className="flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                        <div
+                                            className="w-8 h-8 rounded-full"
+                                            style={{ backgroundColor: colorImage.colorHex }}
+                                        />
+                                    </div>
+                                    <div className="flex-grow">
+                                        <span className="text-sm font-medium">{color?.name || "Custom"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-gray-500">Additional Price:</span>
+                                        <div className="flex items-center">
+                                            <DollarSign className="h-4 w-4 text-gray-500 mr-0.5" />
+                                            <Input
+                                                type="number"
+                                                className="w-24 h-8 text-sm"
+                                                value={colorImage.additionalPrice || 0}
+                                                onChange={(e) => handleAdditionalPriceChange(colorImage.colorHex, e.target.value)}
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             )}
-        />
+        </div>
     );
-}
+};
