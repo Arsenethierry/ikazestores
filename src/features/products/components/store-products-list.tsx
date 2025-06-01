@@ -32,7 +32,7 @@ export const StoreProductsList = async ({ storeId }: { storeId: string }) => {
     //   ))}
     // </div>
 
-    <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+    <div className="flex flex-wrap gap-5 mt-5 justify-center md:justify-start">
       {storeProducts && storeProducts.documents.map((product) => (
         <Suspense key={product.$id} fallback={<ProductSekeleton />}>
           <VirtualProductCard
