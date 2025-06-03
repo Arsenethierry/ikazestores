@@ -156,3 +156,12 @@ export const generateColorFromName = (name: string) => {
     secondary: `hsl(${secondaryHue}, ${saturation}%, ${lightness}%)`
   };
 }
+
+export function formatPrice(price: number, currency: string = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(price);
+}

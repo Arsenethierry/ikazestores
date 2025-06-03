@@ -1,0 +1,66 @@
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getAllProductTypes } from "@/features/products/actions/variants management/product-types-actions";
+import ProductTypesClient from "./product-types-client";
+import { AccessDeniedCard } from "@/components/access-denied-card";
+import { getAuthState } from "@/lib/user-label-permission";
+
+interface ProductTypesPageProps {
+    params: {
+        storeId: string;
+    };
+}
+
+export default async function ProductTypesPage({ params }: ProductTypesPageProps) {
+    return (
+        <div className="container mx-auto py-6">
+            <Suspense fallback={<ProductTypesPageSkeleton />}>
+                <ProductTypesContent storeId={params.storeId} />
+            </Suspense>
+        </div>
+    );
+}
+
+async function ProductTypesContent({ storeId }: { storeId: string }) {
+    const productTypesResponse = await getAllProductTypes(storeId);
+    const productTypes = productTypesResponse?.documents || [];
+
+    const { user } = await getAuthState();
+
+    if (!user) {
+        return <AccessDeniedCard />
+    }
+
+    return (
+        <ProductTypesClient
+            storeId={storeId}
+            initialProductTypes={productTypes}
+            currentUser={user}
+        />
+    );
+}
+
+function ProductTypesPageSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-10 w-32" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="p-6 border rounded-lg space-y-4">
+                        <Skeleton className="h-6 w-32" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <div className="flex space-x-2">
+                            <Skeleton className="h-8 w-16" />
+                            <Skeleton className="h-8 w-16" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

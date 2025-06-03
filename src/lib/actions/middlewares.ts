@@ -38,7 +38,7 @@ export const physicalStoreOwnerMiddleware = createMiddleware()
 export const virtualStoreOwnerMiddleware = createMiddleware()
     .define(async ({ ctx, next, clientInput }) => {
         const { productId } = clientInput as { productId: string }
-        console.log("clientInput",productId)
+        console.log("clientInput", productId)
 
-        return next({ctx})
-    })
+        return next({ ctx })
+    });

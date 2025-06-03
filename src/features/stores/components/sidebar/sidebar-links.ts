@@ -1,9 +1,11 @@
 import {
     BookOpen,
-    Bot,
     Settings2,
     SquareTerminal,
-    ShoppingCart
+    ShoppingCart,
+    Package,
+    Tag,
+    Layers
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -31,11 +33,11 @@ export const getSidebarLinks = (storeId: string | null) => ({
         {
             title: "Categories",
             url: "#",
-            icon: SquareTerminal,
+            icon: Layers,
             isActive: true,
             items: [
                 {
-                    title: "All categorise",
+                    title: "All categories",
                     url: "/admin/categories",
                 },
                 {
@@ -47,7 +49,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
         {
             title: "Products Management",
             url: "#",
-            icon: Bot,
+            icon: Package,
             items: [
                 {
                     title: "Collections",
@@ -55,6 +57,21 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 },
             ],
         },
+        {
+            title: "Variants Management",
+            url: "#",
+            icon: Tag,
+            items: [
+                {
+                    title: "Product Types",
+                    url: `/admin/product-types`,
+                },
+                {
+                    title: "Templates & Groups",
+                    url: `/admin/variants/templates`,
+                },
+            ],
+        }
     ],
     virtualStoreAdmin: [
         {
@@ -72,7 +89,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
         {
             title: "Product Management",
             url: "#",
-            icon: Bot,
+            icon: Package,
             items: [
                 {
                     title: "Products",
@@ -85,6 +102,21 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 {
                     title: "Collections",
                     url: `/admin/stores/${storeId}/collections`,
+                },
+            ],
+        },
+        {
+            title: "Variants",
+            url: "#",
+            icon: Tag,
+            items: [
+                {
+                    title: "Product Types",
+                    url: `/admin/stores/${storeId}/product-types`,
+                },
+                {
+                    title: "Templates & Groups",
+                    url: `/admin/stores/${storeId}/variants`,
                 },
             ],
         },
@@ -139,19 +171,19 @@ export const getSidebarLinks = (storeId: string | null) => ({
         {
             title: "Order Management",
             url: "#",
-            icon: SquareTerminal,
+            icon: ShoppingCart,
             isActive: true,
             items: [
                 {
                     title: "All orders",
-                    url: "/dashboard",
+                    url: `/admin/stores/${storeId}/orders`,
                 },
             ],
         },
         {
             title: "Product Management",
             url: "#",
-            icon: Bot,
+            icon: Package,
             items: [
                 {
                     title: "Products",
@@ -168,6 +200,29 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 {
                     title: "Collections",
                     url: `/admin/stores/${storeId}/collections`,
+                },
+            ],
+        },
+        {
+            title: "Variants",
+            url: "#",
+            icon: Tag,
+            items: [
+                {
+                    title: "Product Types",
+                    url: `/admin/stores/${storeId}/product-types`,
+                },
+                {
+                    title: "Variant Dashboard",
+                    url: `/admin/stores/${storeId}/variants`,
+                },
+                {
+                    title: "Templates",
+                    url: `/admin/stores/${storeId}/variants/templates/new`,
+                },
+                {
+                    title: "Groups",
+                    url: `/admin/stores/${storeId}/variants/groups/new`,
                 },
             ],
         },

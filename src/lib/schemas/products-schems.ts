@@ -30,6 +30,9 @@ export const ProductSchema = z.object({
             additionalPrice: z.coerce.number().min(0, "Additional price must be a positive number").default(0),
         })
     ).optional(),
+    productTypeId: z.string().min(1, "Product type is required"),
+    selectedVariants: z.record(z.any()).optional(),
+    generateVariantCombinations: z.boolean().default(true),
 })
 
 export const VirtualProductSchema = z.object({

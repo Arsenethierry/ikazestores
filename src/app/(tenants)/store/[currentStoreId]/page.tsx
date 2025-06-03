@@ -8,10 +8,14 @@ import { TagsNav } from './tags-nav';
 
 async function page({
     params,
+    // searchParams
 }: {
-    params: Promise<{ currentStoreId: string }>
+    params: Promise<{ currentStoreId: string }>;
+    // searchParams: Promise<SearchParams>;
 }) {
     const { currentStoreId } = await params;
+    // const filters = await searchParams;
+
     const store = await getVirtualStoreById(currentStoreId);
 
     if (!store) return <h3 className='text-3xl'>store with id: {currentStoreId} is not found.</h3>;

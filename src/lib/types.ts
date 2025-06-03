@@ -223,3 +223,50 @@ export interface SavedItemType extends Models.Document {
     productId: string;
     productData?: VirtualProductTypes
 }
+
+export interface ProductType extends Models.Document {
+    name: string;
+    description?: string;
+    storeId?: string;
+    createdBy: string;
+};
+
+export interface VariantOptions extends Models.Document {
+    variantTemplateId: string;
+    variant?: string;
+    value: string;
+    label: string;
+    additionalPrice: number;
+    imageUrl?: string;
+};
+
+export interface VariantTemplate extends Models.Document {
+    name: string;
+    description?: string;
+    type: 'select' | 'boolean' | 'text' | 'number' | 'multiselect' | 'color' | 'range';
+    createdBy: string;
+    isRequired: boolean;
+    defaultValue?: string;
+    variantOptions: VariantOptions[]
+};
+
+export interface VariantGroup extends Models.Document {
+    name: string;
+    description?: string;
+    productType?: 'select' | 'boolean' | 'text' | 'number' | 'multiselect';
+    createdBy: string;
+    storeId?: string;
+    variants?: VariantTemplate[]
+};
+
+export interface VariantsCombination extends Models.Document {
+    productId: string;
+    sku?: string;
+    price: number;
+    compareAtPrice: number;
+    variants?: VariantTemplate[];
+    inventory: number;
+    isActive: boolean;
+    imageUrl?: string;
+    variantOptions: VariantOptions
+};

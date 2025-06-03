@@ -1,20 +1,12 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/features/stores/components/sidebar/admin-sidebar";
-// import { checkDomain } from "@/lib/domain-utils";
 import { getAuthState } from "@/lib/user-label-permission";
-// import { headers } from "next/headers";
 
 export default async function AdminLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    // const headersList = await headers();
-    // const hostname = headersList.get('x-forwarded-host');
-
-    // const { isSubdomain } = checkDomain(hostname!);
-
-
     const {
         isSystemAdmin,
         isVirtualStoreOwner,
