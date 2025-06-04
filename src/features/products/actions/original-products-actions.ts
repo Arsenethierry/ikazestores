@@ -20,7 +20,8 @@ const action = createSafeActionClient({
 export const createNewProduct = action
     .use(authMiddleware)
     .schema(ProductSchema)
-    .action(async ({ parsedInput: { images, categoryId, colorImages = [], storeId, ...values }, ctx }) => {
+    .action(async ({ parsedInput: { images, categoryId, colorImages = [], selectedVariants, storeId, ...values }, ctx }) => {
+
         const rollback = new AppwriteRollback(ctx.storage, ctx.databases)
         try {
             const generalImageDocuments = await Promise.all(
@@ -86,7 +87,8 @@ export const createNewProduct = action
                     colorImages: colorImagesDocuments.map(document => document.$id),
                     category: categoryId,
                     // imageIds: productImagesUploaded.map(image => image.id),
-                    generalProductImages: generalImageDocuments.map(image => image.imageUrl)
+                    generalProductImages: generalImageDocuments.map(image => image.imageUrl),
+                    selectedVariants: JSON.stringify(selectedVariants)
                 }
             );
             await rollback.trackDocument(ORIGINAL_PRODUCT_ID, newProduct.$id);

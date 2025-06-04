@@ -95,7 +95,8 @@ export default function ProductForm({
         );
     }, [selectedProductTypeId, variantTemplates]);
 
-    console.log("filteredVariantTemplates: ", variantTemplates)
+    console.log("variantTemplates: ", variantTemplates)
+
 
     const filteredVariantGroups = useMemo(() => {
         if (!selectedProductTypeId) return [];

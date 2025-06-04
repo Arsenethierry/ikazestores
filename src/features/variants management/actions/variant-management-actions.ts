@@ -3,9 +3,9 @@
 
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { createSessionClient } from "@/lib/appwrite";
-import { DATABASE_ID, VARIANT_COMBINATIONS_COLLECTION_ID, VARIANT_OPTIONS_COLLECTION_ID, VARIANT_TEMPLATES_COLLECTION_ID } from "@/lib/env-config";
+import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID, VARIANT_OPTIONS_COLLECTION_ID, VARIANT_TEMPLATES_COLLECTION_ID } from "@/lib/env-config";
 import { GenerateCombinationsSchema } from "@/lib/schemas/product-variants-schema";
-import { VariantOptions, VariantsCombination } from "@/lib/types";
+import { ProductType, VariantOptions, VariantsCombination, VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
@@ -218,3 +218,49 @@ export const getProductVariantCombinations = async (productId: string) => {
         };
     }
 }
+
+export const getVariantTemplateDetails = async (templateId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+
+        const variantTemplate = await databases.getDocument<VariantTemplate>(
+            DATABASE_ID,
+            VARIANT_TEMPLATES_COLLECTION_ID,
+            templateId
+        );
+
+        if (!variantTemplate) {
+            return null;
+        }
+
+        const variantOptionsResponse = await databases.listDocuments<VariantOptions>(
+            DATABASE_ID,
+            VARIANT_OPTIONS_COLLECTION_ID,
+            [Query.equal("variantTemplateId", templateId)]
+        );
+
+        let productType: ProductType | null = null;
+        if (variantTemplate.productTypeId) {
+            try {
+                productType = await databases.getDocument<ProductType>(
+                    DATABASE_ID,
+                    PRODUCT_TYPES_COLLECTION_ID,
+                    variantTemplate.productTypeId
+                );
+            } catch (error) {
+                console.error("Error fetching product type:", error);
+                // Continue without product type info
+            }
+        }
+
+        return {
+            variantTemplate,
+            variantOptions: variantOptionsResponse.documents,
+            productType
+        };
+    } catch (error) {
+        console.error("getVariantTemplateDetails error:", error);
+        return null;
+    }
+};
+

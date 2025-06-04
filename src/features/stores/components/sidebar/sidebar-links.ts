@@ -47,7 +47,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
             ],
         },
         {
-            title: "Products Management",
+            title: "Products",
             url: "#",
             icon: Package,
             items: [
@@ -58,7 +58,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
             ],
         },
         {
-            title: "Variants Management",
+            title: "Variants",
             url: "#",
             icon: Tag,
             items: [
@@ -67,8 +67,8 @@ export const getSidebarLinks = (storeId: string | null) => ({
                     url: `/admin/product-types`,
                 },
                 {
-                    title: "Templates & Groups",
-                    url: `/admin/variants/templates`,
+                    title: "Variants Templates",
+                    url: `/admin/variant-templates`,
                 },
             ],
         }
