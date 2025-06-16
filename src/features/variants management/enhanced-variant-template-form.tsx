@@ -1,106 +1,99 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { VariantTemplateSchema, VariantType } from "@/lib/schemas/product-variants-schema";
+import { CategoryTypes, ProductType, VariantTemplate } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
-import { z } from "zod";
-import { Plus, X, ImageIcon, Trash2, ArrowUp, ArrowDown, Save } from "lucide-react";
+import React from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { createVariantTemplate, updateVariantTemplate } from "../categories/actions/products-variant-templates-action";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Globe, Hash, List, Palette, Plus, Save, Sliders, Store, ToggleLeft, Trash2, Type, X } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
-
-import { VariantTemplateSchema, VariantType } from "@/lib/schemas/product-variants-schema";
-import Image from "next/image";
-import { createVariantTemplate, updateVariantTemplate } from "../products/actions/variants management/products-variant-templates-action";
-
-// Define proper type for options
-type OptionType = {
-    id: string;
-    value: string;
-    label: string;
-    additionalPrice: number;
-    image?: File;
-    imagePreview?: string;
-    sortOrder: number;
-};
+import { Separator } from "@/components/ui/separator";
+import { z } from "zod";
+import { useRouter } from "next/navigation";
 
 interface VariantTemplateFormProps {
-    storeId?: string;
+    mode: "create" | "edit";
+    initialData?: VariantTemplate;
+    storeId?: string | null;
     userId: string;
-    productTypes: { $id: string; name: string }[];
-    editMode?: boolean;
-    preSelectedProductType?: string;
-    initialData?: z.infer<typeof VariantTemplateSchema> & {
-        templateId?: string;
-        createdBy?: string; // Add createdBy to initial data
-    };
-}
+    categories: CategoryTypes[];
+    productTypes: ProductType[];
+};
 
-export default function EnhancedVariantTemplateForm({
+const VARIANT_TYPE_ICONS: Record<VariantType, React.ElementType> = {
+    [VariantType.SELECT]: List,
+    [VariantType.MULTISELECT]: List,
+    [VariantType.COLOR]: Palette,
+    [VariantType.BOOLEAN]: ToggleLeft,
+    [VariantType.TEXT]: Type,
+    [VariantType.NUMBER]: Hash,
+    [VariantType.RANGE]: Sliders,
+};
+
+export default function VariantTemplateForm({
+    mode,
+    initialData,
     storeId,
     userId,
-    productTypes,
-    editMode = false,
-    preSelectedProductType,
-    initialData,
+    categories,
+    productTypes
 }: VariantTemplateFormProps) {
     const router = useRouter();
 
-    const [options, setOptions] = useState<OptionType[]>(
-        initialData?.options?.map((opt, index) => ({
-            id: `temp-${index}`,
-            value: opt.value,
-            label: opt.label || opt.value,
-            additionalPrice: opt.additionalPrice || 0,
-            sortOrder: opt.sortOrder || index,
-            imagePreview: typeof opt.image === 'string' ? opt.image : undefined
-        })) || []
-    );
-
-    const form = useForm<z.infer<typeof VariantTemplateSchema> & { templateId?: string }>({
-        resolver: zodResolver(
-            editMode
-                ? VariantTemplateSchema.extend({ templateId: z.string() })
-                : VariantTemplateSchema
-        ),
-        defaultValues: initialData || {
-            name: "",
-            description: "",
-            type: VariantType.SELECT,
-            isRequired: false,
-            options: [],
-            defaultValue: "",
-            priceModifier: 0,
-            productType: preSelectedProductType || "",
-            createdBy: userId,
+    const form = useForm<z.infer<typeof VariantTemplateSchema>>({
+        resolver: zodResolver(VariantTemplateSchema),
+        defaultValues: {
+            name: initialData?.name || "",
+            description: initialData?.description || "",
+            type: (initialData?.type as VariantType) || VariantType.SELECT,
+            isRequired: initialData?.isRequired || false,
+            categoryIds: initialData?.categoryIds || [],
+            productTypeIds: initialData?.productTypeIds || [],
+            options: initialData?.options || [],
             storeId: storeId || null,
-        },
+            createdBy: userId,
+            isActive: initialData?.isActive !== false,
+            minSelections: initialData?.minSelections || 0,
+            maxSelections: initialData?.maxSelections || undefined,
+            allowCustomValues: initialData?.allowCustomValues || false,
+        }
     });
+
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "options",
+    });
+
+    const selectedType: VariantType = form.watch("type");
+    const selectedCategories = form.watch("categoryIds");
+
+    const filteredProductTypes = productTypes.filter(pt =>
+        (selectedCategories && selectedCategories.length === 0) || (selectedCategories && selectedCategories.includes(pt.categoryId))
+    );
 
     const { execute: executeCreate, isPending: isCreating } = useAction(createVariantTemplate, {
         onSuccess: ({ data }) => {
             if (data?.success) {
-                toast.success(data?.success);
-                router.push(`/admin/stores/${storeId}/variants`);
+                toast.success(data.success);
+                router.push(storeId ? `/admin/stores/${storeId}/variants` : '/admin/variants');
             } else if (data?.error) {
-                toast.error(data?.error);
+                toast.error(data.error);
             }
         },
-        onError: (error) => {
-            console.error("Template creation error:", error);
+        onError: () => {
             toast.error("Failed to create variant template");
         },
     });
@@ -108,553 +101,684 @@ export default function EnhancedVariantTemplateForm({
     const { execute: executeUpdate, isPending: isUpdating } = useAction(updateVariantTemplate, {
         onSuccess: ({ data }) => {
             if (data?.success) {
-                toast.success(data?.success);
-                router.push(`/admin/stores/${storeId}/variants`);
+                toast.success(data.success);
+                router.push(storeId ? `/admin/stores/${storeId}/variants` : '/admin/variants');
             } else if (data?.error) {
-                toast.error(data?.error);
+                toast.error(data.error);
             }
         },
-        onError: (error) => {
-            console.error("Template update error:", error);
+        onError: () => {
             toast.error("Failed to update variant template");
         },
     });
 
-    const isCreator = !editMode || initialData?.createdBy === userId;
+    const isPending = isCreating || isUpdating;
 
-
-    if (editMode && !isCreator) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Access Denied</CardTitle>
-                    <CardDescription>
-                        You don&apos;t have permission to edit this variant template.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Alert>
-                        <AlertDescription>
-                            Only the creator of this variant template can make changes to it.
-                        </AlertDescription>
-                    </Alert>
-                    <div className="mt-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => router.push(`/admin/stores/${storeId}/variants`)}
-                        >
-                            Go Back
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    const variantType = form.watch("type");
-    const showOptions = [
-        VariantType.SELECT,
-        VariantType.COLOR,
-        VariantType.MULTISELECT
-    ].includes(variantType as VariantType);
-
-    const handleAddOption = () => {
-        const newOption: OptionType = {
-            id: `temp-${Date.now()}`,
+    const addOption = () => {
+        append({
             value: "",
             label: "",
             additionalPrice: 0,
-            sortOrder: options.length
-        };
-        setOptions([...options, newOption]);
-    };
-
-    // Handle removing an option
-    const handleRemoveOption = (id: string) => {
-        setOptions(options.filter(opt => opt.id !== id));
-    };
-
-    // Fixed handleOptionChange with proper typing
-    const handleOptionChange = (id: string, field: keyof OptionType, value: string | number | File | undefined) => {
-        setOptions(prevOptions => prevOptions.map(opt => {
-            if (opt.id === id) {
-                if (field === 'image') {
-                    const file = value as File;
-                    return {
-                        ...opt,
-                        [field]: file,
-                        imagePreview: file ? URL.createObjectURL(file) : undefined
-                    };
-                }
-
-                // Auto-fill label with value if label is empty
-                if (field === 'value' && typeof value === 'string' && !opt.label) {
-                    return { ...opt, [field]: value, label: value };
-                }
-
-                return { ...opt, [field]: value };
-            }
-            return opt;
-        }));
-    };
-
-    // Handle moving options up/down
-    const moveOption = (index: number, direction: 'up' | 'down') => {
-        if ((direction === 'up' && index === 0) ||
-            (direction === 'down' && index === options.length - 1)) {
-            return;
-        }
-
-        const newOptions = [...options];
-        const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
-        // Swap the items
-        [newOptions[index], newOptions[targetIndex]] = [newOptions[targetIndex], newOptions[index]];
-
-        // Update sort order
-        newOptions.forEach((opt, i) => {
-            opt.sortOrder = i;
+            sortOrder: fields.length,
+            isDefault: false,
+            isActive: true,
         });
-
-        setOptions(newOptions);
     };
 
-    // Generate option values from a comma-separated list
-    const generateOptions = (values: string) => {
-        const trimmedValues = values.split(',')
-            .map(v => v.trim())
-            .filter(v => v.length > 0);
-
-        if (trimmedValues.length === 0) {
-            toast.error("Please enter comma-separated values");
-            return;
+    const onSubmit = (values: z.infer<typeof VariantTemplateSchema>) => {
+        if (mode === "create") {
+            executeCreate(values);
+        } else if (initialData) {
+            executeUpdate({ ...values, templateId: initialData.$id });
         }
-
-        const newOptions: OptionType[] = trimmedValues.map((value, index) => ({
-            id: `temp-${Date.now()}-${index}`,
-            value,
-            label: value,
-            additionalPrice: 0,
-            sortOrder: index
-        }));
-
-        setOptions(newOptions);
     };
 
-    function onSubmit(values: z.infer<typeof VariantTemplateSchema> & { templateId?: string }) {
-        const formattedOptions = options.map(option => ({
-            value: option.value,
-            label: option.label || option.value,
-            additionalPrice: option.additionalPrice,
-            sortOrder: option.sortOrder,
-            image: option.image
-        }));
-
-        const dataToSubmit = {
-            ...values,
-            options: formattedOptions,
-            createdBy: userId
-        };
-
-        if (editMode && initialData && initialData.templateId) {
-            executeUpdate({ ...dataToSubmit, templateId: initialData.templateId });
-        } else {
-            executeCreate(dataToSubmit);
+    const getVariantTypeDescription = (type: VariantType) => {
+        switch (type) {
+            case VariantType.SELECT:
+                return "Single selection from predefined options";
+            case VariantType.MULTISELECT:
+                return "Multiple selections from predefined options";
+            case VariantType.COLOR:
+                return "Color picker with predefined color options";
+            case VariantType.BOOLEAN:
+                return "Yes/No or True/False toggle";
+            case VariantType.TEXT:
+                return "Free text input";
+            case VariantType.NUMBER:
+                return "Numeric input with optional range";
+            case VariantType.RANGE:
+                return "Range slider with min/max values";
+            default:
+                return "";
         }
-    }
+    };
 
-    const isPending = isCreating || isUpdating;
+    const needsOptions = [VariantType.SELECT, VariantType.MULTISELECT, VariantType.COLOR].includes(selectedType);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{editMode ? "Edit Variant Template" : "Create Variant Template"}</CardTitle>
-                <CardDescription>
-                    {editMode
-                        ? "Make changes to your existing variant template"
-                        : "Define a new variant template that can be used across products"}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Variant Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g. Size, Color, Material" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            This is how the variant will appear to customers
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+        <div className="max-w-4xl mx-auto space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        {React.createElement(VARIANT_TYPE_ICONS[selectedType] || List, { className: "h-5 w-5" })}
+                        {mode === "create" ? "Create Variant Template" : "Edit Variant Template"}
+                    </CardTitle>
+                    <CardDescription>
+                        {mode === "create"
+                            ? "Create reusable variant templates that can be applied to multiple products"
+                            : "Modify this variant template. Changes will affect all products using this template"
+                        }
+                    </CardDescription>
+                </CardHeader>
+            </Card>
 
-                            <FormField
-                                control={form.control}
-                                name="type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Variant Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a variant type" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value={VariantType.SELECT}>Selection (Dropdown)</SelectItem>
-                                                <SelectItem value={VariantType.COLOR}>Color Picker</SelectItem>
-                                                <SelectItem value={VariantType.BOOLEAN}>Yes/No Toggle</SelectItem>
-                                                <SelectItem value={VariantType.TEXT}>Text Input</SelectItem>
-                                                <SelectItem value={VariantType.NUMBER}>Number Input</SelectItem>
-                                                <SelectItem value={VariantType.MULTISELECT}>Multi-select</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormDescription>
-                                            This determines how customers will select this variant
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <Tabs defaultValue="basic" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="basic">Basic Information</TabsTrigger>
+                            <TabsTrigger value="options" disabled={!needsOptions}>
+                                Options {needsOptions && `(${fields.length})`}
+                            </TabsTrigger>
+                            <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
+                        </TabsList>
 
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Describe what this variant is for"
-                                            {...field}
-                                            value={field.value || ""}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="isRequired"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Required</FormLabel>
-                                            <FormDescription>
-                                                Is this variant mandatory for customers to select?
-                                            </FormDescription>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="productType"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Product Type</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                            disabled={editMode} // Don't allow changing product type in edit mode
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a product type" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {productTypes.map((type) => (
-                                                    <SelectItem key={type.$id} value={type.$id}>
-                                                        {type.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormDescription>
-                                            Which product type this variant belongs to
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {!showOptions && (
-                            <FormField
-                                control={form.control}
-                                name="priceModifier"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Price Modifier ($)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                step="0.01"
-                                                {...field}
-                                                value={field.value || 0}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Additional price when this variant is selected (can be 0)
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
-
-                        {/* Options section for SELECT, COLOR and MULTISELECT types */}
-                        {showOptions && (
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-medium">Options</h3>
-                                    <div className="flex space-x-2">
-                                        <Button type="button" onClick={handleAddOption} variant="outline" size="sm">
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Add Option
-                                        </Button>
+                        <TabsContent value="basic" className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Template Details</CardTitle>
+                                    <div className="flex items-center gap-2">
+                                        {!storeId && (
+                                            <Badge variant="outline" className="text-xs">
+                                                <Globe className="w-3 h-3 mr-1" />
+                                                Global Template
+                                            </Badge>
+                                        )}
+                                        {storeId && (
+                                            <Badge variant="secondary" className="text-xs">
+                                                <Store className="w-3 h-3 mr-1" />
+                                                Store Template
+                                            </Badge>
+                                        )}
                                     </div>
-                                </div>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="name"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Template Name *</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="e.g., Size, Color, Material" {...field} />
+                                                    </FormControl>
+                                                    <FormDescription>
+                                                        A clear, descriptive name for this variant type
+                                                    </FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                <Accordion type="single" collapsible className="w-full">
-                                    <AccordionItem value="bulk-add">
-                                        <AccordionTrigger className="text-sm">
-                                            Bulk Add Options
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="bulk-options">Enter comma-separated values</Label>
-                                                <Textarea
-                                                    id="bulk-options"
-                                                    placeholder="Small, Medium, Large, Extra Large"
-                                                    className="text-sm"
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        const textarea = document.getElementById('bulk-options') as HTMLTextAreaElement;
-                                                        generateOptions(textarea.value);
-                                                        textarea.value = '';
-                                                    }}
-                                                >
-                                                    Generate Options
-                                                </Button>
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
+                                        <FormField
+                                            control={form.control}
+                                            name="type"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Variant Type *</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select variant type" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Object.values(VariantType).map((type) => {
+                                                                const Icon = VARIANT_TYPE_ICONS[type];
+                                                                return (
+                                                                    <SelectItem key={type} value={type}>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Icon className="w-4 h-4" />
+                                                                            <div>
+                                                                                <div className="font-medium capitalize">{type}</div>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    {getVariantTypeDescription(type)}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                );
+                                                            })}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                                {options.length === 0 && (
-                                    <Alert>
-                                        <AlertDescription>
-                                            No options added yet. This variant type requires at least one option.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
+                                    <FormField
+                                        control={form.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Describe how this variant affects the product..."
+                                                        className="min-h-[80px]"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Help store owners understand when to use this variant
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
-                                {options.map((option, index) => (
-                                    <div key={option.id} className="flex flex-col gap-3 p-4 border rounded-md relative">
-                                        <div className="absolute right-2 top-2 flex space-x-1">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7"
-                                                onClick={() => moveOption(index, 'up')}
-                                                disabled={index === 0}
-                                            >
-                                                <ArrowUp className="h-4 w-4" />
-                                            </Button>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <FormField
+                                            control={form.control}
+                                            name="isRequired"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-base">Required Variant</FormLabel>
+                                                        <FormDescription>
+                                                            Customers must select this variant option
+                                                        </FormDescription>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7"
-                                                onClick={() => moveOption(index, 'down')}
-                                                disabled={index === options.length - 1}
-                                            >
-                                                <ArrowDown className="h-4 w-4" />
-                                            </Button>
+                                        <FormField
+                                            control={form.control}
+                                            name="isActive"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-base">Active Template</FormLabel>
+                                                        <FormDescription>
+                                                            Available for use in products
+                                                        </FormDescription>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 text-destructive"
-                                                onClick={() => handleRemoveOption(option.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3 mt-2">
-                                            <div>
-                                                <Label className="text-sm">Value</Label>
-                                                <Input
-                                                    placeholder="Internal value (e.g. 'xl')"
-                                                    value={option.value}
-                                                    onChange={(e) => handleOptionChange(option.id, "value", e.target.value)}
-                                                />
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    Used internally for tracking and filters
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm">Display Label</Label>
-                                                <Input
-                                                    placeholder="Display label (e.g. 'Extra Large')"
-                                                    value={option.label}
-                                                    onChange={(e) => handleOptionChange(option.id, "label", e.target.value)}
-                                                />
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    Shown to customers in the store
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <Label className="text-sm">Additional Price ($)</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                step="0.01"
-                                                value={option.additionalPrice}
-                                                onChange={(e) => handleOptionChange(option.id, "additionalPrice", Number(e.target.value))}
-                                            />
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Extra cost when this option is selected
-                                            </p>
-                                        </div>
-
-                                        {variantType === VariantType.COLOR && (
-                                            <div className="space-y-2">
-                                                <Label className="text-sm">Color Image (Optional)</Label>
-                                                <div className="flex items-center space-x-2">
-                                                    {option.imagePreview ? (
-                                                        <div className="relative w-12 h-12">
-                                                            <Image
-                                                                height={100}
-                                                                width={100}
-                                                                src={option.imagePreview}
-                                                                alt={option.label || option.value}
-                                                                className="w-12 h-12 object-cover rounded-md border"
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Category & Product Type Association</CardTitle>
+                                    <CardDescription>
+                                        Link this variant to specific categories or product types (optional)
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="categoryIds"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Associated Categories</FormLabel>
+                                                <FormDescription>
+                                                    Leave empty to make available for all categories
+                                                </FormDescription>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                                                    {categories.map((category) => (
+                                                        <div key={category.$id} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`category-${category.$id}`}
+                                                                checked={field.value?.includes(category.$id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    const newValue = checked
+                                                                        ? [...(field.value || []), category.$id]
+                                                                        : (field.value || []).filter((id: string) => id !== category.$id);
+                                                                    field.onChange(newValue);
+                                                                }}
                                                             />
+                                                            <label
+                                                                htmlFor={`category-${category.$id}`}
+                                                                className="text-sm cursor-pointer"
+                                                            >
+                                                                {category.categoryName}
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="productTypeIds"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Associated Product Types</FormLabel>
+                                                <FormDescription>
+                                                    Link to specific product types for targeted availability
+                                                </FormDescription>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                                                    {filteredProductTypes.map((productType) => (
+                                                        <div key={productType.$id} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`producttype-${productType.$id}`}
+                                                                checked={field.value?.includes(productType.$id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    const newValue = checked
+                                                                        ? [...(field.value || []), productType.$id]
+                                                                        : (field.value || []).filter((id: string) => id !== productType.$id);
+                                                                    field.onChange(newValue);
+                                                                }}
+                                                            />
+                                                            <label
+                                                                htmlFor={`producttype-${productType.$id}`}
+                                                                className="text-sm cursor-pointer"
+                                                            >
+                                                                {productType.name}
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="options" className="space-y-6">
+                            {needsOptions ? (
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="text-lg">Variant Options</CardTitle>
+                                                <CardDescription>
+                                                    Define the available options for this variant
+                                                </CardDescription>
+                                            </div>
+                                            <Button type="button" onClick={addOption} size="sm">
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Add Option
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {fields.map((field, index) => (
+                                                <Card key={field.id} className="border-dashed">
+                                                    <CardContent className="pt-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`options.${index}.value`}
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Value</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input placeholder="e.g., small, red" {...field} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`options.${index}.label`}
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Display Label</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input placeholder="e.g., Small, Red" {...field} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`options.${index}.additionalPrice`}
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Price Modifier ($)</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                placeholder="0.00"
+                                                                                {...field}
+                                                                                onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                                                            />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+
+                                                            {selectedType === VariantType.COLOR && (
+                                                                <FormField
+                                                                    control={form.control}
+                                                                    name={`options.${index}.hex`}
+                                                                    render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormLabel>Color Code</FormLabel>
+                                                                            <FormControl>
+                                                                                <div className="flex gap-2">
+                                                                                    <Input
+                                                                                        type="color"
+                                                                                        className="w-12 h-10 p-1 border rounded"
+                                                                                        {...field}
+                                                                                    />
+                                                                                    <Input
+                                                                                        placeholder="#000000"
+                                                                                        className="flex-1"
+                                                                                        {...field}
+                                                                                    />
+                                                                                </div>
+                                                                            </FormControl>
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between mt-4">
+                                                            <div className="flex items-center space-x-4">
+                                                                <FormField
+                                                                    control={form.control}
+                                                                    name={`options.${index}.isDefault`}
+                                                                    render={({ field }) => (
+                                                                        <FormItem className="flex items-center space-x-2">
+                                                                            <FormControl>
+                                                                                <Checkbox
+                                                                                    checked={field.value}
+                                                                                    onCheckedChange={field.onChange}
+                                                                                />
+                                                                            </FormControl>
+                                                                            <FormLabel className="text-sm">Default</FormLabel>
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+
+                                                                <FormField
+                                                                    control={form.control}
+                                                                    name={`options.${index}.isActive`}
+                                                                    render={({ field }) => (
+                                                                        <FormItem className="flex items-center space-x-2">
+                                                                            <FormControl>
+                                                                                <Checkbox
+                                                                                    checked={field.value}
+                                                                                    onCheckedChange={field.onChange}
+                                                                                />
+                                                                            </FormControl>
+                                                                            <FormLabel className="text-sm">Active</FormLabel>
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+                                                            </div>
                                                             <Button
                                                                 type="button"
                                                                 variant="destructive"
-                                                                size="icon"
-                                                                className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
-                                                                onClick={() => handleOptionChange(option.id, "image", undefined)}
+                                                                size="sm"
+                                                                onClick={() => remove(index)}
                                                             >
-                                                                <X className="h-3 w-3" />
+                                                                <Trash2 className="w-4 h-4" />
                                                             </Button>
                                                         </div>
-                                                    ) : (
-                                                        <div className="w-12 h-12 border rounded-md flex items-center justify-center bg-muted">
-                                                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                                                        </div>
-                                                    )}
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
 
-                                                    <div className="flex-1">
-                                                        <Input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            onChange={(e) => {
-                                                                if (e.target.files && e.target.files[0]) {
-                                                                    handleOptionChange(option.id, "image", e.target.files[0]);
-                                                                }
-                                                            }}
-                                                        />
+                                            {fields.length === 0 && (
+                                                <div className="text-center py-8 text-muted-foreground">
+                                                    <div className="mb-4">
+                                                        <List className="w-12 h-12 mx-auto text-muted-foreground/50" />
                                                     </div>
+                                                    <p>No options defined yet</p>
+                                                    <p className="text-sm">Click &quot;Add Option&quot; to create variant options</p>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Upload a swatch or product image for this color
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <Alert>
+                                    <AlertDescription>
+                                        This variant type doesn&apos;t require predefined options.
+                                        {selectedType === VariantType.TEXT && " Customers can enter custom text."}
+                                        {selectedType === VariantType.NUMBER && " Customers can enter numeric values."}
+                                        {selectedType === VariantType.BOOLEAN && " Customers can toggle this option on/off."}
+                                        {selectedType === VariantType.RANGE && " Customers can select from a range of values."}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="advanced" className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Advanced Configuration</CardTitle>
+                                    <CardDescription>
+                                        Additional settings for complex variant behaviors
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    {selectedType === VariantType.MULTISELECT && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="minSelections"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Minimum Selections</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                {...field}
+                                                                onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                                                            />
+                                                        </FormControl>
+                                                        <FormDescription>
+                                                            Minimum number of options customers must select
+                                                        </FormDescription>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="maxSelections"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Maximum Selections</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="1"
+                                                                {...field}
+                                                                onChange={e => field.onChange(parseInt(e.target.value) || undefined)}
+                                                            />
+                                                        </FormControl>
+                                                        <FormDescription>
+                                                            Maximum number of options customers can select (optional)
+                                                        </FormDescription>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <FormField
+                                        control={form.control}
+                                        name="allowCustomValues"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">Allow Custom Values</FormLabel>
+                                                    <FormDescription>
+                                                        Let customers enter their own values in addition to predefined options
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Preview</CardTitle>
+                                    <CardDescription>
+                                        See how this variant will appear to customers
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="border rounded-lg p-4 bg-muted/50">
+                                        <div className="mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">{form.watch("name") || "Variant Name"}</span>
+                                                {form.watch("isRequired") && (
+                                                    <Badge variant="destructive" className="text-xs">Required</Badge>
+                                                )}
+                                            </div>
+                                            {form.watch("description") && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {form.watch("description")}
                                                 </p>
+                                            )}
+                                        </div>
+
+                                        {selectedType === VariantType.SELECT && (
+                                            <Select>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select an option" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {fields.map((field, index) => {
+                                                        const option = form.watch(`options.${index}`);
+                                                        return (
+                                                            <SelectItem key={field.id} value={option.value || ""}>
+                                                                <div className="flex items-center justify-between w-full">
+                                                                    <span>{option.label || option.value}</span>
+                                                                    {option.additionalPrice > 0 && (
+                                                                        <Badge variant="outline" className="ml-2">
+                                                                            +${option.additionalPrice}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </SelectItem>
+                                                        );
+                                                    })}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+
+                                        {selectedType === VariantType.COLOR && (
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {fields.map((field, index) => {
+                                                    const option = form.watch(`options.${index}`);
+                                                    return (
+                                                        <div key={field.id} className="text-center">
+                                                            <div
+                                                                className="w-8 h-8 rounded-full border mx-auto mb-1"
+                                                                style={{ backgroundColor: option.hex || "#ccc" }}
+                                                            />
+                                                            <div className="text-xs">{option.label}</div>
+                                                            {option.additionalPrice > 0 && (
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    +${option.additionalPrice}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
+
+                                        {selectedType === VariantType.BOOLEAN && (
+                                            <div className="flex items-center space-x-2">
+                                                <Switch />
+                                                <span className="text-sm">Enable this option</span>
+                                            </div>
+                                        )}
+
+                                        {selectedType === VariantType.TEXT && (
+                                            <Input placeholder="Enter custom text..." />
+                                        )}
+
+                                        {selectedType === VariantType.NUMBER && (
+                                            <Input type="number" placeholder="Enter a number..." />
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
 
-                        {/* Default value for non-option based types */}
-                        {!showOptions && variantType !== VariantType.BOOLEAN && (
-                            <FormField
-                                control={form.control}
-                                name="defaultValue"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Default Value (Optional)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type={variantType === VariantType.NUMBER ? "number" : "text"}
-                                                placeholder="Default value"
-                                                {...field}
-                                                value={field.value || ""}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Pre-filled value when customers view this variant
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
+                    <Separator />
 
-                        <div className="flex justify-end space-x-2 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => router.push(`/admin/stores/${storeId}/variants`)}
-                                disabled={isPending}
-                            >
-                                <X className="mr-2 h-4 w-4" />
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isPending || (showOptions && options.length === 0)}
-                            >
-                                {isPending ? (
-                                    <>
-                                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                                        {editMode ? "Updating..." : "Creating..."}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        {editMode ? "Update Template" : "Create Template"}
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-    );
+                    <div className="flex justify-between items-center">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.back()}
+                            disabled={isPending}
+                        >
+                            <X className="mr-2 h-4 w-4" />
+                            Cancel
+                        </Button>
+
+                        <Button type="submit" disabled={isPending}>
+                            {isPending ? (
+                                <>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                                    {mode === "create" ? "Creating..." : "Updating..."}
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {mode === "create" ? "Create Template" : "Update Template"}
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </Form>
+        </div>
+    )
 }

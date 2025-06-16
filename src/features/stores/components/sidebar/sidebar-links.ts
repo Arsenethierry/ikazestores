@@ -1,11 +1,12 @@
 import {
-    BookOpen,
     Settings2,
     SquareTerminal,
     ShoppingCart,
     Package,
-    Tag,
-    Layers
+    Layers,
+    Palette,
+    Grid3X3,
+    FolderTree
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -17,16 +18,16 @@ export const getSidebarLinks = (storeId: string | null) => ({
             isActive: true,
             items: [
                 {
-                    title: "All stores",
+                    title: "All Stores",
                     url: "/admin/stores",
                 },
                 {
-                    title: "Starred",
-                    url: "#",
+                    title: "Store Analytics",
+                    url: "/admin/stores/analytics",
                 },
                 {
-                    title: "Settings",
-                    url: "#",
+                    title: "Store Settings",
+                    url: "/admin/stores/settings",
                 },
             ],
         },
@@ -34,44 +35,70 @@ export const getSidebarLinks = (storeId: string | null) => ({
             title: "Categories",
             url: "#",
             icon: Layers,
-            isActive: true,
             items: [
                 {
-                    title: "All categories",
+                    title: "All Categories",
                     url: "/admin/categories",
                 },
+            ],
+        },
+        {
+            title: "Product Types",
+            url: "#",
+            icon: Package,
+            items: [
                 {
-                    title: "Sub-categories",
-                    url: "/admin/subcategories",
+                    title: "All Product Types",
+                    url: "/admin/product-types",
+                },
+                {
+                    title: "Create Product Type",
+                    url: "/admin/product-types/create",
+                },
+                {
+                    title: "Product Type Analytics",
+                    url: "/admin/product-types/analytics",
+                },
+            ],
+        },
+        {
+            title: "Variant Templates",
+            url: "#",
+            icon: Palette,
+            items: [
+                {
+                    title: "All Templates",
+                    url: "/admin/variant-templates",
+                },
+                {
+                    title: "Create Template",
+                    url: "/admin/variant-templates/create",
+                },
+                {
+                    title: "Template Categories",
+                    url: "/admin/variant-templates/categories",
                 },
             ],
         },
         {
             title: "Products",
             url: "#",
-            icon: Package,
+            icon: Grid3X3,
             items: [
                 {
-                    title: "Collections",
-                    url: `/admin/collections`,
+                    title: "All Products",
+                    url: "/admin/products",
+                },
+                {
+                    title: "Product Analytics",
+                    url: "/admin/products/analytics",
+                },
+                {
+                    title: "Import/Export",
+                    url: "/admin/products/import-export",
                 },
             ],
         },
-        {
-            title: "Variants",
-            url: "#",
-            icon: Tag,
-            items: [
-                {
-                    title: "Product Types",
-                    url: `/admin/product-types`,
-                },
-                {
-                    title: "Variants Templates",
-                    url: `/admin/variant-templates`,
-                },
-            ],
-        }
     ],
     virtualStoreAdmin: [
         {
@@ -81,88 +108,111 @@ export const getSidebarLinks = (storeId: string | null) => ({
             isActive: true,
             items: [
                 {
-                    title: "All orders",
+                    title: "All Orders",
                     url: `/admin/stores/${storeId}/orders`,
+                },
+                {
+                    title: "Order Analytics",
+                    url: `/admin/stores/${storeId}/orders/analytics`,
+                },
+                {
+                    title: "Returns & Refunds",
+                    url: `/admin/stores/${storeId}/orders/returns`,
                 },
             ],
         },
         {
-            title: "Product Management",
+            title: "Categories",
             url: "#",
-            icon: Package,
+            icon: Layers,
             items: [
                 {
-                    title: "Products",
-                    url: `/admin/stores/${storeId}/products`,
-                },
-                {
-                    title: "Categories",
+                    title: "All Categories",
                     url: `/admin/stores/${storeId}/categories`,
-                },
-                {
-                    title: "Collections",
-                    url: `/admin/stores/${storeId}/collections`,
                 },
             ],
         },
         {
             title: "Variants",
             url: "#",
-            icon: Tag,
+            icon: Palette,
             items: [
                 {
                     title: "Product Types",
                     url: `/admin/stores/${storeId}/product-types`,
                 },
-                {
-                    title: "Templates & Groups",
-                    url: `/admin/stores/${storeId}/variants`,
-                },
+                // {
+                //     title: "Templates",
+                //     url: `/admin/stores/${storeId}/variant-templates`,
+                // },
+                // {
+                //     title: "Templates Options",
+                //     url: `/admin/stores/${storeId}/variant-templates/options`,
+                // },
             ],
         },
         {
-            title: "Promo Codes",
+            title: "Products",
             url: "#",
-            icon: BookOpen,
+            icon: Grid3X3,
             items: [
                 {
-                    title: "Introduction",
-                    url: "#",
+                    title: "All Products",
+                    url: `/admin/stores/${storeId}/products`,
                 },
                 {
-                    title: "Get Started",
-                    url: "#",
+                    title: "Create Product",
+                    url: `/admin/stores/${storeId}/products/create`,
                 },
                 {
-                    title: "Tutorials",
-                    url: "#",
+                    title: "Product Analytics",
+                    url: `/admin/stores/${storeId}/products/analytics`,
                 },
                 {
-                    title: "Changelog",
-                    url: "#",
+                    title: "Inventory",
+                    url: `/admin/stores/${storeId}/products/inventory`,
                 },
             ],
         },
         {
-            title: "Settings",
+            title: "Collections",
+            url: "#",
+            icon: FolderTree,
+            items: [
+                {
+                    title: "All Collections",
+                    url: `/admin/stores/${storeId}/collections`,
+                },
+                {
+                    title: "Create Collection",
+                    url: `/admin/stores/${storeId}/collections/create`,
+                },
+                {
+                    title: "Featured Collections",
+                    url: `/admin/stores/${storeId}/collections/featured`,
+                },
+            ],
+        },
+        {
+            title: "Store Settings",
             url: "#",
             icon: Settings2,
             items: [
                 {
                     title: "General",
-                    url: "#",
+                    url: `/admin/stores/${storeId}/settings`,
                 },
                 {
-                    title: "Team",
-                    url: "#",
+                    title: "Shipping",
+                    url: `/admin/stores/${storeId}/settings/shipping`,
                 },
                 {
-                    title: "Billing",
-                    url: "#",
+                    title: "Payments",
+                    url: `/admin/stores/${storeId}/settings/payments`,
                 },
                 {
-                    title: "Limits",
-                    url: "#",
+                    title: "SEO",
+                    url: `/admin/stores/${storeId}/settings/seo`,
                 },
             ],
         },
@@ -175,100 +225,119 @@ export const getSidebarLinks = (storeId: string | null) => ({
             isActive: true,
             items: [
                 {
-                    title: "All orders",
+                    title: "All Orders",
                     url: `/admin/stores/${storeId}/orders`,
+                },
+                {
+                    title: "In-Store Orders",
+                    url: `/admin/stores/${storeId}/orders/in-store`,
+                },
+                {
+                    title: "Online Orders",
+                    url: `/admin/stores/${storeId}/orders/online`,
+                },
+                {
+                    title: "Order Analytics",
+                    url: `/admin/stores/${storeId}/orders/analytics`,
                 },
             ],
         },
         {
-            title: "Product Management",
+            title: "Categories",
             url: "#",
-            icon: Package,
+            icon: Layers,
             items: [
                 {
-                    title: "Products",
-                    url: `/admin/stores/${storeId}/products`,
-                },
-                {
-                    title: "Categories",
+                    title: "All Categories",
                     url: `/admin/stores/${storeId}/categories`,
-                },
-                {
-                    title: "Sub-categories",
-                    url: `/admin/stores/${storeId}/subcategories`,
-                },
-                {
-                    title: "Collections",
-                    url: `/admin/stores/${storeId}/collections`,
                 },
             ],
         },
         {
             title: "Variants",
             url: "#",
-            icon: Tag,
+            icon: Palette,
             items: [
                 {
                     title: "Product Types",
                     url: `/admin/stores/${storeId}/product-types`,
                 },
-                {
-                    title: "Variant Dashboard",
-                    url: `/admin/stores/${storeId}/variants`,
-                },
-                {
-                    title: "Templates",
-                    url: `/admin/stores/${storeId}/variants/templates/new`,
-                },
-                {
-                    title: "Groups",
-                    url: `/admin/stores/${storeId}/variants/groups/new`,
-                },
+                // {
+                //     title: "Templates",
+                //     url: `/admin/stores/${storeId}/variant-templates`,
+                // },
+                // {
+                //     title: "Templates Options",
+                //     url: `/admin/stores/${storeId}/variant-templates/options`,
+                // },
             ],
         },
         {
-            title: "Promo Codes",
+            title: "Products",
             url: "#",
-            icon: BookOpen,
+            icon: Grid3X3,
             items: [
                 {
-                    title: "Introduction",
-                    url: "#",
+                    title: "All Products",
+                    url: `/admin/stores/${storeId}/products`,
                 },
                 {
-                    title: "Get Started",
-                    url: "#",
+                    title: "Create Product",
+                    url: `/admin/stores/${storeId}/products/create`,
                 },
                 {
-                    title: "Tutorials",
-                    url: "#",
+                    title: "Inventory Management",
+                    url: `/admin/stores/${storeId}/products/inventory`,
                 },
                 {
-                    title: "Changelog",
-                    url: "#",
+                    title: "Product Analytics",
+                    url: `/admin/stores/${storeId}/products/analytics`,
+                },
+                {
+                    title: "Price Management",
+                    url: `/admin/stores/${storeId}/products/pricing`,
                 },
             ],
         },
         {
-            title: "Settings",
+            title: "Collections",
+            url: "#",
+            icon: FolderTree,
+            items: [
+                {
+                    title: "All Collections",
+                    url: `/admin/stores/${storeId}/collections`,
+                },
+                {
+                    title: "Create Collection",
+                    url: `/admin/stores/${storeId}/collections/create`,
+                },
+                {
+                    title: "Seasonal Collections",
+                    url: `/admin/stores/${storeId}/collections/seasonal`,
+                },
+            ],
+        },
+        {
+            title: "Store Management",
             url: "#",
             icon: Settings2,
             items: [
                 {
-                    title: "General",
-                    url: "#",
+                    title: "Store Details",
+                    url: `/admin/stores/${storeId}/settings`,
                 },
                 {
-                    title: "Team",
-                    url: "#",
+                    title: "Staff Management",
+                    url: `/admin/stores/${storeId}/staff`,
                 },
                 {
-                    title: "Billing",
-                    url: "#",
+                    title: "Store Analytics",
+                    url: `/admin/stores/${storeId}/analytics`,
                 },
                 {
-                    title: "Limits",
-                    url: "#",
+                    title: "Location Settings",
+                    url: `/admin/stores/${storeId}/location`,
                 },
             ],
         },

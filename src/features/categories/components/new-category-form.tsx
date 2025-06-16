@@ -25,6 +25,15 @@ const getCategorySchema = (isEditMode: boolean) => {
         : CategorySchema;
 };
 
+const generateSlug = (name: string): string => {
+    return name
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
+
 export const CategoryForm = ({
     currentUser,
     initialValues = null,
@@ -93,6 +102,7 @@ export const CategoryForm = ({
         resolver: zodResolver(formSchema),
         defaultValues: {
             categoryName: initialValues?.categoryName ?? "",
+            slug: initialValues?.slug ?? "",
             icon: undefined,
             storeId,
             createdBy: currentUser!.$id
@@ -106,6 +116,19 @@ export const CategoryForm = ({
         }
     }, [isEditMode, initialValues?.iconUrl, form])
 
+    // Auto-generate slug when category name changes (only in create mode)
+    useEffect(() => {
+        if (!isEditMode) {
+            const subscription = form.watch((value, { name }) => {
+                if (name === 'categoryName' && value.categoryName) {
+                    const slug = generateSlug(value.categoryName);
+                    form.setValue('slug', slug);
+                }
+            });
+            return () => subscription.unsubscribe();
+        }
+    }, [form, isEditMode]);
+
     const { formState: { dirtyFields } } = form;
 
     function onSubmit(values: z.infer<typeof formSchema>) {
@@ -118,6 +141,7 @@ export const CategoryForm = ({
             const updatedValues: Record<string, any> = {};
 
             if (dirtyFields.categoryName) updatedValues.categoryName = values.categoryName;
+            if (dirtyFields.slug) updatedValues.slug = values.slug;
             if (dirtyFields.icon) {
                 updatedValues.storeLogo = values.icon;
                 updatedValues.oldFileId = initialValues?.iconFileId ?? null;
@@ -146,7 +170,7 @@ export const CategoryForm = ({
     const isLoading = isCreatingCategory || isUpdating;
 
     const error = isEditMode ? updateCategoryResponse.data?.error : createCategoryRes.data?.error;
-
+    console.log("hhhh: ", form.formState.errors)
     return (
         <Card className='max-w-5xl'>
             <CancelDialog />
@@ -160,6 +184,14 @@ export const CategoryForm = ({
                             label='Category Name'
                             fieldType={FormFieldType.INPUT}
                             placeholder='Category Name'
+                        />
+                        <CustomFormField
+                            control={form.control}
+                            name="slug"
+                            label='URL Slug'
+                            fieldType={FormFieldType.INPUT}
+                            placeholder='category-url-slug'
+                        // description={!isEditMode ? "This will be auto-generated from the category name" : "URL-friendly version of the category name"}
                         />
                         <CustomFormField
                             fieldType={FormFieldType.SKELETON}

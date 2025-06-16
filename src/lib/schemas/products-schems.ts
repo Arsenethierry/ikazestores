@@ -1,39 +1,139 @@
 import { z } from "zod";
 import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "../constants";
+import { VariantCombinationSchema } from "./product-variants-schema";
+// import { ProductVariantInstanceSchema, VariantCombinationSchema } from "./product-variants-schema";
 
 export const ProductSchema = z.object({
-    id: z.number().optional(),
-    title: z.string().min(5, {
-        message: "Title must be at least 5 characters long",
-    }),
-    description: z.string().min(40, {
-        message: "Description must be at least 40 characters long",
-    }),
-    price: z.coerce
-        .number({ invalid_type_error: "Price must be a number" })
-        .positive({ message: "Price must be a positive number" }),
-    storeId: z.string(),
-    images: z.array(z.any())
-        .refine(files => files.length > 0, {
-            message: "At least 1 image is required"
-        }),
-    storeLat: z.number().optional(),
-    storeLong: z.number().optional(),
-    storeOriginCountry: z.string(),
-    categoryId: z.string().min(1, { message: "Category is required" }),
-    subcategoryIds: z.array(z.string()).optional(),
-    colorImages: z.array(
-        z.object({
-            colorHex: z.string(),
-            colorName: z.string().optional(),
-            images: z.array(z.any()),
-            additionalPrice: z.coerce.number().min(0, "Additional price must be a positive number").default(0),
-        })
-    ).optional(),
+    // Basic Information
+    title: z.string().min(1, "Product title is required").max(200, "Title too long"),
+    description: z.string().min(10, "Description must be at least 10 characters"),
+    categoryId: z.string().min(1, "Category is required"),
     productTypeId: z.string().min(1, "Product type is required"),
-    selectedVariants: z.record(z.any()).optional(),
-    generateVariantCombinations: z.boolean().default(true),
-})
+
+    // Pricing
+    basePrice: z.number().min(0.01, "Price must be positive"),
+    compareAtPrice: z.number().optional(),
+    costPrice: z.number().optional(),
+
+    // Store Information
+    storeId: z.string(),
+    storeLat: z.number(),
+    storeLong: z.number(),
+    storeOriginCountry: z.string(),
+
+    // Product Status
+    isActive: z.boolean().default(true),
+    featured: z.boolean().default(false),
+
+    // Inventory Management
+    trackInventory: z.boolean().default(false),
+    inventoryQuantity: z.number().optional(),
+    lowStockThreshold: z.number().optional(),
+    allowBackorders: z.boolean().default(false),
+    sku: z.string().optional(),
+
+    // Physical Properties
+    weight: z.number().optional(),
+    dimensions: z.object({
+        length: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+    }).optional(),
+
+    // Shipping & Orders
+    shippingRequired: z.boolean().default(true),
+    minOrderQuantity: z.number().min(1).default(1),
+    maxOrderQuantity: z.number().optional(),
+
+    // SEO
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+
+    // Media
+    images: z.array(z.instanceof(File)).min(1, "At least one image is required"),
+
+    // Organization
+    tags: z.array(z.string()).default([]),
+
+    // Variants - Updated to match form implementation
+    hasVariants: z.boolean().default(false),
+    selectedVariantTemplates: z.array(z.string()).default([]),
+    variantSelections: z.record(z.array(z.string())).default({}),
+
+    // Additional fields that might be used by the form
+    brandId: z.string().optional(),
+    warrantyInfo: z.string().optional(),
+    returnPolicy: z.string().optional(),
+    specifications: z.array(z.object({
+        name: z.string(),
+        value: z.string(),
+        unit: z.string().optional(),
+    })).optional(),
+    metaFields: z.record(z.string()).optional(),
+    variantCombinations: z.array(VariantCombinationSchema).optional(),
+}).refine((data) => {
+    // Validate that compareAtPrice is greater than basePrice if provided
+    if (data.compareAtPrice && data.compareAtPrice <= data.basePrice) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Compare at price must be greater than base price",
+    path: ["compareAtPrice"]
+}).refine((data) => {
+    // Validate that maxOrderQuantity is greater than minOrderQuantity if provided
+    if (data.maxOrderQuantity && data.maxOrderQuantity < data.minOrderQuantity) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Maximum order quantity must be greater than minimum order quantity",
+    path: ["maxOrderQuantity"]
+}).refine((data) => {
+    // Validate that SKU is required when trackInventory is true and no variants
+    if (data.trackInventory && !data.hasVariants && !data.sku) {
+        return false;
+    }
+    return true;
+}, {
+    message: "SKU is required when tracking inventory without variants",
+    path: ["sku"]
+}).refine((data) => {
+    // Validate that inventoryQuantity is provided when trackInventory is true and no variants
+    if (data.trackInventory && !data.hasVariants && (data.inventoryQuantity === undefined || data.inventoryQuantity < 0)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Inventory quantity is required when tracking inventory without variants",
+    path: ["inventoryQuantity"]
+}).refine((data) => {
+    // Validate SEO title length
+    if (data.seoTitle && data.seoTitle.length > 60) {
+        return false;
+    }
+    return true;
+}, {
+    message: "SEO title should not exceed 60 characters",
+    path: ["seoTitle"]
+}).refine((data) => {
+    // Validate SEO description length
+    if (data.seoDescription && data.seoDescription.length > 160) {
+        return false;
+    }
+    return true;
+}, {
+    message: "SEO description should not exceed 160 characters",
+    path: ["seoDescription"]
+}).refine(data => {
+    if (data.hasVariants) {
+        return data.variantCombinations && data.variantCombinations.length > 0;
+    }
+    return true;
+}, {
+    message: "At least one variant combination is required when the product has variants",
+    path: ["variantCombinations"]
+});
 
 export const VirtualProductSchema = z.object({
     originalProductId: z.string(),
@@ -100,15 +200,19 @@ export const CategorySchema = z.object({
             message: "Icon thumbnail is required"
         }),
     storeId: z.string().nullable(),
-    createdBy: z.string()
+    createdBy: z.string(),
+    slug: z.string().max(50, { message: "Slug must not exceed 50 characters" }),
+    parentCategoryId: z.string().nullable().optional(),
+    isActive: z.boolean().default(true),
+    sortOrder: z.number().default(0)
 });
-
 
 export const UpdateCategoryForm = z.object({
     categoryName: z.string().max(50, { message: "Category name must not exceed 20 characters long" }).optional(),
     icon: z.custom<File>().optional(),
     oldFileId: z.string().optional().nullable(),
     iconUrl: z.string().optional(),
+    slug: z.string().optional()
 });
 
 export const UpdateCategoryActionSchema = UpdateCategoryForm.extend({

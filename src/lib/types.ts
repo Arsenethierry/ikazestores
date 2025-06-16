@@ -233,40 +233,38 @@ export interface ProductType extends Models.Document {
 
 export interface VariantOptions extends Models.Document {
     variantTemplateId: string;
-    variant?: string;
-    value: string;
-    label: string;
+    name: string; // Display name
+    value: string; // Internal value
     additionalPrice: number;
+    colorCode?: string;
     imageUrl?: string;
+    sortOrder: number;
+    isActive: boolean;
+    // Enhanced fields
+    description?: string;
+    hexCode?: string; // More specific than colorCode
+    swatchImage?: string; // Separate from main image
+    availability: boolean;
+    popularityScore?: number; // For sorting popular options first
+    seasonality?: 'spring' | 'summer' | 'fall' | 'winter' | 'year_round';
+    materialCode?: string; // For fabric/material variants
+    sizeChart?: string; // Reference to size chart
 };
 
 export interface VariantTemplate extends Models.Document {
     name: string;
     description?: string;
-    type: 'select' | 'boolean' | 'text' | 'number' | 'multiselect' | 'color' | 'range';
-    createdBy: string;
+    inputType: 'select' | 'multiselect' | 'color' | 'size' | 'text' | 'boolean';
     isRequired: boolean;
     defaultValue?: string;
-    variantOptions: VariantOptions[]
-};
-
-export interface VariantGroup extends Models.Document {
-    name: string;
-    description?: string;
-    productType?: 'select' | 'boolean' | 'text' | 'number' | 'multiselect';
-    createdBy: string;
-    storeId?: string;
-    variants?: VariantTemplate[]
-};
-
-export interface VariantsCombination extends Models.Document {
-    productId: string;
-    sku?: string;
-    price: number;
-    compareAtPrice: number;
-    variants?: VariantTemplate[];
-    inventory: number;
-    isActive: boolean;
-    imageUrl?: string;
-    variantOptions: VariantOptions
+    displayOrder: number; // For consistent UI ordering
+    affectsPricing: boolean; // Whether this variant affects price
+    affectsInventory: boolean; // Whether this variant has separate inventory
+    affectsShipping: boolean; // Whether this variant affects shipping (size/weight)
+    options?: VariantOptions[];
+    validation?: {
+        minSelections?: number;
+        maxSelections?: number;
+        pattern?: string; // For text inputs
+    };
 };
