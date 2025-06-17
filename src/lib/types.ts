@@ -224,47 +224,87 @@ export interface SavedItemType extends Models.Document {
     productData?: VirtualProductTypes
 }
 
-export interface ProductType extends Models.Document {
-    name: string;
-    description?: string;
-    storeId?: string;
-    createdBy: string;
-};
+// export interface ProductType extends Models.Document {
+//     name: string;
+//     description?: string;
+//     storeId?: string;
+//     createdBy: string;
+// };
 
-export interface VariantOptions extends Models.Document {
-    variantTemplateId: string;
-    name: string; // Display name
-    value: string; // Internal value
-    additionalPrice: number;
+// export interface VariantOptions extends Models.Document {
+//     variantTemplateId: string;
+//     name: string; // Display name
+//     value: string; // Internal value
+//     additionalPrice: number;
+//     colorCode?: string;
+//     imageUrl?: string;
+//     sortOrder: number;
+//     isActive: boolean;
+//     // Enhanced fields
+//     description?: string;
+//     hexCode?: string; // More specific than colorCode
+//     swatchImage?: string; // Separate from main image
+//     availability: boolean;
+//     popularityScore?: number; // For sorting popular options first
+//     seasonality?: 'spring' | 'summer' | 'fall' | 'winter' | 'year_round';
+//     materialCode?: string; // For fabric/material variants
+//     sizeChart?: string; // Reference to size chart
+// };
+
+// export interface VariantTemplate extends Models.Document {
+//     name: string;
+//     description?: string;
+//     inputType: 'select' | 'multiselect' | 'color' | 'size' | 'text' | 'boolean';
+//     isRequired: boolean;
+//     defaultValue?: string;
+//     displayOrder: number; // For consistent UI ordering
+//     affectsPricing: boolean; // Whether this variant affects price
+//     affectsInventory: boolean; // Whether this variant has separate inventory
+//     affectsShipping: boolean; // Whether this variant affects shipping (size/weight)
+//     options?: VariantOptions[];
+//     validation?: {
+//         minSelections?: number;
+//         maxSelections?: number;
+//         pattern?: string; // For text inputs
+//     };
+// };
+
+export interface Category {
+    id: string;
+    name: string;
+    subcategories?: Subcategory[];
+}
+
+export interface Subcategory {
+    id: string;
+    name: string;
+    productTypes: string[];
+}
+
+export interface VariantOption {
+    value: string;
+    name?: string;
+    additionalPrice?: number;
     colorCode?: string;
-    imageUrl?: string;
-    sortOrder: number;
-    isActive: boolean;
-    // Enhanced fields
-    description?: string;
-    hexCode?: string; // More specific than colorCode
-    swatchImage?: string; // Separate from main image
-    availability: boolean;
-    popularityScore?: number; // For sorting popular options first
-    seasonality?: 'spring' | 'summer' | 'fall' | 'winter' | 'year_round';
-    materialCode?: string; // For fabric/material variants
-    sizeChart?: string; // Reference to size chart
-};
+}
 
-export interface VariantTemplate extends Models.Document {
+export interface VariantTemplate {
+    id: string;
     name: string;
     description?: string;
-    inputType: 'select' | 'multiselect' | 'color' | 'size' | 'text' | 'boolean';
-    isRequired: boolean;
-    defaultValue?: string;
-    displayOrder: number; // For consistent UI ordering
-    affectsPricing: boolean; // Whether this variant affects price
-    affectsInventory: boolean; // Whether this variant has separate inventory
-    affectsShipping: boolean; // Whether this variant affects shipping (size/weight)
-    options?: VariantOptions[];
-    validation?: {
-        minSelections?: number;
-        maxSelections?: number;
-        pattern?: string; // For text inputs
-    };
-};
+    subcategoryIds?: string[],
+    inputType: 'select' | 'multiselect' | 'color' | 'boolean' | 'text';
+    options?: VariantOption[];
+    isRequired?: boolean;
+    categoryIds?: string[];
+    productTypeIds?: string[];
+}
+
+export interface ProductType {
+    id: string;
+    name: string;
+    description?: string;
+    categoryId: string;
+    defaultVariantTemplates?: string[];
+    subcategoryId?: string;
+}

@@ -22,6 +22,7 @@ import { Calendar } from "lucide-react";
 
 export enum FormFieldType {
     INPUT = "input",
+    NUMBER_INPUT = "numberInput",
     TEXTAREA = "textarea",
     PHONE_INPUT = "phoneInput",
     CHECKBOX = "checkbox",
@@ -43,6 +44,9 @@ interface CustomProps {
     children?: React.ReactNode;
     renderSkeleton?: (field: any) => React.ReactNode;
     fieldType: FormFieldType;
+    min?: number;
+    max?: number;
+    step?: number;
 }
 
 const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
@@ -64,6 +68,36 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
                             placeholder={props.placeholder}
                             {...field}
                             className="shad-input border-0"
+                        />
+                    </FormControl>
+                </div>
+            );
+        case FormFieldType.NUMBER_INPUT:
+            return (
+                <div className="flex rounded-md border border-dark-500 bg-dark-400">
+                    {props.iconSrc && (
+                        <Image
+                            src={props.iconSrc}
+                            height={24}
+                            width={24}
+                            alt={props.iconAlt || "icon"}
+                            className="ml-2"
+                        />
+                    )}
+                    <FormControl>
+                        <Input
+                            type="number"
+                            placeholder={props.placeholder}
+                            {...field}
+                            className="shad-input border-0"
+                            disabled={props.disabled}
+                            min={props.min}
+                            max={props.max}
+                            step={props.step}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? '' : Number(value));
+                            }}
                         />
                     </FormControl>
                 </div>
