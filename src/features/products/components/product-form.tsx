@@ -23,12 +23,13 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
-import { Plus, Minus, Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle } from 'lucide-react';
+import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle } from 'lucide-react';
 import { Category, ProductType, Subcategory, VariantTemplate } from '@/lib/types';
 import EcommerceCatalogUtils from '@/features/variants management/ecommerce-catalog';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
+import { VariantConfig } from '@/features/variants management/variant-config';
 
 // Enhanced Product form schema
 const productFormSchema = z.object({
@@ -71,7 +72,7 @@ const productFormSchema = z.object({
     // Variants
     hasVariants: z.boolean().default(false),
     variants: z.array(z.object({
-        id: z.string(),
+        templateId: z.string(),
         name: z.string(),
         type: z.enum(['text', 'color', 'select', 'boolean', 'multiselect']),
         values: z.array(z.object({
@@ -151,7 +152,6 @@ const steps = [
 ];
 
 export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
-    // State Management
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
@@ -159,7 +159,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const [availableVariants, setAvailableVariants] = useState<VariantTemplate[]>([]);
     const [currentTag, setCurrentTag] = useState('');
     const [previewImages, setPreviewImages] = useState<string[]>([]);
-    const [editingVariantValues, setEditingVariantValues] = useState<{ [key: string]: any }>({});
 
     // Form Setup
     const form = useForm<ProductFormData>({
@@ -181,12 +180,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     });
 
-    // Field Arrays
-    const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
-        control: form.control,
-        name: 'variants'
-    });
-
     const { fields: combinationFields, replace: replaceCombinations } = useFieldArray({
         control: form.control,
         name: 'productCombinations'
@@ -203,7 +196,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const watchedHasVariants = form.watch("hasVariants");
     const watchedVariants = form.watch("variants");
 
-    // Effects
+    console.log("watchedVariants: ", watchedVariants)
     useEffect(() => {
         if (selectedProductType) {
             const variants = EcommerceCatalogUtils.getRecommendedVariantTemplates(selectedProductType);
@@ -221,16 +214,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     }, [watchedImages]);
 
-    // Generate combinations when variants change
     useEffect(() => {
         if (watchedHasVariants && watchedVariants && watchedVariants.length > 0) {
-            generateVariantCombinations();
+            const hasVariantsWithValues = watchedVariants.some(variant =>
+                variant.values && variant.values.length > 0
+            );
+
+            if (hasVariantsWithValues) {
+                generateVariantCombinations();
+            } else {
+                replaceCombinations([]);
+            }
         } else {
             replaceCombinations([]);
         }
     }, [watchedVariants, watchedHasVariants]);
 
-    // NEW: Generate combinations with variant strings
     const generateVariantCombinations = () => {
         const variants = form.getValues('variants') || [];
         const basePrice = form.getValues('basePrice') || 0;
@@ -241,7 +240,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             return;
         }
 
-        // Use the new utility method to generate combinations with variant strings
         const combinations = EcommerceCatalogUtils.generateCombinationsWithStrings(
             variants,
             basePrice,
@@ -251,7 +249,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         replaceCombinations(combinations);
     };
 
-    // Category Handlers
     const handleCategoryChange = (categoryId: string) => {
         setSelectedCategory(categoryId);
         setSelectedSubcategory('');
@@ -264,7 +261,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
     const handleSubcategoryChange = (subcategoryId: string) => {
         setSelectedSubcategory(subcategoryId);
-        setSelectedProductType(''); // Reset product type when subcategory changes
+        setSelectedProductType('');
         form.setValue('subcategoryId', subcategoryId);
         form.setValue('productTypeId', '');
         resetVariants();
@@ -283,63 +280,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         form.setValue('hasVariants', false);
     };
 
-    // Variant Handlers
-    const addVariant = (variantTemplate: VariantTemplate) => {
-        const existingVariant = variantFields.find(field => field.id === variantTemplate.id);
-        if (!existingVariant) {
-            appendVariant({
-                id: variantTemplate.id,
-                name: variantTemplate.name,
-                type: variantTemplate.inputType || 'select',
-                values: [],
-                required: variantTemplate.isRequired || false
-            });
-        }
-    };
-
-    const addVariantValueFromTemplate = (variantIndex: number, optionValue: string) => {
-        const variant = form.getValues(`variants.${variantIndex}`);
-        const variantTemplate = EcommerceCatalogUtils.getVariantTemplateById(variant.id);
-
-        if (!variantTemplate?.options) return;
-
-        const templateOption = variantTemplate.options.find(opt => opt.value === optionValue);
-        if (!templateOption) return;
-
-        const newValue = {
-            value: templateOption.value,
-            label: templateOption.name || templateOption.value,
-            colorCode: templateOption.colorCode,
-            additionalPrice: templateOption.additionalPrice || 0,
-            isDefault: variant.values.length === 0
-        };
-
-        const updatedValues = [...variant.values, newValue];
-        form.setValue(`variants.${variantIndex}.values`, updatedValues);
-    };
-
-    const addCustomVariantValue = (variantIndex: number, value: string, label?: string) => {
-        const variant = form.getValues(`variants.${variantIndex}`);
-
-        const newValue = {
-            value: value,
-            label: label || value,
-            colorCode: variant.type === 'color' ? value : undefined,
-            additionalPrice: 0,
-            isDefault: variant.values.length === 0
-        };
-
-        const updatedValues = [...variant.values, newValue];
-        form.setValue(`variants.${variantIndex}.values`, updatedValues);
-    };
-
-    const removeVariantValue = (variantIndex: number, valueIndex: number) => {
-        const currentVariant = form.getValues(`variants.${variantIndex}`);
-        const updatedValues = currentVariant.values.filter((_, index) => index !== valueIndex);
-        form.setValue(`variants.${variantIndex}.values`, updatedValues);
-    };
-
-    // Tag Handlers
     const addTag = () => {
         if (currentTag.trim()) {
             const currentTags = form.getValues('tags') || [];
@@ -355,7 +295,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         form.setValue('tags', currentTags.filter(tag => tag !== tagToRemove));
     };
 
-    // SKU Generator
     const generateSKU = () => {
         const name = form.getValues('name');
         const category = categories.find((c: Category) => c.id === selectedCategory)?.name || '';
@@ -364,7 +303,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         form.setValue('sku', sku);
     };
 
-    // Step Validation
     const validateStep = async (step: number): Promise<boolean> => {
         const fieldsToValidate: (keyof ProductFormData)[] = [];
 
@@ -390,7 +328,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         return await form.trigger(fieldsToValidate);
     };
 
-    // Navigation
     const handleNextStep = async () => {
         const isValid = await validateStep(currentStep);
         if (isValid && currentStep < steps.length) {
@@ -404,7 +341,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
-    // Form Submission
     const onSubmit = async (values: ProductFormData) => {
         const isValid = await validateStep(currentStep);
 
@@ -818,338 +754,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                     />
 
                     {form.watch('hasVariants') && (
-                        <div className="space-y-6">
-                            <div>
-                                <h4 className="text-sm font-medium mb-3">Available Variant Options</h4>
-                                {availableVariants.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                        <p>Select a product type in the previous step to see available variants</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                                        {availableVariants.map(variant => (
-                                            <Button
-                                                key={variant.id}
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => addVariant(variant)}
-                                                className="justify-start"
-                                                disabled={variantFields.some(field => field.id === variant.id)}
-                                            >
-                                                <Plus className="h-3 w-3 mr-1" />
-                                                {variant.name}
-                                                {variant.isRequired && <span className="text-red-500 ml-1">*</span>}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Selected Variants Configuration */}
-                            {variantFields.length > 0 && (
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-medium">Configure Selected Variants</h4>
-                                    {variantFields.map((field, variantIndex) => {
-                                        const variantTemplate = EcommerceCatalogUtils.getVariantTemplateById(field.id);
-
-                                        return (
-                                            <Card key={field.id} className="border-l-4 border-l-blue-500">
-                                                <CardHeader className="pb-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <CardTitle className="text-base flex items-center gap-2">
-                                                                {field.name}
-                                                                {field.required && <span className="text-red-500 text-sm">*</span>}
-                                                            </CardTitle>
-                                                            <p className="text-xs text-muted-foreground mt-1">
-                                                                {variantTemplate?.description || 'Configure options for this variant'}
-                                                            </p>
-                                                        </div>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => removeVariant(variantIndex)}
-                                                        >
-                                                            <Minus className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="space-y-4">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`variants.${variantIndex}.required`}
-                                                        render={({ field: checkboxField }) => (
-                                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                                                <FormControl>
-                                                                    <Checkbox
-                                                                        checked={checkboxField.value}
-                                                                        onCheckedChange={checkboxField.onChange}
-                                                                    />
-                                                                </FormControl>
-                                                                <div className="space-y-1 leading-none">
-                                                                    <FormLabel className="text-sm">Required variant</FormLabel>
-                                                                </div>
-                                                            </FormItem>
-                                                        )}
-                                                    />
-
-                                                    {/* Template Options */}
-                                                    {variantTemplate?.options && variantTemplate.options.length > 0 && (
-                                                        <div className="space-y-3">
-                                                            <h5 className="text-sm font-medium">Pre-configured Options</h5>
-                                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                                                                {variantTemplate.options.map(option => {
-                                                                    const isSelected = form.watch(`variants.${variantIndex}.values`)?.some(
-                                                                        (v: any) => v.value === option.value
-                                                                    );
-
-                                                                    return (
-                                                                        <Button
-                                                                            key={option.value}
-                                                                            type="button"
-                                                                            variant={isSelected ? "teritary" : "outline"}
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                if (!isSelected) {
-                                                                                    addVariantValueFromTemplate(variantIndex, option.value);
-                                                                                }
-                                                                            }}
-                                                                            disabled={isSelected}
-                                                                            className="justify-start text-xs h-auto py-2"
-                                                                        >
-                                                                            {field.type === 'color' && option.colorCode && (
-                                                                                <div
-                                                                                    className="w-3 h-3 rounded-full border border-gray-300 mr-1 flex-shrink-0"
-                                                                                    style={{ backgroundColor: option.colorCode }}
-                                                                                />
-                                                                            )}
-                                                                            <span className="truncate">{option.name}</span>
-                                                                            {option.additionalPrice && option.additionalPrice !== 0 && (
-                                                                                <span className="ml-1 text-xs text-muted-foreground">
-                                                                                    ({option.additionalPrice > 0 ? '+' : ''}${option.additionalPrice})
-                                                                                </span>
-                                                                            )}
-                                                                        </Button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Custom Values */}
-                                                    <div className="space-y-3">
-                                                        <h5 className="text-sm font-medium">Add Custom Values</h5>
-                                                        <div className="flex gap-2">
-                                                            {field.type === 'color' ? (
-                                                                <div className="flex gap-2 flex-1">
-                                                                    <Input
-                                                                        type="color"
-                                                                        value={editingVariantValues[`${variantIndex}-color`] || '#000000'}
-                                                                        onChange={(e) => setEditingVariantValues(prev => ({
-                                                                            ...prev,
-                                                                            [`${variantIndex}-color`]: e.target.value
-                                                                        }))}
-                                                                        className="w-16 h-10"
-                                                                    />
-                                                                    <Input
-                                                                        placeholder="Color name (e.g., Custom Red)"
-                                                                        value={editingVariantValues[`${variantIndex}-name`] || ''}
-                                                                        onChange={(e) => setEditingVariantValues(prev => ({
-                                                                            ...prev,
-                                                                            [`${variantIndex}-name`]: e.target.value
-                                                                        }))}
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <Input
-                                                                    placeholder={`Add custom ${field.name.toLowerCase()} value`}
-                                                                    value={editingVariantValues[`${variantIndex}-value`] || ''}
-                                                                    onChange={(e) => setEditingVariantValues(prev => ({
-                                                                        ...prev,
-                                                                        [`${variantIndex}-value`]: e.target.value
-                                                                    }))}
-                                                                    onKeyPress={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            e.preventDefault();
-                                                                            const value = editingVariantValues[`${variantIndex}-value`];
-                                                                            if (value?.trim()) {
-                                                                                addCustomVariantValue(variantIndex, value.trim());
-                                                                                setEditingVariantValues(prev => ({
-                                                                                    ...prev,
-                                                                                    [`${variantIndex}-value`]: ''
-                                                                                }));
-                                                                            }
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            )}
-                                                            <Button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    if (field.type === 'color') {
-                                                                        const colorCode = editingVariantValues[`${variantIndex}-color`] || '#000000';
-                                                                        const colorName = editingVariantValues[`${variantIndex}-name`] || '';
-                                                                        if (colorName.trim()) {
-                                                                            addCustomVariantValue(variantIndex, colorCode, colorName.trim());
-                                                                            setEditingVariantValues(prev => ({
-                                                                                ...prev,
-                                                                                [`${variantIndex}-color`]: '#000000',
-                                                                                [`${variantIndex}-name`]: ''
-                                                                            }));
-                                                                        }
-                                                                    } else {
-                                                                        const value = editingVariantValues[`${variantIndex}-value`];
-                                                                        if (value?.trim()) {
-                                                                            addCustomVariantValue(variantIndex, value.trim());
-                                                                            setEditingVariantValues(prev => ({
-                                                                                ...prev,
-                                                                                [`${variantIndex}-value`]: ''
-                                                                            }));
-                                                                        }
-                                                                    }
-                                                                }}
-                                                            >
-                                                                Add
-                                                            </Button>
-                                                        </div>
-
-                                                        {/* Display Selected Values */}
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {form.watch(`variants.${variantIndex}.values`)?.map((value: any, valueIndex: number) => (
-                                                                <Badge
-                                                                    key={valueIndex}
-                                                                    variant="secondary"
-                                                                    className="flex items-center gap-2"
-                                                                >
-                                                                    {field.type === 'color' && (
-                                                                        <div
-                                                                            className="w-3 h-3 rounded-full border border-gray-300"
-                                                                            style={{ backgroundColor: value.colorCode || value.value }}
-                                                                        />
-                                                                    )}
-                                                                    {value.label || value.value}
-                                                                    {value.additionalPrice !== 0 && (
-                                                                        <span className="text-xs">
-                                                                            ({value.additionalPrice > 0 ? '+' : ''}${value.additionalPrice})
-                                                                        </span>
-                                                                    )}
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => removeVariantValue(variantIndex, valueIndex)}
-                                                                        className="ml-1 text-xs hover:text-red-500"
-                                                                    >
-                                                                        ×
-                                                                    </button>
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* NEW: Product Combinations with Variant Strings */}
-                            {combinationFields.length > 0 && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Zap className="h-5 w-5 text-blue-600" />
-                                            Product Combinations with Filter Strings
-                                            <Badge variant="secondary">{combinationFields.length} combinations</Badge>
-                                        </CardTitle>
-                                        <p className="text-sm text-muted-foreground">
-                                            Auto-generated combinations with simple variant strings for easy filtering. Each combination gets strings like [&quot;size-l&quot;, &quot;color-white&quot;].
-                                        </p>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-4 max-h-96 overflow-y-auto">
-                                            {combinationFields.map((combination, index) => (
-                                                <Card key={combination.id} className="border-l-4 border-l-green-500">
-                                                    <CardContent className="pt-4">
-                                                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                                                            {/* Variant Combination Display */}
-                                                            <div className="space-y-2">
-                                                                <h5 className="font-medium text-sm">Variant Combination</h5>
-                                                                <div className="space-y-1">
-                                                                    {Object.entries(combination.variantValues).map(([variantId, value]) => {
-                                                                        const variant = variantFields.find(v => v.id === variantId);
-                                                                        if (!variant) return null;
-
-                                                                        const displayInfo = EcommerceCatalogUtils.getVariantDisplayInfo(variantId, value);
-
-                                                                        return (
-                                                                            <div key={variantId} className="flex items-center gap-2 text-sm">
-                                                                                <span className="text-muted-foreground font-medium">{variant.name}:</span>
-                                                                                {displayInfo.colorCode ? (
-                                                                                    <div className="flex items-center gap-1">
-                                                                                        <div
-                                                                                            className="w-3 h-3 rounded-full border border-gray-300"
-                                                                                            style={{ backgroundColor: displayInfo.colorCode }}
-                                                                                        />
-                                                                                        <span>{displayInfo.displayName}</span>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span className="font-medium">{displayInfo.displayName}</span>
-                                                                                )}
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-
-                                                                {/* NEW: Display Variant Strings */}
-                                                                <div className="mt-2 p-2 bg-green-50 rounded text-xs">
-                                                                    <div className="font-medium text-green-800 mb-1">Filter Strings:</div>
-                                                                    <div className="flex flex-wrap gap-1">
-                                                                        {combination.variantStrings?.map((str, strIndex) => (
-                                                                            <Badge key={strIndex} variant="outline" className="text-xs bg-green-100 text-green-800">
-                                                                                {str}
-                                                                            </Badge>
-                                                                        ))}
-                                                                    </div>
-                                                                    <div className="text-green-600 mt-1 text-xs">
-                                                                        Perfect for Appwrite filtering!
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <CustomFormField
-                                                                fieldType={FormFieldType.INPUT}
-                                                                control={form.control}
-                                                                name={`productCombinations.${index}.sku`}
-                                                                label="SKU"
-                                                                placeholder="Auto-generated SKU"
-                                                            />
-
-                                                            <CustomFormField
-                                                                fieldType={FormFieldType.NUMBER_INPUT}
-                                                                control={form.control}
-                                                                name={`productCombinations.${index}.price`}
-                                                                label="Price"
-                                                                placeholder="Calculated price"
-                                                            />
-
-                                                            <CustomFormField
-                                                                fieldType={FormFieldType.NUMBER_INPUT}
-                                                                control={form.control}
-                                                                name={`productCombinations.${index}.quantity`}
-                                                                label="Quantity"
-                                                                placeholder="Stock quantity"
-                                                            />
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
+                        <VariantConfig
+                            control={form.control}
+                            variantTemplates={availableVariants}
+                        />
                     )}
                 </CardContent>
             </Card>

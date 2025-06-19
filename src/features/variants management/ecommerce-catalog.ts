@@ -129,15 +129,16 @@ export class EcommerceCatalogUtils {
      * Get all variant templates from catalog data
      */
     static getVariantTemplates(): VariantTemplate[] {
-        return this.data.variantTemplates.map(template => ({
+        // Convert object to array using Object.values() or Object.entries()
+        return Object.values(this.data.variantTemplates).map(template => ({
             id: template.id,
             name: template.name,
             description: template.description,
             inputType: template.inputType as 'select' | 'multiselect' | 'color' | 'boolean' | 'text',
             isRequired: template.isRequired,
-            categoryIds: template.categoryIds,
-            productTypeIds: template.productTypeIds,
-            subcategoryIds: template.subcategoryIds,
+            // categoryIds: template.categoryIds,
+            // productTypeIds: template.productTypeIds,
+            // subcategoryIds: template.subcategoryIds,
             options: template.options?.map((option: VariantOption) => ({
                 value: option.value,
                 name: option.name,
@@ -187,7 +188,6 @@ export class EcommerceCatalogUtils {
         // Get templates based on mapping
         // @ts-ignore
         const mapping = this.data.productTypeVariantMapping?.[categoryId]?.[actualProductType] || [];
-
         return this.getVariantTemplates().filter(template => {
             // Check direct mapping first (most specific)
             if (mapping.includes(template.id)) return true;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Models } from "node-appwrite";
 
 export type SignInParams = {
@@ -298,6 +299,8 @@ export interface VariantTemplate {
     isRequired?: boolean;
     categoryIds?: string[];
     productTypeIds?: string[];
+    values?: any;
+    templateId?: string;
 }
 
 export interface ProductType {
