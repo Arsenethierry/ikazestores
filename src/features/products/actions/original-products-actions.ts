@@ -2,16 +2,20 @@
 "use server";
 
 import { createSafeActionClient } from "next-safe-action"
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCT_VARIANTS_COLLECTION_ID, PRODUCTS_BUCKET_ID, VARIANT_COMBINATIONS_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
-import { authMiddleware, physicalStoreOwnerMiddleware } from "../../../lib/actions/middlewares";
-import { ID, Query } from "node-appwrite";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCT_VARIANT_OPTIONS_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, PRODUCTS_BUCKET_ID, VARIANT_COMBINATION_VALUES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "@/lib/env-config";
+import { authMiddleware } from "../../../lib/actions/middlewares";
+import { ID } from "node-appwrite";
 import { AppwriteRollback } from "@/lib/actions/rollback";
-import { createSessionClient } from "@/lib/appwrite";
+// import { createSessionClient } from "@/lib/appwrite";
 import { revalidatePath } from "next/cache";
-import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
-import { DeleteProductSchema, ProductSchema } from "@/lib/schemas/products-schems";
-import { OriginalProductTypes, VariantOptions } from "@/lib/types";
-import { VariantCombinationType } from "@/lib/schemas/product-variants-schema";
+// import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
+import {
+    DeleteProductSchema,
+    // DeleteProductSchema, 
+    ProductSchemaProps
+} from "@/lib/schemas/products-schems";
+// import { OriginalProductTypes } from "@/lib/types";
+// import { VariantCombinationType } from "@/lib/schemas/product-variants-schema";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -21,15 +25,15 @@ const action = createSafeActionClient({
 
 export const createNewProduct = action
     .use(authMiddleware)
-    .schema(ProductSchema)
+    .schema(ProductSchemaProps)
     .action(async ({ parsedInput, ctx }) => {
         const { databases, storage, user } = ctx;
         const rollback = new AppwriteRollback(storage, databases)
         try {
 
-            if (parsedInput.hasVariants && parsedInput.variantCombinations && parsedInput.variantCombinations.length > 0) {
-                const invalidCombinations = parsedInput.variantCombinations.filter(
-                    (combo: any) => combo.finalPrice < parsedInput.basePrice
+            if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
+                const invalidCombinations = parsedInput.productCombinations.filter(
+                    (combo: any) => combo.price < parsedInput.basePrice
                 );
 
                 if (invalidCombinations.length > 0) {
@@ -55,46 +59,27 @@ export const createNewProduct = action
             }
 
             const productId = ID.unique();
-            console.log(parsedInput)
             const productData = {
-                title: parsedInput.title,
+                title: parsedInput.name,
                 description: parsedInput.description,
-                createdBy: user.$id,
-                store: parsedInput.storeId,
-                storeId: parsedInput.storeId,
-                isPublished: parsedInput.isActive,
-                storeLat: parsedInput.storeLat,
-                storeLong: parsedInput.storeLong,
-                storeOriginCountry: parsedInput.storeOriginCountry,
-                generalProductImages: imageUrls.map(image => image),
-                productTypeId: parsedInput.productTypeId,
-                categoryId: parsedInput.categoryId,
-                // selectedVariants: parsedInput.variantSelections,
-                // hasVariants: parsedInput.hasVariants || false,
-                // isActive: parsedInput.isActive,
-                featured: parsedInput.featured,
+                shortDescription: parsedInput.shortDescription || "",
+                sku: parsedInput.sku,
                 basePrice: parsedInput.basePrice,
-                // compareAtPrice: parsedInput.compareAtPrice,
-                costPrice: 900,
-                trackInventory: true,
-                inventoryQuantity: 7,
-                // sku: parsedInput.hasVariants ? undefined : parsedInput.sku,
-                // lowStockThreshold: parsedInput.lowStockThreshold,
-                allowBackorders: parsedInput.allowBackorders,
-                // weight: parsedInput.weight,
-                // dimensions: parsedInput.dimensions ? JSON.stringify(parsedInput.dimensions) : undefined,
-                shippingRequired: parsedInput.shippingRequired,
-                minOrderQuantity: parsedInput.minOrderQuantity,
-                // maxOrderQuantity: parsedInput.maxOrderQuantity,
-                // seoTitle: parsedInput.seoTitle,
-                // seoDescription: parsedInput.seoDescription,
-                tags: parsedInput.tags,
-                // brandId: parsedInput.brandId,
-                // warrantyInfo: parsedInput.warrantyInfo,
-                // returnPolicy: parsedInput.returnPolicy,
-                // specifications: parsedInput.specifications ? JSON.stringify(parsedInput.specifications) : undefined,
-                // metaFields: parsedInput.metaFields ? JSON.stringify(parsedInput.metaFields) : undefined,
+                categoryId: parsedInput.categoryId,
+                subcategoryId: parsedInput.subcategoryId,
+                productTypeId: parsedInput.productTypeId,
+                status: parsedInput.status,
+                featured: parsedInput.featured,
+                generalProductImages: imageUrls.map(image => image),
+                // tags: parsedInput.tags,
+                brand: parsedInput.brand || "",
+                model: parsedInput.model || "",
+                createdBy: user.$id,
+                storeId: parsedInput.storeId,
+                hasVariants: parsedInput.hasVariants || false,
+                storeOriginCountry: parsedInput.storeOriginCountry
             };
+
             const newProduct = await databases.createDocument(
                 DATABASE_ID,
                 ORIGINAL_PRODUCT_ID,
@@ -103,55 +88,83 @@ export const createNewProduct = action
             );
             await rollback.trackDocument(ORIGINAL_PRODUCT_ID, newProduct.$id);
 
-            if (parsedInput.hasVariants && parsedInput.variantSelections) {
-                for (const [templateId, selectedOptions] of Object.entries(parsedInput.variantSelections)) {
-                    if (selectedOptions.length > 0) {
-                        const instanceId = ID.unique();
+            if (parsedInput.hasVariants && parsedInput.variants && parsedInput.variants.length > 0) {
+                for (const variant of parsedInput.variants) {
+                    const variantId = ID.unique();
+                    await databases.createDocument(
+                        DATABASE_ID,
+                        PRODUCT_VARIANTS_COLLECTION_ID,
+                        variantId,
+                        {
+                            productId,
+                            variantTemplateId: variant.templateId,
+                            name: variant.name,
+                            type: variant.type,
+                            required: variant.required || false,
+                            storeId: parsedInput.storeId,
+                        }
+                    );
+                    await rollback.trackDocument(PRODUCT_VARIANTS_COLLECTION_ID, variantId);
+
+                    for (const option of variant.values) {
+                        const optionId = ID.unique();
                         await databases.createDocument(
                             DATABASE_ID,
-                            PRODUCT_VARIANTS_COLLECTION_ID,
-                            instanceId,
+                            PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
+                            optionId,
                             {
-                                productId,
-                                variantTemplateId: templateId,
-                                value: "selectedOptions",
-                                isEnabled: true,
-                                storeId: parsedInput.storeId,
+                                variantId,
+                                value: option.value,
+                                label: option.label || "",
+                                colorCode: option.colorCode || "",
+                                additionalPrice: option.additionalPrice || 0,
+                                isDefault: option.isDefault || false
                             }
-                        );
-                        await rollback.trackDocument(PRODUCT_VARIANTS_COLLECTION_ID, instanceId);
+                        )
                     }
                 }
             }
 
-            if (parsedInput.hasVariants && parsedInput.variantCombinations && parsedInput.variantCombinations.length > 0) {
-                for (const combination of parsedInput.variantCombinations) {
+            if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
+                for (const combination of parsedInput.productCombinations) {
                     const combinationId = ID.unique();
+
                     await databases.createDocument(
                         DATABASE_ID,
                         VARIANT_COMBINATIONS_COLLECTION_ID,
                         combinationId,
                         {
                             productId,
-                            // storeId: parsedInput.storeId,
-                            variantValues: JSON.stringify(combination.variantValues),
-                            basePrice: combination.basePrice,
-                            finalPrice: combination.finalPrice,
-                            additionalPrices: combination.additionalPrices ? JSON.stringify(combination.additionalPrices) : undefined,
                             sku: combination.sku,
-                            inventoryQuantity: parsedInput.trackInventory ? (combination.inventoryQuantity || 0) : undefined,
-                            isActive: combination.isActive !== undefined ? combination.isActive : true,
-                            // displayName: combination.displayName,
-                            // shortDescription: combination.shortDescription,
-                            availability: combination.availability || (parsedInput.trackInventory ? 'out_of_stock' : 'in_stock'),
+                            price: combination.price,
+                            quantity: combination.quantity || 0,
+                            weight: combination.weight || 0,
+                            isDefault: combination.isDefault || false,
+                            variantStrings: combination.variantStrings || [],
                             createdBy: user.$id,
                         }
                     );
                     await rollback.trackDocument(VARIANT_COMBINATIONS_COLLECTION_ID, combinationId);
+
+                    for (const [templateId, value] of Object.entries(combination.variantValues)) {
+                        const valueId = ID.unique();
+                        await databases.createDocument(
+                            DATABASE_ID,
+                            VARIANT_COMBINATION_VALUES_COLLECTION_ID,
+                            valueId,
+                            {
+                                combinationId,
+                                variantTemplateId: templateId,
+                                value
+                            }
+                        );
+                        await rollback.trackDocument(VARIANT_COMBINATION_VALUES_COLLECTION_ID, valueId);
+                    }
                 }
             }
+
             revalidatePath('/admin/stores/[storeId]/products');
-            return { success: `Product "${parsedInput.title}" has been created successfully` };
+            return { success: `Product "${parsedInput.name}" created successfully!` };
         } catch (error) {
             console.log("createNewProduct eror: ", error);
             await rollback.rollback();
@@ -159,189 +172,189 @@ export const createNewProduct = action
         }
     })
 
-export const generateVariantCombinations = async ({
-    variantInstances,
-    basePrice,
-    trackInventory,
-    autoGenerateSKU = true,
-    skuPrefix = "PROD"
-}: {
-    variantInstances: Array<{
-        variantTemplateId: string;
-        selectedOptions: string[];
-        isEnabled: boolean;
-    }>;
-    basePrice: number;
-    trackInventory: boolean;
-    autoGenerateSKU?: boolean;
-    skuPrefix?: string;
-}) => {
-    try {
-        const combinations: VariantCombinationType[] = [];
+// export const generateVariantCombinations = async ({
+//     variantInstances,
+//     basePrice,
+//     trackInventory,
+//     autoGenerateSKU = true,
+//     skuPrefix = "PROD"
+// }: {
+//     variantInstances: Array<{
+//         variantTemplateId: string;
+//         selectedOptions: string[];
+//         isEnabled: boolean;
+//     }>;
+//     basePrice: number;
+//     trackInventory: boolean;
+//     autoGenerateSKU?: boolean;
+//     skuPrefix?: string;
+// }) => {
+//     try {
+//         const combinations: VariantCombinationType[] = [];
 
-        const generateCombinations = (
-            templates: typeof variantInstances,
-            currentCombination: Record<string, string> = {},
-            index = 0
-        ): void => {
-            if (index >= templates.length) {
-                const combination = createCombinationFromSelection(
-                    currentCombination,
-                    templates,
-                    basePrice,
-                    trackInventory,
-                    autoGenerateSKU,
-                    skuPrefix
-                );
-                combinations.push(combination);
-                return;
-            }
+//         const generateCombinations = (
+//             templates: typeof variantInstances,
+//             currentCombination: Record<string, string> = {},
+//             index = 0
+//         ): void => {
+//             if (index >= templates.length) {
+//                 const combination = createCombinationFromSelection(
+//                     currentCombination,
+//                     templates,
+//                     basePrice,
+//                     trackInventory,
+//                     autoGenerateSKU,
+//                     skuPrefix
+//                 );
+//                 combinations.push(combination);
+//                 return;
+//             }
 
-            const currentTemplate = templates[index];
-            for (const optionValue of currentTemplate.selectedOptions) {
-                generateCombinations(
-                    templates,
-                    { ...currentCombination, [currentTemplate.variantTemplateId]: optionValue },
-                    index + 1
-                );
-            }
-        }
+//             const currentTemplate = templates[index];
+//             for (const optionValue of currentTemplate.selectedOptions) {
+//                 generateCombinations(
+//                     templates,
+//                     { ...currentCombination, [currentTemplate.variantTemplateId]: optionValue },
+//                     index + 1
+//                 );
+//             }
+//         }
 
-        const createCombinationFromSelection = (
-            selection: Record<string, string>,
-            templates: any[],
-            basePrice: number,
-            trackInventory: boolean,
-            autoGenerateSKU: boolean,
-            skuPrefix: string
-        ): VariantCombinationType => {
-            let totalAdditionalPrice = 0;
-            const additionalPrices: Record<string, number> = {};
-            const displayParts: string[] = [];
-            const skuParts: string[] = [skuPrefix];
+//         const createCombinationFromSelection = (
+//             selection: Record<string, string>,
+//             templates: any[],
+//             basePrice: number,
+//             trackInventory: boolean,
+//             autoGenerateSKU: boolean,
+//             skuPrefix: string
+//         ): VariantCombinationType => {
+//             let totalAdditionalPrice = 0;
+//             const additionalPrices: Record<string, number> = {};
+//             const displayParts: string[] = [];
+//             const skuParts: string[] = [skuPrefix];
 
-            for (const [templateId, optionValue] of Object.entries(selection)) {
-                const template = templates.find(t => t.variantTemplateId === templateId)?.template;
-                const option = template?.options?.find((opt: VariantOptions) => opt.value === optionValue);
+//             for (const [templateId, optionValue] of Object.entries(selection)) {
+//                 const template = templates.find(t => t.variantTemplateId === templateId)?.template;
+//                 const option = template?.options?.find((opt: VariantOptions) => opt.value === optionValue);
 
-                if (option) {
-                    totalAdditionalPrice += option.additionalPrice;
-                    additionalPrices[templateId] = option.additionalPrice;
-                    displayParts.push(option.name);
+//                 if (option) {
+//                     totalAdditionalPrice += option.additionalPrice;
+//                     additionalPrices[templateId] = option.additionalPrice;
+//                     displayParts.push(option.name);
 
-                    // Build SKU part
-                    if (autoGenerateSKU) {
-                        const skuPart = option.value.slice(0, 3).toUpperCase();
-                        skuParts.push(skuPart);
-                    }
-                }
-            }
+//                     // Build SKU part
+//                     if (autoGenerateSKU) {
+//                         const skuPart = option.value.slice(0, 3).toUpperCase();
+//                         skuParts.push(skuPart);
+//                     }
+//                 }
+//             }
 
-            const finalPrice = basePrice + totalAdditionalPrice;
-            const displayName = displayParts.join(' - ');
-            const sku = autoGenerateSKU ? skuParts.join('-') : '';
+//             const finalPrice = basePrice + totalAdditionalPrice;
+//             const displayName = displayParts.join(' - ');
+//             const sku = autoGenerateSKU ? skuParts.join('-') : '';
 
-            return {
-                id: `combo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                variantValues: Object.fromEntries(
-                    Object.entries(selection).map(([templateId, value]) => [templateId, [value]])
-                ),
-                basePrice,
-                finalPrice,
-                additionalPrices,
-                sku,
-                inventoryQuantity: trackInventory ? 0 : 1,
-                isActive: true,
-                displayName,
-                shortDescription: `${displayName} variant`,
-                availability: trackInventory ? 'out_of_stock' : 'in_stock'
-            };
-        }
+//             return {
+//                 id: `combo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+//                 variantValues: Object.fromEntries(
+//                     Object.entries(selection).map(([templateId, value]) => [templateId, [value]])
+//                 ),
+//                 basePrice,
+//                 finalPrice,
+//                 additionalPrices,
+//                 sku,
+//                 inventoryQuantity: trackInventory ? 0 : 1,
+//                 isActive: true,
+//                 displayName,
+//                 shortDescription: `${displayName} variant`,
+//                 availability: trackInventory ? 'out_of_stock' : 'in_stock'
+//             };
+//         }
 
-        generateCombinations(variantInstances);
+//         generateCombinations(variantInstances);
 
-        return {
-            success: true,
-            combinations,
-            totalCombinations: combinations.length
-        };
-    } catch (error) {
-        console.error("generateVariantCombinations error:", error);
-        return {
-            serverError: error instanceof Error ? error.message : "Failed to generate combinations"
-        };
-    }
-};
+//         return {
+//             success: true,
+//             combinations,
+//             totalCombinations: combinations.length
+//         };
+//     } catch (error) {
+//         console.error("generateVariantCombinations error:", error);
+//         return {
+//             serverError: error instanceof Error ? error.message : "Failed to generate combinations"
+//         };
+//     }
+// };
 
-export const getOriginalProducts = action
-    .use(authMiddleware)
-    .use(physicalStoreOwnerMiddleware)
-    .action(async () => {
-        try {
-            const { databases } = await createSessionClient();
-            const products = await databases.listDocuments(
-                DATABASE_ID,
-                ORIGINAL_PRODUCT_ID,
-                [
-                    Query.orderDesc('$updatedAt')
-                    // Query.limit(15)
-                ]
-            )
+// export const getOriginalProducts = action
+//     .use(authMiddleware)
+//     .use(physicalStoreOwnerMiddleware)
+//     .action(async () => {
+//         try {
+//             const { databases } = await createSessionClient();
+//             const products = await databases.listDocuments(
+//                 DATABASE_ID,
+//                 ORIGINAL_PRODUCT_ID,
+//                 [
+//                     Query.orderDesc('$updatedAt')
+//                     // Query.limit(15)
+//                 ]
+//             )
 
-            return { products }
-        } catch (error) {
-            return { error: error instanceof Error ? error.message : "Failed to fetch products" };
-        }
-    })
+//             return { products }
+//         } catch (error) {
+//             return { error: error instanceof Error ? error.message : "Failed to fetch products" };
+//         }
+//     })
 
-export const getOriginalProductsWithVirtualProducts = action
-    .use(authMiddleware)
-    .use(physicalStoreOwnerMiddleware)
-    .action(async () => {
-        try {
-            const { databases } = await createSessionClient();
-            const products = await databases.listDocuments<OriginalProductTypes>(
-                DATABASE_ID,
-                ORIGINAL_PRODUCT_ID,
-                [
-                    Query.orderDesc('$updatedAt')
-                    // Query.limit(15)
-                ]
-            )
+// export const getOriginalProductsWithVirtualProducts = action
+//     .use(authMiddleware)
+//     .use(physicalStoreOwnerMiddleware)
+//     .action(async () => {
+//         try {
+//             const { databases } = await createSessionClient();
+//             const products = await databases.listDocuments<OriginalProductTypes>(
+//                 DATABASE_ID,
+//                 ORIGINAL_PRODUCT_ID,
+//                 [
+//                     Query.orderDesc('$updatedAt')
+//                     // Query.limit(15)
+//                 ]
+//             )
 
-            if (products.total > 0) {
-                const productsWithVirtualProducts = await Promise.all(
-                    products.documents.map(async (product) => {
-                        const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
+//             if (products.total > 0) {
+//                 const productsWithVirtualProducts = await Promise.all(
+//                     products.documents.map(async (product) => {
+//                         const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
 
-                        const virtualProducts = 'error' in virtualProductsResponse
-                            ? []
-                            : virtualProductsResponse.documents;
+//                         const virtualProducts = 'error' in virtualProductsResponse
+//                             ? []
+//                             : virtualProductsResponse.documents;
 
-                        return {
-                            ...product,
-                            vitualProducts: virtualProducts
-                        };
-                    })
-                );
+//                         return {
+//                             ...product,
+//                             vitualProducts: virtualProducts
+//                         };
+//                     })
+//                 );
 
-                return {
-                    products: {
-                        ...products,
-                        documents: productsWithVirtualProducts
-                    }
-                };
-            }
-            return {
-                products: {
-                    total: 0,
-                    documents: []
-                }
-            };
-        } catch (error) {
-            return { error: error instanceof Error ? error.message : "Failed to fetch products" };
-        }
-    })
+//                 return {
+//                     products: {
+//                         ...products,
+//                         documents: productsWithVirtualProducts
+//                     }
+//                 };
+//             }
+//             return {
+//                 products: {
+//                     total: 0,
+//                     documents: []
+//                 }
+//             };
+//         } catch (error) {
+//             return { error: error instanceof Error ? error.message : "Failed to fetch products" };
+//         }
+//     })
 
 export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     try {
@@ -364,54 +377,54 @@ export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     }
 }
 
-export const getNearbyStoresOriginalProducts = async (
-    southWest: { lat: number, lng: number },
-    northEast: { lat: number, lng: number }
-) => {
-    try {
-        const { databases } = await createSessionClient();
-        const nearbyProducts = await databases.listDocuments<OriginalProductTypes>(
-            DATABASE_ID,
-            ORIGINAL_PRODUCT_ID,
-            [
-                Query.greaterThan("storeLat", southWest.lat),
-                Query.lessThan("storeLat", northEast.lat),
-                Query.greaterThan("storeLong", southWest.lng),
-                Query.lessThan("storeLong", northEast.lng)
-            ]
-        );
+// export const getNearbyStoresOriginalProducts = async (
+//     southWest: { lat: number, lng: number },
+//     northEast: { lat: number, lng: number }
+// ) => {
+//     try {
+//         const { databases } = await createSessionClient();
+//         const nearbyProducts = await databases.listDocuments<OriginalProductTypes>(
+//             DATABASE_ID,
+//             ORIGINAL_PRODUCT_ID,
+//             [
+//                 Query.greaterThan("storeLat", southWest.lat),
+//                 Query.lessThan("storeLat", northEast.lat),
+//                 Query.greaterThan("storeLong", southWest.lng),
+//                 Query.lessThan("storeLong", northEast.lng)
+//             ]
+//         );
 
-        if (nearbyProducts.total > 0) {
-            const productsWithVirtualProducts = await Promise.all(
-                nearbyProducts.documents.map(async (product) => {
-                    const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
+//         if (nearbyProducts.total > 0) {
+//             const productsWithVirtualProducts = await Promise.all(
+//                 nearbyProducts.documents.map(async (product) => {
+//                     const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
 
-                    const virtualProducts = 'error' in virtualProductsResponse
-                        ? []
-                        : virtualProductsResponse.documents;
+//                     const virtualProducts = 'error' in virtualProductsResponse
+//                         ? []
+//                         : virtualProductsResponse.documents;
 
-                    return {
-                        ...product,
-                        vitualProducts: virtualProducts
-                    }
-                })
-            );
+//                     return {
+//                         ...product,
+//                         vitualProducts: virtualProducts
+//                     }
+//                 })
+//             );
 
-            return {
-                ...nearbyProducts,
-                documents: productsWithVirtualProducts
-            }
-        }
+//             return {
+//                 ...nearbyProducts,
+//                 documents: productsWithVirtualProducts
+//             }
+//         }
 
-        return {
-            total: 0,
-            documents: []
-        }
-    } catch (error) {
-        console.error("Error getting stores in bounding box:", error);
-        return { total: 0, documents: [] }
-    }
-}
+//         return {
+//             total: 0,
+//             documents: []
+//         }
+//     } catch (error) {
+//         console.error("Error getting stores in bounding box:", error);
+//         return { total: 0, documents: [] }
+//     }
+// }
 
 export const deleteOriginalProduct = action
     .use(authMiddleware)
@@ -448,54 +461,54 @@ export const deleteOriginalProduct = action
         }
     })
 
-export const getProductWithCombinations = async ({ productId }: { productId: string }) => {
-    try {
-        const { databases } = await createSessionClient();
-        const product = await databases.getDocument(
-            DATABASE_ID,
-            ORIGINAL_PRODUCT_ID,
-            productId
-        );
-        let variantCombinations = [];
-        if (product.hasVariants) {
-            const combinationsResponse = await databases.listDocuments(
-                DATABASE_ID,
-                VARIANT_COMBINATIONS_COLLECTION_ID,
-                [
-                    Query.equal('productId', productId),
-                ]
-            );
-            variantCombinations = combinationsResponse.documents.map(doc => ({
-                ...doc,
-                variantValues: JSON.parse(doc.variantValues),
-                additionalPrices: doc.additionalPrices ? JSON.parse(doc.additionalPrices) : {},
-            }));
+// export const getProductWithCombinations = async ({ productId }: { productId: string }) => {
+//     try {
+//         const { databases } = await createSessionClient();
+//         const product = await databases.getDocument(
+//             DATABASE_ID,
+//             ORIGINAL_PRODUCT_ID,
+//             productId
+//         );
+//         let variantCombinations = [];
+//         if (product.hasVariants) {
+//             const combinationsResponse = await databases.listDocuments(
+//                 DATABASE_ID,
+//                 VARIANT_COMBINATIONS_COLLECTION_ID,
+//                 [
+//                     Query.equal('productId', productId),
+//                 ]
+//             );
+//             variantCombinations = combinationsResponse.documents.map(doc => ({
+//                 ...doc,
+//                 variantValues: JSON.parse(doc.variantValues),
+//                 additionalPrices: doc.additionalPrices ? JSON.parse(doc.additionalPrices) : {},
+//             }));
 
-            let variantInstances = [] as any[];
-            if (product.hasVariants) {
-                const instancesResponse = await databases.listDocuments(
-                    DATABASE_ID,
-                    PRODUCT_VARIANTS_COLLECTION_ID,
-                    [
-                        Query.equal('productId', productId)
-                    ]
-                );
-                variantInstances = instancesResponse.documents;
-            }
+//             let variantInstances = [] as any[];
+//             if (product.hasVariants) {
+//                 const instancesResponse = await databases.listDocuments(
+//                     DATABASE_ID,
+//                     PRODUCT_VARIANTS_COLLECTION_ID,
+//                     [
+//                         Query.equal('productId', productId)
+//                     ]
+//                 );
+//                 variantInstances = instancesResponse.documents;
+//             }
 
-            return {
-                product: {
-                    ...product,
-                    dimensions: product.dimensions ? JSON.parse(product.dimensions) : undefined,
-                    specifications: product.specifications ? JSON.parse(product.specifications) : undefined,
-                    metaFields: product.metaFields ? JSON.parse(product.metaFields) : undefined,
-                },
-                variantCombinations,
-                variantInstances
-            };
-        }
-    } catch (error) {
-        console.error("Error getting stores in bounding box:", error);
-        return { product: null, variantCombinations: null, variantInstances: null }
-    }
-}
+//             return {
+//                 product: {
+//                     ...product,
+//                     dimensions: product.dimensions ? JSON.parse(product.dimensions) : undefined,
+//                     specifications: product.specifications ? JSON.parse(product.specifications) : undefined,
+//                     metaFields: product.metaFields ? JSON.parse(product.metaFields) : undefined,
+//                 },
+//                 variantCombinations,
+//                 variantInstances
+//             };
+//         }
+//     } catch (error) {
+//         console.error("Error getting stores in bounding box:", error);
+//         return { product: null, variantCombinations: null, variantInstances: null }
+//     }
+// }

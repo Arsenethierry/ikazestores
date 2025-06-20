@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { VariantOption, VariantTemplate } from "@/lib/types";
 import { Minus, Package, Plus, Settings, Star, Upload, X } from "lucide-react";
 import Image from "next/image";
-import React, { useState } from "react";
+import React from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 
 interface VariantValue {
@@ -30,10 +30,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
     control,
     variantTemplates
 }) => {
-    const [previewImages, setPreviewImages] = useState<{ [key: string]: string[] }>({});
-    const [editingValues, setEditingValues] = useState<{ [key: string]: any }>({});
-
-    const { setValue, watch } = useFormContext();
+    const { watch, setValue } = useFormContext();
     const hasVariants = watch('hasVariants');
     const watchedVariants = watch('variants') || [];
 
@@ -76,37 +73,19 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
     const removeValueFromVariant = (variantIndex: number, valueIndex: number) => {
         const currentVariant = watchedVariants[variantIndex];
         const updatedValues = currentVariant.values.filter((_: any, index: number) => index !== valueIndex);
-
-        // Clean up preview images
-        const key = `${variantIndex}-${valueIndex}`;
-        if (previewImages[key]) {
-            previewImages[key].forEach(url => URL.revokeObjectURL(url));
-            setPreviewImages(prev => {
-                const newPrev = { ...prev };
-                delete newPrev[key];
-                return newPrev;
-            });
-        }
-
         setValue(`variants.${variantIndex}.values`, updatedValues);
     }
 
     const handleImageUpload = (variantIndex: number, valueIndex: number, files: FileList) => {
         const filesArray = Array.from(files);
-        const previewUrls = filesArray.map(file => URL.createObjectURL(file));
-        const key = `${variantIndex}-${valueIndex}`;
-
-        setPreviewImages(prev => ({
-            ...prev,
-            [key]: previewUrls
-        }));
-
         const currentVariant = watch(`variants.${variantIndex}`);
         const updatedValues = [...currentVariant.values];
+        
         updatedValues[valueIndex] = {
             ...updatedValues[valueIndex],
             images: filesArray
         };
+        
         setValue(`variants.${variantIndex}.values`, updatedValues);
     };
 
@@ -121,13 +100,12 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
     };
 
     const renderVariantValueInput = (
-        variant: VariantTemplate,
         variantIndex: number,
         template: VariantTemplate
     ) => {
-        const key = `${variantIndex}-input`;
+        const variant = watchedVariants[variantIndex] || { values: [] };
 
-        switch (variant.inputType) {
+        switch (template.inputType) {
             case 'color':
                 return (
                     <div className="space-y-4">
@@ -180,40 +158,36 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                         <div className="space-y-3">
                             <h5 className="text-sm font-medium">Add Custom Color</h5>
                             <div className="flex gap-2">
-                                <input
+                                <Input
                                     type="color"
-                                    value={editingValues[`${key}-color`] || '#000000'}
-                                    onChange={(e) => setEditingValues(prev => ({
-                                        ...prev,
-                                        [`${key}-color`]: e.target.value
-                                    }))}
+                                    defaultValue="#000000"
+                                    onChange={(e) => {
+                                        const color = e.target.value;
+                                        setValue(`variants.${variantIndex}.newColor`, color);
+                                    }}
                                     className="w-12 h-10 rounded border border-gray-300"
                                 />
                                 <Input
                                     placeholder="Color name (e.g., Ocean Blue)"
-                                    value={editingValues[`${key}-name`] || ''}
-                                    onChange={(e) => setEditingValues(prev => ({
-                                        ...prev,
-                                        [`${key}-name`]: e.target.value
-                                    }))}
+                                    onChange={(e) => {
+                                        setValue(`variants.${variantIndex}.newColorName`, e.target.value);
+                                    }}
                                     className="flex-1"
                                 />
                                 <Input
                                     type="number"
                                     placeholder="Price +/-"
-                                    value={editingValues[`${key}-price`] || ''}
-                                    onChange={(e) => setEditingValues(prev => ({
-                                        ...prev,
-                                        [`${key}-price`]: e.target.value
-                                    }))}
+                                    onChange={(e) => {
+                                        setValue(`variants.${variantIndex}.newColorPrice`, e.target.value);
+                                    }}
                                     className="w-24"
                                 />
                                 <Button
                                     type="button"
                                     onClick={() => {
-                                        const colorCode = editingValues[`${key}-color`] || '#000000';
-                                        const colorName = editingValues[`${key}-name`];
-                                        const price = parseFloat(editingValues[`${key}-price`] || '0');
+                                        const colorCode = watch(`variants.${variantIndex}.newColor`) || '#000000';
+                                        const colorName = watch(`variants.${variantIndex}.newColorName`);
+                                        const price = parseFloat(watch(`variants.${variantIndex}.newColorPrice`) || 0);
 
                                         if (colorName) {
                                             addValueToVariant(variantIndex, {
@@ -224,12 +198,9 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                             });
 
                                             // Clear inputs
-                                            setEditingValues(prev => ({
-                                                ...prev,
-                                                [`${key}-color`]: '#000000',
-                                                [`${key}-name`]: '',
-                                                [`${key}-price`]: ''
-                                            }));
+                                            setValue(`variants.${variantIndex}.newColor`, '#000000');
+                                            setValue(`variants.${variantIndex}.newColorName`, '');
+                                            setValue(`variants.${variantIndex}.newColorPrice`, '');
                                         }
                                     }}
                                 >
@@ -286,19 +257,17 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                             <h5 className="text-sm font-medium">Add Custom Option</h5>
                             <div className="flex gap-2">
                                 <Input
-                                    placeholder={`Add custom ${variant.name.toLowerCase()} option`}
-                                    value={editingValues[`${key}-value`] || ''}
-                                    onChange={(e) => setEditingValues(prev => ({
-                                        ...prev,
-                                        [`${key}-value`]: e.target.value
-                                    }))}
+                                    placeholder={`Add custom ${template.name.toLowerCase()} option`}
+                                    onChange={(e) => {
+                                        setValue(`variants.${variantIndex}.newOptionValue`, e.target.value);
+                                    }}
                                     className="flex-1"
                                     onKeyPress={(e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
-                                            const value = editingValues[`${key}-value`];
-                                            const label = editingValues[`${key}-label`] || value;
-                                            const price = parseFloat(editingValues[`${key}-price`] || '0');
+                                            const value = watch(`variants.${variantIndex}.newOptionValue`);
+                                            const label = watch(`variants.${variantIndex}.newOptionLabel`) || value;
+                                            const price = parseFloat(watch(`variants.${variantIndex}.newOptionPrice`) || 0);
 
                                             if (value) {
                                                 addValueToVariant(variantIndex, {
@@ -308,41 +277,34 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                 });
 
                                                 // Clear inputs
-                                                setEditingValues(prev => ({
-                                                    ...prev,
-                                                    [`${key}-value`]: '',
-                                                    [`${key}-label`]: '',
-                                                    [`${key}-price`]: ''
-                                                }));
+                                                setValue(`variants.${variantIndex}.newOptionValue`, '');
+                                                setValue(`variants.${variantIndex}.newOptionLabel`, '');
+                                                setValue(`variants.${variantIndex}.newOptionPrice`, '');
                                             }
                                         }
                                     }}
                                 />
                                 <Input
                                     placeholder="Display name"
-                                    value={editingValues[`${key}-label`] || ''}
-                                    onChange={(e) => setEditingValues(prev => ({
-                                        ...prev,
-                                        [`${key}-label`]: e.target.value
-                                    }))}
+                                    onChange={(e) => {
+                                        setValue(`variants.${variantIndex}.newOptionLabel`, e.target.value);
+                                    }}
                                     className="flex-1"
                                 />
                                 <Input
                                     type="number"
                                     placeholder="Price +/-"
-                                    value={editingValues[`${key}-price`] || ''}
-                                    onChange={(e) => setEditingValues(prev => ({
-                                        ...prev,
-                                        [`${key}-price`]: e.target.value
-                                    }))}
+                                    onChange={(e) => {
+                                        setValue(`variants.${variantIndex}.newOptionPrice`, e.target.value);
+                                    }}
                                     className="w-24"
                                 />
                                 <Button
                                     type="button"
                                     onClick={() => {
-                                        const value = editingValues[`${key}-value`];
-                                        const label = editingValues[`${key}-label`] || value;
-                                        const price = parseFloat(editingValues[`${key}-price`] || '0');
+                                        const value = watch(`variants.${variantIndex}.newOptionValue`);
+                                        const label = watch(`variants.${variantIndex}.newOptionLabel`) || value;
+                                        const price = parseFloat(watch(`variants.${variantIndex}.newOptionPrice`) || 0);
 
                                         if (value) {
                                             addValueToVariant(variantIndex, {
@@ -351,12 +313,9 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                 additionalPrice: price
                                             });
 
-                                            setEditingValues(prev => ({
-                                                ...prev,
-                                                [`${key}-value`]: '',
-                                                [`${key}-label`]: '',
-                                                [`${key}-price`]: ''
-                                            }));
+                                            setValue(`variants.${variantIndex}.newOptionValue`, '');
+                                            setValue(`variants.${variantIndex}.newOptionLabel`, '');
+                                            setValue(`variants.${variantIndex}.newOptionPrice`, '');
                                         }
                                     }}
                                 >
@@ -424,22 +383,17 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                         <h5 className="text-sm font-medium">Add Custom Values</h5>
                         <div className="flex gap-2">
                             <Input
-                                placeholder={`Add ${variant.name.toLowerCase()} value`}
-                                value={editingValues[`${key}-value`] || ''}
-                                onChange={(e) => setEditingValues(prev => ({
-                                    ...prev,
-                                    [`${key}-value`]: e.target.value
-                                }))}
+                                placeholder={`Add ${template.name.toLowerCase()} value`}
+                                onChange={(e) => {
+                                    setValue(`variants.${variantIndex}.newCustomValue`, e.target.value);
+                                }}
                                 onKeyPress={(e) => {
                                     if (e.key === 'Enter') {
                                         e.preventDefault();
-                                        const value = editingValues[`${key}-value`];
+                                        const value = watch(`variants.${variantIndex}.newCustomValue`);
                                         if (value) {
                                             addValueToVariant(variantIndex, { value });
-                                            setEditingValues(prev => ({
-                                                ...prev,
-                                                [`${key}-value`]: ''
-                                            }));
+                                            setValue(`variants.${variantIndex}.newCustomValue`, '');
                                         }
                                     }
                                 }}
@@ -447,13 +401,10 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                             <Button
                                 type="button"
                                 onClick={() => {
-                                    const value = editingValues[`${key}-value`];
+                                    const value = watch(`variants.${variantIndex}.newCustomValue`);
                                     if (value) {
                                         addValueToVariant(variantIndex, { value });
-                                        setEditingValues(prev => ({
-                                            ...prev,
-                                            [`${key}-value`]: ''
-                                        }));
+                                        setValue(`variants.${variantIndex}.newCustomValue`, '');
                                     }
                                 }}
                             >
@@ -465,8 +416,9 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         }
     };
 
-    const renderSelectedValues = (variant: VariantTemplate, variantIndex: number) => {
-        const currentValues = variant.values || [];
+    const renderSelectedValues = (variantIndex: number) => {
+        const currentVariant = watchedVariants[variantIndex] || {};
+        const currentValues = currentVariant.values || [];
         
         if (currentValues.length === 0) {
             return (
@@ -479,13 +431,13 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
 
         return (
             <div className="space-y-3">
-                <h5 className="text-sm font-medium">Selected Values ({variant.values.length})</h5>
+                <h5 className="text-sm font-medium">Selected Values ({currentValues.length})</h5>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                     {currentValues.map((value: any, valueIndex: number) => (
                         <div key={value.id} className="p-3 bg-gray-50 rounded-lg border">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3 flex-1">
-                                    {variant.inputType === 'color' && value.colorCode && (
+                                    {currentVariant.type === 'color' && value.colorCode && (
                                         <div
                                             className="w-6 h-6 rounded-full border border-gray-300 flex-shrink-0"
                                             style={{ backgroundColor: value.colorCode }}
@@ -520,7 +472,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                             <span className="text-xs text-muted-foreground">USD</span>
                                         </div>
 
-                                        {variant.inputType === 'color' && (
+                                        {currentVariant.type === 'color' && (
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2">
                                                     <input
@@ -549,12 +501,12 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     </Button>
                                                 </div>
 
-                                                {previewImages[`${variantIndex}-${valueIndex}`] && (
+                                                {value.images && value.images.length > 0 && (
                                                     <div className="flex gap-1 flex-wrap">
-                                                        {previewImages[`${variantIndex}-${valueIndex}`].slice(0, 5).map((url, imgIndex) => (
+                                                        {value.images.slice(0, 5).map((file: File, imgIndex: number) => (
                                                             <div key={imgIndex} className="relative">
                                                                 <Image
-                                                                    src={url}
+                                                                    src={URL.createObjectURL(file)}
                                                                     width={50}
                                                                     height={50}
                                                                     alt={`Preview ${imgIndex + 1}`}
@@ -562,9 +514,9 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                                 />
                                                             </div>
                                                         ))}
-                                                        {previewImages[`${variantIndex}-${valueIndex}`].length > 5 && (
+                                                        {value.images.length > 5 && (
                                                             <div className="w-12 h-12 bg-gray-200 rounded border flex items-center justify-center text-xs">
-                                                                +{previewImages[`${variantIndex}-${valueIndex}`].length - 5}
+                                                                +{value.images.length - 5}
                                                             </div>
                                                         )}
                                                     </div>
@@ -651,22 +603,22 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium">Configure Selected Variants</h3>
                     {variantFields.map((field: any, variantIndex: any) => {
-                        const variant = field as VariantTemplate;
+                        const currentVariant = watchedVariants[variantIndex];
+                        if (!currentVariant) return null;
 
-                        const template = variantTemplates.find(t => t.id === variant.templateId);
-
+                        const template = variantTemplates.find(t => t.id === currentVariant.templateId);
                         if (!template) return null;
 
                         return (
-                            <Card key={variant.id} className="border-l-4 border-l-blue-500">
+                            <Card key={field.id} className="border-l-4 border-l-blue-500">
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <CardTitle className="text-base">{variant.name}</CardTitle>
-                                            {variant.isRequired && (
+                                            <CardTitle className="text-base">{currentVariant.name}</CardTitle>
+                                            {currentVariant.required && (
                                                 <Badge variant="destructive" className="text-xs">Required</Badge>
                                             )}
-                                            <Badge variant="outline" className="text-xs">{variant.inputType}</Badge>
+                                            <Badge variant="outline" className="text-xs">{currentVariant.type}</Badge>
                                         </div>
                                         <Button
                                             type="button"
@@ -685,22 +637,22 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                 <CardContent className="space-y-6">
                                     <div className="flex items-center space-x-2">
                                         <Switch
-                                            checked={variant.isRequired}
+                                            checked={currentVariant.required}
                                             onCheckedChange={(checked) => {
                                                 setValue(`variants.${variantIndex}.required`, checked);
                                             }}
-                                            id={`required-${variant.id}`}
+                                            id={`required-${field.id}`}
                                         />
-                                        <Label htmlFor={`required-${variant.id}`}>Required variant</Label>
+                                        <Label htmlFor={`required-${field.id}`}>Required variant</Label>
                                     </div>
 
                                     <Separator />
 
-                                    {renderVariantValueInput(variant, variantIndex, template)}
+                                    {renderVariantValueInput(variantIndex, template)}
 
                                     <Separator />
 
-                                    {renderSelectedValues(variant, variantIndex)}
+                                    {renderSelectedValues(variantIndex)}
                                 </CardContent>
                             </Card>
                         );

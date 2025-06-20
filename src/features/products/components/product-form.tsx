@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
     Stepper,
     StepperDescription,
@@ -23,99 +20,25 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
-import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle } from 'lucide-react';
-import { Category, ProductType, Subcategory, VariantTemplate } from '@/lib/types';
+import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Category, PhysicalStoreTypes, ProductType, Subcategory, VariantTemplate } from '@/lib/types';
 import EcommerceCatalogUtils from '@/features/variants management/ecommerce-catalog';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
 import { VariantConfig } from '@/features/variants management/variant-config';
+import { productFormSchema } from '@/lib/schemas/products-schems';
+import { useAction } from 'next-safe-action/hooks';
+import { createNewProduct } from '../actions/original-products-actions';
+import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Enhanced Product form schema
-const productFormSchema = z.object({
-    // Basic Information
-    name: z.string().min(1, 'Product name is required'),
-    description: z.string().min(10, 'Description must be at least 10 characters'),
-    shortDescription: z.string().optional(),
-    sku: z.string().min(1, 'SKU is required'),
-
-    // Category & Type
-    categoryId: z.string().min(1, 'Category is required'),
-    subcategoryId: z.string().min(1, 'Subcategory is required'),
-    productTypeId: z.string().min(1, 'Product type is required'),
-
-    // Pricing & Inventory
-    basePrice: z.number().min(0, 'Price must be positive'),
-    compareAtPrice: z.number().optional(),
-    costPerItem: z.number().optional(),
-    trackQuantity: z.boolean().default(true),
-    quantity: z.number().min(0, 'Quantity must be 0 or greater'),
-    lowStockThreshold: z.number().min(0).optional(),
-
-    // Physical Properties
-    weight: z.number().optional(),
-    dimensions: z.object({
-        length: z.number().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        unit: z.string().default('cm')
-    }).optional(),
-
-    // Product Status
-    status: z.enum(['active', 'draft', 'archived']).default('draft'),
-    featured: z.boolean().default(false),
-
-    // SEO
-    seoTitle: z.string().optional(),
-    seoDescription: z.string().optional(),
-
-    // Variants
-    hasVariants: z.boolean().default(false),
-    variants: z.array(z.object({
-        templateId: z.string(),
-        name: z.string(),
-        type: z.enum(['text', 'color', 'select', 'boolean', 'multiselect']),
-        values: z.array(z.object({
-            value: z.string(),
-            label: z.string().optional(),
-            colorCode: z.string().optional(),
-            additionalPrice: z.number().optional(),
-            isDefault: z.boolean().default(false)
-        })),
-        required: z.boolean().default(false)
-    })).optional(),
-
-    // Product Combinations with variant strings
-    productCombinations: z.array(z.object({
-        id: z.string(),
-        variantValues: z.record(z.string()),
-        sku: z.string(),
-        price: z.number(),
-        compareAtPrice: z.number().optional(),
-        quantity: z.number().optional(),
-        weight: z.number().optional(),
-        barcode: z.string().optional(),
-        images: z.array(z.any()).optional(),
-        isDefault: z.boolean().default(false),
-        // Simple variant strings for filtering - this is what we want!
-        variantStrings: z.array(z.string()).optional()
-    })).optional(),
-
-    // Images
-    images: z.array(z.any()).min(1, 'At least one image is required'),
-
-    // Tags
-    tags: z.array(z.string()).default([]),
-
-    // Additional Properties
-    brand: z.string().optional(),
-    model: z.string().optional(),
-});
 
 type ProductFormData = z.infer<typeof productFormSchema>;
 
 interface ProductFormProps {
-    storeData: any;
+    storeData: PhysicalStoreTypes;
 }
 
 const steps = [
@@ -169,14 +92,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             description: '',
             sku: '',
             basePrice: 0,
-            trackQuantity: true,
-            quantity: 0,
-            status: 'draft',
+            status: 'active',
             featured: false,
             hasVariants: false,
             images: [],
             tags: [],
-            dimensions: { unit: 'cm' },
         }
     });
 
@@ -196,7 +116,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const watchedHasVariants = form.watch("hasVariants");
     const watchedVariants = form.watch("variants");
 
-    console.log("watchedVariants: ", watchedVariants)
     useEffect(() => {
         if (selectedProductType) {
             const variants = EcommerceCatalogUtils.getRecommendedVariantTemplates(selectedProductType);
@@ -241,10 +160,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
 
         const combinations = EcommerceCatalogUtils.generateCombinationsWithStrings(
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             variants,
             basePrice,
             baseSku
         );
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         replaceCombinations(combinations);
     };
@@ -309,9 +231,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         switch (step) {
             case 1:
                 fieldsToValidate.push('name', 'description', 'sku', 'basePrice');
-                if (form.getValues('trackQuantity')) {
-                    fieldsToValidate.push('quantity');
-                }
                 break;
             case 2:
                 fieldsToValidate.push('categoryId', 'subcategoryId', 'productTypeId');
@@ -341,27 +260,34 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
+    const { execute: createProduct, status, result } = useAction(createNewProduct, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data.success)
+            } else if (data?.serverError) {
+                toast.error(data.serverError)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError || "An unexpected error occurred")
+        }
+    })
     const onSubmit = async (values: ProductFormData) => {
         const isValid = await validateStep(currentStep);
 
-        if (isValid) {
-            console.log('Product Data with Variant Strings:', values);
-            console.log('Store:', storeData);
+        if (!isValid) return;
 
-            // Show example of variant strings generated
-            if (values.productCombinations && values.productCombinations.length > 0) {
-                console.log('Generated Variant Strings:');
-                values.productCombinations.forEach((combo, index) => {
-                    console.log(`Combination ${index + 1}: [${combo.variantStrings?.join(', ')}]`);
-                });
-            }
+        const formData = {
+            ...values,
+            storeId: storeData.$id,
+            storeLat: storeData.latitude,
+            storeLong: storeData.longitude,
+            storeOriginCountry: storeData.country,
+        };
 
-            // Here you would submit to your backend
-            alert('Product created successfully! Check console for variant strings.');
-        }
+        createProduct(formData)
     };
 
-    // Step Content Renderers
     const renderBasicInfoStep = () => (
         <div className="space-y-6">
             <Card>
@@ -406,76 +332,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                         label="Short Description (Optional)"
                         placeholder="Brief product summary"
                     />
-                </CardContent>
-            </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Pricing & Inventory</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="basePrice"
-                            label="Base Price"
-                            placeholder="0.00"
-                        />
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="compareAtPrice"
-                            label="Compare at Price (Optional)"
-                            placeholder="0.00"
-                        />
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="costPerItem"
-                            label="Cost per Item (Optional)"
-                            placeholder="0.00"
-                        />
-                    </div>
-
-                    <Separator />
-
-                    <FormField
+                    <CustomFormField
+                        fieldType={FormFieldType.NUMBER_INPUT}
                         control={form.control}
-                        name="trackQuantity"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                    <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                    <FormLabel>Track Quantity</FormLabel>
-                                </div>
-                            </FormItem>
-                        )}
+                        name="basePrice"
+                        label="Base Price"
+                        placeholder="0.00"
                     />
-
-                    {form.watch('trackQuantity') && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <CustomFormField
-                                fieldType={FormFieldType.NUMBER_INPUT}
-                                control={form.control}
-                                name="quantity"
-                                label="Quantity"
-                                placeholder="0"
-                            />
-                            <CustomFormField
-                                fieldType={FormFieldType.NUMBER_INPUT}
-                                control={form.control}
-                                name="lowStockThreshold"
-                                label="Low Stock Threshold"
-                                placeholder="5"
-                            />
-                        </div>
-                    )}
                 </CardContent>
             </Card>
 
@@ -914,7 +778,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 </CardContent>
             </Card>
 
-            {/* NEW: Variant Strings Preview */}
             {combinationFields.length > 0 && (
                 <Card>
                     <CardHeader>
@@ -1019,7 +882,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             {/* Form */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Step Content */}
+                    {status === "executing" && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-xl">
+                                <Loader2 className="h-12 w-12 animate-spin mx-auto" />
+                                <p className="mt-4 text-center">Creating product...</p>
+                            </div>
+                        </div>
+                    )}
+                    {result?.data?.serverError && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>
+                                {result.data.serverError}
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <div className="min-h-[500px]">
                         {renderStepContent()}
                     </div>
@@ -1060,10 +939,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                         ) : (
                             <Button
                                 type="submit"
+                                disabled={status === "executing"}
                                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
                             >
-                                Create Product
-                                <Package className="h-4 w-4" />
+                                {status === "executing" ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <>
+                                        Create Product
+                                        <Package className="h-4 w-4" />
+                                    </>
+                                )}
                             </Button>
                         )}
                     </div>
