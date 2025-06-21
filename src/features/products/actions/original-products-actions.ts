@@ -4,16 +4,20 @@
 import { createSafeActionClient } from "next-safe-action"
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, ORIGINAL_PRODUCT_ID, PRODUCT_VARIANT_OPTIONS_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, PRODUCTS_BUCKET_ID, VARIANT_COMBINATION_VALUES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "@/lib/env-config";
 import { authMiddleware } from "../../../lib/actions/middlewares";
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 // import { createSessionClient } from "@/lib/appwrite";
 import { revalidatePath } from "next/cache";
-// import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
+import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
 import {
     DeleteProductSchema,
     // DeleteProductSchema, 
-    ProductSchemaProps
+    ProductSchemaProps,
+    // UpdateProductSchemaProps
 } from "@/lib/schemas/products-schems";
+import { OriginalProductTypes } from "@/lib/types";
+import { createSessionClient } from "@/lib/appwrite";
+import { extractFileIdFromUrl } from "@/lib/utils";
 // import { OriginalProductTypes } from "@/lib/types";
 // import { VariantCombinationType } from "@/lib/schemas/product-variants-schema";
 
@@ -28,7 +32,7 @@ export const createNewProduct = action
     .schema(ProductSchemaProps)
     .action(async ({ parsedInput, ctx }) => {
         const { databases, storage, user } = ctx;
-        const rollback = new AppwriteRollback(storage, databases)
+        const rollback = new AppwriteRollback(storage, databases);
         try {
 
             if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
@@ -170,7 +174,56 @@ export const createNewProduct = action
             await rollback.rollback();
             return { error: error instanceof Error ? error.message : "Failed to create product" };
         }
-    })
+    });
+
+
+// export const updateProduct = action
+//     .use(authMiddleware)
+//     .schema(UpdateProductSchemaProps)
+//     .action(async ({ parsedInput, ctx }) => {
+//         const { databases, storage } = ctx;
+//         const rollback = new AppwriteRollback(storage, databases);
+//         const { productId, ...updateData } = parsedInput;
+
+//         try {
+//             const existingProduct = await databases.getDocument<OriginalProductTypes>(
+//                 DATABASE_ID,
+//                 ORIGINAL_PRODUCT_ID,
+//                 productId
+//             );
+
+//             if (updateData.hasVariants && updateData.productCombinations) {
+//                 const invalidCombinations = updateData.productCombinations.filter(
+//                     (combo: any) => combo.price < updateData.basePrice
+//                 );
+
+//                 if (invalidCombinations.length > 0) {
+//                     return {
+//                         serverError: "Some variant combinations have prices lower than the base price"
+//                     };
+//                 }
+//             }
+
+//             const newImageUrls: string[] = [...existingProduct.generalProductImages];
+//             const imagesToDelete: string[] = [];
+
+//             if (updateData.images) {
+//                 for (const image of updateData.images) {
+//                     const uploadedImage = await storage.createFile(
+//                         PRODUCTS_BUCKET_ID,
+//                         ID.unique(),
+//                         image
+//                     );
+//                     await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
+
+//                     const imageUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`;
+//                     newImageUrls.push(imageUrl);
+//                 }
+//             }
+//         } catch (error) {
+
+//         }
+//     })
 
 // export const generateVariantCombinations = async ({
 //     variantInstances,
@@ -307,54 +360,53 @@ export const createNewProduct = action
 //         }
 //     })
 
-// export const getOriginalProductsWithVirtualProducts = action
-//     .use(authMiddleware)
-//     .use(physicalStoreOwnerMiddleware)
-//     .action(async () => {
-//         try {
-//             const { databases } = await createSessionClient();
-//             const products = await databases.listDocuments<OriginalProductTypes>(
-//                 DATABASE_ID,
-//                 ORIGINAL_PRODUCT_ID,
-//                 [
-//                     Query.orderDesc('$updatedAt')
-//                     // Query.limit(15)
-//                 ]
-//             )
+export const getOriginalProductsWithVirtualProducts = action
+    .use(authMiddleware)
+    .action(async () => {
+        try {
+            const { databases } = await createSessionClient();
+            const products = await databases.listDocuments<OriginalProductTypes>(
+                DATABASE_ID,
+                ORIGINAL_PRODUCT_ID,
+                [
+                    Query.orderDesc('$updatedAt')
+                    // Query.limit(15)
+                ]
+            )
 
-//             if (products.total > 0) {
-//                 const productsWithVirtualProducts = await Promise.all(
-//                     products.documents.map(async (product) => {
-//                         const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
+            if (products.total > 0) {
+                const productsWithVirtualProducts = await Promise.all(
+                    products.documents.map(async (product) => {
+                        const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
 
-//                         const virtualProducts = 'error' in virtualProductsResponse
-//                             ? []
-//                             : virtualProductsResponse.documents;
+                        const virtualProducts = 'error' in virtualProductsResponse
+                            ? []
+                            : virtualProductsResponse.documents;
 
-//                         return {
-//                             ...product,
-//                             vitualProducts: virtualProducts
-//                         };
-//                     })
-//                 );
+                        return {
+                            ...product,
+                            vitualProducts: virtualProducts
+                        };
+                    })
+                );
 
-//                 return {
-//                     products: {
-//                         ...products,
-//                         documents: productsWithVirtualProducts
-//                     }
-//                 };
-//             }
-//             return {
-//                 products: {
-//                     total: 0,
-//                     documents: []
-//                 }
-//             };
-//         } catch (error) {
-//             return { error: error instanceof Error ? error.message : "Failed to fetch products" };
-//         }
-//     })
+                return {
+                    products: {
+                        ...products,
+                        documents: productsWithVirtualProducts
+                    }
+                };
+            }
+            return {
+                products: {
+                    total: 0,
+                    documents: []
+                }
+            };
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : "Failed to fetch products" };
+        }
+    })
 
 export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     try {
@@ -377,89 +429,152 @@ export const getStoreOriginalProducts = async (physicalStoreId: string) => {
     }
 }
 
-// export const getNearbyStoresOriginalProducts = async (
-//     southWest: { lat: number, lng: number },
-//     northEast: { lat: number, lng: number }
-// ) => {
-//     try {
-//         const { databases } = await createSessionClient();
-//         const nearbyProducts = await databases.listDocuments<OriginalProductTypes>(
-//             DATABASE_ID,
-//             ORIGINAL_PRODUCT_ID,
-//             [
-//                 Query.greaterThan("storeLat", southWest.lat),
-//                 Query.lessThan("storeLat", northEast.lat),
-//                 Query.greaterThan("storeLong", southWest.lng),
-//                 Query.lessThan("storeLong", northEast.lng)
-//             ]
-//         );
+export const getNearbyStoresOriginalProducts = async (
+    southWest: { lat: number, lng: number },
+    northEast: { lat: number, lng: number }
+) => {
+    try {
+        const { databases } = await createSessionClient();
+        const nearbyProducts = await databases.listDocuments<OriginalProductTypes>(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            [
+                Query.greaterThan("storeLat", southWest.lat),
+                Query.lessThan("storeLat", northEast.lat),
+                Query.greaterThan("storeLong", southWest.lng),
+                Query.lessThan("storeLong", northEast.lng)
+            ]
+        );
 
-//         if (nearbyProducts.total > 0) {
-//             const productsWithVirtualProducts = await Promise.all(
-//                 nearbyProducts.documents.map(async (product) => {
-//                     const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
+        if (nearbyProducts.total > 0) {
+            const productsWithVirtualProducts = await Promise.all(
+                nearbyProducts.documents.map(async (product) => {
+                    const virtualProductsResponse = await getAllVirtualPropByOriginalProduct(product.$id);
 
-//                     const virtualProducts = 'error' in virtualProductsResponse
-//                         ? []
-//                         : virtualProductsResponse.documents;
+                    const virtualProducts = 'error' in virtualProductsResponse
+                        ? []
+                        : virtualProductsResponse.documents;
 
-//                     return {
-//                         ...product,
-//                         vitualProducts: virtualProducts
-//                     }
-//                 })
-//             );
+                    return {
+                        ...product,
+                        vitualProducts: virtualProducts
+                    }
+                })
+            );
 
-//             return {
-//                 ...nearbyProducts,
-//                 documents: productsWithVirtualProducts
-//             }
-//         }
+            return {
+                ...nearbyProducts,
+                documents: productsWithVirtualProducts
+            }
+        }
 
-//         return {
-//             total: 0,
-//             documents: []
-//         }
-//     } catch (error) {
-//         console.error("Error getting stores in bounding box:", error);
-//         return { total: 0, documents: [] }
-//     }
-// }
+        return {
+            total: 0,
+            documents: []
+        }
+    } catch (error) {
+        console.error("Error getting stores in bounding box:", error);
+        return { total: 0, documents: [] }
+    }
+}
 
 export const deleteOriginalProduct = action
     .use(authMiddleware)
     .schema(DeleteProductSchema)
     .action(async ({ parsedInput: { productId }, ctx }) => {
-        const { databases } = ctx;
+        const { databases, storage } = ctx;
         try {
+            const product = await databases.getDocument(
+                DATABASE_ID,
+                ORIGINAL_PRODUCT_ID,
+                productId
+            );
+
             await databases.deleteDocument(
                 DATABASE_ID,
                 ORIGINAL_PRODUCT_ID,
                 productId
             );
 
-            const clones = await getAllVirtualPropByOriginalProduct(productId)
-
-            if (clones && clones.total > 0) {
-                await Promise.all(
-                    clones.documents.map(async (document) => {
-                        await databases.updateDocument(
-                            DATABASE_ID,
-                            VIRTUAL_PRODUCT_ID,
-                            document.$id,
-                            {
-                                archived: true
-                            }
-                        )
-                    })
-                )
+            if (product.generalProductImages && product.generalProductImages.length > 0) {
+                for (const imageUrl of product.generalProductImages) {
+                    const fileId = extractFileIdFromUrl(imageUrl);
+                    await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId);
+                }
             }
+
+            revalidatePath('/admin/stores/[storeId]/products');
+            return { success: "Product deleted successfully!" };
 
             revalidatePath('/admin/stores/[storeId]/products')
         } catch (error) {
             return { error: error instanceof Error ? error.message : "Failed to delete product" };
         }
-    })
+    });
+
+export async function deleteProductVariants(productId: string) {
+    try {
+        const { databases } = await createSessionClient()
+        const combinations = await databases.listDocuments(
+            DATABASE_ID,
+            VARIANT_COMBINATIONS_COLLECTION_ID,
+            [Query.equal("productId", productId)]
+        );
+
+        for (const combination of combinations.documents) {
+            const values = await databases.listDocuments(
+                DATABASE_ID,
+                VARIANT_COMBINATION_VALUES_COLLECTION_ID,
+                [Query.equal("combinationId", combination.$id)]
+            );
+
+            for (const value of values.documents) {
+                await databases.deleteDocument(
+                    DATABASE_ID,
+                    VARIANT_COMBINATION_VALUES_COLLECTION_ID,
+                    value.$id
+                );
+            }
+
+            await databases.deleteDocument(
+                DATABASE_ID,
+                VARIANT_COMBINATIONS_COLLECTION_ID,
+                combination.$id
+            );
+        }
+
+        const variants = await databases.listDocuments(
+            DATABASE_ID,
+            PRODUCT_VARIANTS_COLLECTION_ID,
+            [Query.equal("productId", productId)]
+        );
+
+        for (const variant of variants.documents) {
+            const options = await databases.listDocuments(
+                DATABASE_ID,
+                PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
+                [Query.equal("variantId", variant.$id)]
+            );
+
+            for (const option of options.documents) {
+                await databases.deleteDocument(
+                    DATABASE_ID,
+                    PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
+                    option.$id
+                );
+            }
+
+            await databases.deleteDocument(
+                DATABASE_ID,
+                PRODUCT_VARIANTS_COLLECTION_ID,
+                variant.$id
+            );
+        }
+    } catch (error) {
+        console.log(error)
+        return null;
+    }
+}
 
 // export const getProductWithCombinations = async ({ productId }: { productId: string }) => {
 //     try {

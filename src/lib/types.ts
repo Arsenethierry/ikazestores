@@ -111,7 +111,7 @@ export interface SubCategoryTypes extends Models.Document {
 export interface OriginalProductTypes extends Models.Document {
     title: string,
     description: string,
-    price: number,
+    basePrice: number,
     createdBy: string,
     store: PhysicalStoreTypes,
     storeId: string,
@@ -123,7 +123,9 @@ export interface OriginalProductTypes extends Models.Document {
     storeOriginCountry: string,
     colorImages: ColorImagesTypes[],
     subcategoryIds: string[],
-    generalProductImages: string[]
+    generalProductImages: string[],
+    hasVariants: boolean,
+    status: 'text' | 'color' | 'select' | 'boolean' | 'multiselect'
 }
 
 export interface VirtualProductTypes extends Models.Document {

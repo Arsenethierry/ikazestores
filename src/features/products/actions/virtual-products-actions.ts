@@ -132,6 +132,8 @@ export const addNewVirtualProduct = action
                 throw new Error("Product already cloned")
             }
 
+            console.log(values)
+
             const droppedProduct = await ctx.databases.createDocument(
                 DATABASE_ID,
                 VIRTUAL_PRODUCT_ID,

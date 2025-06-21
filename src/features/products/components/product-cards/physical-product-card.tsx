@@ -32,8 +32,8 @@ export const PhysicalProductCard = ({
     const isMyProduct = user ? product?.createdBy === user.$id : false;
 
     let discount;
-    const originalPrice = product?.price ?? product?.sellingPrice;
-    const price = (product.price ?? product.sellingPrice) - 5;
+    const originalPrice = product?.basePrice ?? product?.sellingPrice;
+    const price = (product.basePrice ?? product.sellingPrice) - 5;
 
     const rating = 3;
     const reviews = 135

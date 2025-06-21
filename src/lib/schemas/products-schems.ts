@@ -88,7 +88,13 @@ export const ProductSchemaProps = productFormSchema.extend({
     storeLong: z.number().optional(),
     storeOriginCountry: z.string(),
     minOrderQuantity: z.number().default(1)
-})
+});
+
+export const UpdateProductSchemaProps = ProductSchemaProps.merge(
+    z.object({
+        productId: z.string()
+    })
+)
 
 export const VirtualProductSchema = z.object({
     originalProductId: z.string(),

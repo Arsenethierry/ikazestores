@@ -18,7 +18,7 @@ import { addNewVirtualProduct } from "../../actions/virtual-products-actions";
 const formSchema = z.object({
     title: z.string(),
     description: z.string(),
-    price: z.number().min(1, "Price must be greater than 0"),
+    commission: z.number().min(0, "Commission must be greater than or equal to 0"),
     generalImageUrls: z.array(z.string()),
     imageIds: z.array(z.string()),
 });
@@ -38,12 +38,15 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned, store
         defaultValues: {
             title: product.title,
             description: product.description,
-            price: product.price,
+            commission: 0,
             generalImageUrls: product.generalProductImages || [],
             imageIds: product.imageIds || [],
         },
         mode: "onChange",
     });
+
+    const commission = form.watch("commission") || 0;
+    const finalPrice = product.basePrice + commission;
 
     const { isPending, executeAsync, hasSucceeded } = useAction(addNewVirtualProduct, {
         onSuccess: ({ data }) => {
@@ -59,13 +62,13 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned, store
     })
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        if (!currentUser) throw new Error("You must be logged in")
+        if (!currentUser) throw new Error("You must be logged in");
         const formData = {
-            sellingPrice: values.price,
+            sellingPrice: product.basePrice + values.commission,
             createdBy: currentUser.$id,
             originalProductId: product.$id,
             storeId,
-            purchasePrice: product.price,
+            purchasePrice: product.basePrice,
             currency: product.store.currency,
             ...values
         };
@@ -92,7 +95,7 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned, store
                     <div className="space-y-2">
                         <h2 className="text-xl font-semibold">Clone Product</h2>
                         <p className="text-sm text-gray-500">
-                            Create a copy of this product with your own custom price.
+                            Create a copy of this product with your own commission.
                         </p>
                     </div>
 
@@ -127,10 +130,10 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned, store
 
                                 <FormField
                                     control={form.control}
-                                    name="price"
+                                    name="commission"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Price</FormLabel>
+                                            <FormLabel>Commission</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
@@ -142,6 +145,9 @@ export const CloneProductModal = ({ currentUser, product, isAlreadyCloned, store
                                                     value={field.value ?? ""}
                                                 />
                                             </FormControl>
+                                            <FormDescription>
+                                                Base Price: ${product.basePrice?.toFixed(2)} | Final Price: ${finalPrice?.toFixed(2)}
+                                            </FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}

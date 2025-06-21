@@ -165,3 +165,8 @@ export function formatPrice(price: number, currency: string = 'USD'): string {
     maximumFractionDigits: 2,
   }).format(price);
 }
+
+export function extractFileIdFromUrl(imageUrl: string): string {
+  const urlParts = imageUrl.split('/');
+  return urlParts[urlParts.length - 3];
+}
