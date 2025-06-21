@@ -61,23 +61,18 @@ export const productListColumns: ColumnDef<OriginalProductTypes>[] = [
         },
     },
     {
-        accessorKey: "isPublished",
+        accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-            const isPublished = row.getValue("isPublished");
-            const stock = row.original.inventoryQuantity || 0;
+            const rawStatus = row.getValue("status");
+            const status = typeof rawStatus === 'string' ? rawStatus : 'draft';
 
-            let status = 'Inactive';
             let colorClass = 'bg-gray-100 text-gray-800';
 
-            if (isPublished) {
-                if (stock === 0) {
-                    status = 'Out of Stock';
-                    colorClass = 'bg-red-100 text-red-800';
-                } else {
-                    status = 'Active';
-                    colorClass = 'bg-green-100 text-green-800';
-                }
+            if (status === 'draft' || status === 'archived') {
+                colorClass = 'bg-red-100 text-red-800';
+            } else {
+                colorClass = 'bg-green-100 text-green-800';
             }
 
             return (

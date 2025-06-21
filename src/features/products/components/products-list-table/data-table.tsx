@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -13,33 +14,73 @@ import {
     getSortedRowModel,
     SortingState,
     useReactTable
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAction } from "next-safe-action/hooks";
+import { toast } from "sonner";
+import { deleteOriginalProduct } from "../../actions/original-products-actions";
+import { OriginalProductTypes } from "@/lib/types";
 
-interface DataTableProps<TData, TValue> {
-    columns: ColumnDef<TData, TValue>[]
-    data: TData[],
-    currentStoreId: string
+interface DataTableProps<TValue> {
+    columns: ColumnDef<OriginalProductTypes, TValue>[];
+    data: OriginalProductTypes[];
+    currentStoreId: string;
 }
 
-export function ProductsDataTable<TData, TValue>({
+export function ProductsDataTable<TValue>({
     columns,
     data,
     currentStoreId
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TValue>) {
     const router = useRouter();
 
-    const [sorting, setSorting] = useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
-        []
-    );
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState({});
 
+    const [ConfirmationDialog, confirm] = useConfirm(
+        "Delete Products",
+        "Are you sure you want to delete the selected products? This action cannot be undone.",
+        "destructive"
+    );
+
+    const { execute: executeDelete, status } = useAction(deleteOriginalProduct, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data.success);
+                setRowSelection({});
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError || "Failed to delete products");
+        },
+    });
+
+    const selectColumn: ColumnDef<OriginalProductTypes, TValue> = {
+        id: "select",
+        header: ({ table }) => (
+            <Checkbox
+                checked={table.getIsAllPageRowsSelected()}
+                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                aria-label="Select all"
+            />
+        ),
+        cell: ({ row }) => (
+            <Checkbox
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                aria-label="Select row"
+            />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+    };
 
     const table = useReactTable({
         data,
-        columns,
+        columns: [selectColumn, ...columns],
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         onSortingChange: setSorting,
@@ -50,18 +91,27 @@ export function ProductsDataTable<TData, TValue>({
         state: {
             sorting,
             columnFilters,
-            rowSelection
+            rowSelection,
         },
     });
 
     const selectedRows = table.getFilteredSelectedRowModel().rows;
 
+    const handleBulkDelete = async () => {
+        const confirmed = await confirm();
+        if (!confirmed) return;
+
+        const productIds = selectedRows.map((row) => row.original.$id);
+        executeDelete({ productIds });
+    };
+
     return (
         <div className="space-y-4">
+            <ConfirmationDialog />
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <Input
-                        placeholder="Filter products2..."
+                        placeholder="Filter products..."
                         value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
                             table.getColumn("title")?.setFilterValue(event.target.value)
@@ -70,18 +120,14 @@ export function ProductsDataTable<TData, TValue>({
                     />
                     {selectedRows.length > 0 && (
                         <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600">
+                            <span className="w-max text-sm text-gray-600">
                                 {selectedRows.length} selected
                             </span>
                             <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => {
-                                    if (confirm(`Delete ${selectedRows.length} products?`)) {
-                                        // Handle bulk delete
-                                        console.log('Bulk delete:', selectedRows);
-                                    }
-                                }}
+                                onClick={handleBulkDelete}
+                                disabled={status === "executing"}
                             >
                                 Delete Selected
                             </Button>
@@ -103,9 +149,9 @@ export function ProductsDataTable<TData, TValue>({
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
+                                                  header.column.columnDef.header,
+                                                  header.getContext()
+                                              )}
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -131,7 +177,7 @@ export function ProductsDataTable<TData, TValue>({
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={columns.length}
+                                    colSpan={columns.length + 1} // Account for select column
                                     className="h-24 text-center"
                                 >
                                     No products found.
@@ -167,79 +213,5 @@ export function ProductsDataTable<TData, TValue>({
                 </div>
             </div>
         </div>
-        // <>
-        //     <div className="flex items-center py-4 justify-between">
-        //         <Input
-        //             placeholder="Filter products2..."
-        //             value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-        //             onChange={(event) =>
-        //                 table.getColumn("title")?.setFilterValue(event.target.value)
-        //             }
-        //             className="max-w-sm"
-        //         />
-        //         <Button onClick={() => router.push(`/admin/stores/${currentStoreId}/products/new`)}>New product</Button>
-        //     </div >
-        //     <div className="rounded-md border">
-        //         <Table>
-        //             <TableHeader>
-        //                 {table.getHeaderGroups().map((headerGroup) => (
-        //                     <TableRow key={headerGroup.id}>
-        //                         {headerGroup.headers.map((header) => {
-        //                             return (
-        //                                 <TableHead key={header.id}>
-        //                                     {header.isPlaceholder
-        //                                         ? null
-        //                                         : flexRender(
-        //                                             header.column.columnDef.header,
-        //                                             header.getContext()
-        //                                         )}
-        //                                 </TableHead>
-        //                             )
-        //                         })}
-        //                     </TableRow>
-        //                 ))}
-        //             </TableHeader>
-
-        //             <TableBody>
-        //                 {table.getRowModel().rows?.length ? (
-        //                     table.getRowModel().rows.map((row) => (
-        //                         <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-        //                             {row.getVisibleCells().map((cell) => (
-        //                                 <TableCell key={cell.id}>
-        //                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        //                                 </TableCell>
-        //                             ))}
-        //                         </TableRow>
-        //                     ))
-        //                 ) : (
-        //                     <TableRow>
-        //                         <TableCell colSpan={columns.length} className="h-24 text-center">
-        //                             No data found
-        //                         </TableCell>
-        //                     </TableRow>
-        //                 )}
-        //             </TableBody>
-        //         </Table>
-        //     </div>
-
-        //     <div className="flex items-center justify-end space-x-2 py-4">
-        //         <Button
-        //             variant="outline"
-        //             size="sm"
-        //             onClick={() => table.previousPage()}
-        //             disabled={!table.getCanPreviousPage()}
-        //         >
-        //             Previous
-        //         </Button>
-        //         <Button
-        //             variant="outline"
-        //             size="sm"
-        //             onClick={() => table.nextPage()}
-        //             disabled={!table.getCanNextPage()}
-        //         >
-        //             Next
-        //         </Button>
-        //     </div>
-        // </>
-    )
+    );
 }

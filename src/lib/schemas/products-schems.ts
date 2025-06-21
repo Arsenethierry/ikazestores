@@ -151,7 +151,7 @@ export const OrderSchema = OrderFormSchema.extend({
 });
 
 export const DeleteProductSchema = z.object({
-    productId: z.string()
+    productIds: z.union([z.string(), z.array(z.string())]),
 })
 
 export const CategorySchema = z.object({

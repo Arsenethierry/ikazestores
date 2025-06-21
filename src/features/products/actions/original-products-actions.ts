@@ -35,6 +35,7 @@ export const createNewProduct = action
         const rollback = new AppwriteRollback(storage, databases);
         try {
 
+            console.log(parsedInput)
             if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
                 const invalidCombinations = parsedInput.productCombinations.filter(
                     (combo: any) => combo.price < parsedInput.basePrice
@@ -176,6 +177,103 @@ export const createNewProduct = action
         }
     });
 
+export const deleteOriginalProduct = action
+    .use(authMiddleware)
+    .schema(DeleteProductSchema)
+    .action(async ({ parsedInput, ctx }) => {
+        const { databases, storage } = ctx;
+        try {
+            const productIds = Array.isArray(parsedInput.productIds) ? parsedInput.productIds : [parsedInput.productIds];
+
+            const batchSize = 5;
+            for (let i = 0; i < productIds.length; i += batchSize) {
+                await Promise.all(
+                    productIds.slice(i, i + batchSize).map(async (productId) => {
+                        const product = await databases.getDocument<OriginalProductTypes>(
+                            DATABASE_ID,
+                            ORIGINAL_PRODUCT_ID,
+                            productId
+                        );
+
+                        await Promise.all(
+                            product.generalProductImages.map(async (imageUrl) => {
+                                const fileId = extractFileIdFromUrl(imageUrl);
+                                if (fileId) {
+                                    await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId)
+                                }
+                            })
+                        );
+
+                        const combinations = await databases.listDocuments(
+                            DATABASE_ID,
+                            VARIANT_COMBINATIONS_COLLECTION_ID,
+                            [Query.equal("productId", productId)]
+                        );
+
+                        await Promise.all(
+                            combinations.documents.map(async (combination) => {
+                                const combinationValues = await databases.listDocuments(
+                                    DATABASE_ID,
+                                    VARIANT_COMBINATION_VALUES_COLLECTION_ID,
+                                    [Query.equal("combinationId", combination.$id)]
+                                );
+                                for (const value of combinationValues.documents) {
+                                    await databases.deleteDocument(
+                                        DATABASE_ID,
+                                        VARIANT_COMBINATION_VALUES_COLLECTION_ID,
+                                        value.$id
+                                    )
+                                }
+                                await databases.deleteDocument(
+                                    DATABASE_ID,
+                                    VARIANT_COMBINATIONS_COLLECTION_ID,
+                                    combination.$id
+                                )
+                            })
+                        );
+
+                        const variants = await databases.listDocuments(
+                            DATABASE_ID,
+                            PRODUCT_VARIANTS_COLLECTION_ID,
+                            [Query.equal("productId", productId)]
+                        );
+
+                        await Promise.all(
+                            variants.documents.map(async (variant) => {
+                                const options = await databases.listDocuments(
+                                    DATABASE_ID,
+                                    PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
+                                    [Query.equal("variantId", variant.$id)]
+                                );
+                                for (const option of options.documents) {
+                                    await databases.deleteDocument(
+                                        DATABASE_ID,
+                                        PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
+                                        option.$id
+                                    );
+                                }
+                                await databases.deleteDocument(
+                                    DATABASE_ID,
+                                    PRODUCT_VARIANTS_COLLECTION_ID,
+                                    variant.$id
+                                );
+                            })
+                        );
+
+                        await databases.deleteDocument(
+                            DATABASE_ID,
+                            ORIGINAL_PRODUCT_ID,
+                            productId
+                        )
+                    })
+                );
+            }
+            revalidatePath('/admin/stores/[storeId]/products');
+            return { success: `${productIds.length} product(s) deleted successfully!` };
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : "Failed to delete product(s)" };
+        }
+    })
 
 // export const updateProduct = action
 //     .use(authMiddleware)
@@ -477,40 +575,6 @@ export const getNearbyStoresOriginalProducts = async (
         return { total: 0, documents: [] }
     }
 }
-
-export const deleteOriginalProduct = action
-    .use(authMiddleware)
-    .schema(DeleteProductSchema)
-    .action(async ({ parsedInput: { productId }, ctx }) => {
-        const { databases, storage } = ctx;
-        try {
-            const product = await databases.getDocument(
-                DATABASE_ID,
-                ORIGINAL_PRODUCT_ID,
-                productId
-            );
-
-            await databases.deleteDocument(
-                DATABASE_ID,
-                ORIGINAL_PRODUCT_ID,
-                productId
-            );
-
-            if (product.generalProductImages && product.generalProductImages.length > 0) {
-                for (const imageUrl of product.generalProductImages) {
-                    const fileId = extractFileIdFromUrl(imageUrl);
-                    await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId);
-                }
-            }
-
-            revalidatePath('/admin/stores/[storeId]/products');
-            return { success: "Product deleted successfully!" };
-
-            revalidatePath('/admin/stores/[storeId]/products')
-        } catch (error) {
-            return { error: error instanceof Error ? error.message : "Failed to delete product" };
-        }
-    });
 
 export async function deleteProductVariants(productId: string) {
     try {

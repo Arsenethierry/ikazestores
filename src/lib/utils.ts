@@ -166,7 +166,19 @@ export function formatPrice(price: number, currency: string = 'USD'): string {
   }).format(price);
 }
 
-export function extractFileIdFromUrl(imageUrl: string): string {
-  const urlParts = imageUrl.split('/');
-  return urlParts[urlParts.length - 3];
+export function extractFileIdFromUrl(imageUrl: string): string | null {
+    try {
+        const urlWithoutQuery = imageUrl.split('?')[0];
+        const urlParts = urlWithoutQuery.split('/');
+        const fileId = urlParts[urlParts.length - 2];
+        
+        if (!fileId || !/^[a-zA-Z0-9\-]+$/.test(fileId)) {
+            throw new Error(`Invalid file ID in URL: ${imageUrl}`);
+        }
+        
+        return fileId;
+    } catch (error) {
+        console.error(`Failed to extract file ID from URL: ${imageUrl}`, error);
+        return null;
+    }
 }
