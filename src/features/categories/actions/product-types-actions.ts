@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
-import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID, VARIANT_OPTIONS_COLLECTION_ID, VARIANT_TEMPLATES_COLLECTION_ID } from "@/lib/env-config";
-import { ProductTypeSchema, UpdateProductTypeSchema, VariantCombinationSchema } from "@/lib/schemas/product-variants-schema";
-import { ProductType, VariantOptions, VariantTemplate } from "@/lib/types";
+import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "@/lib/env-config";
+import { ProductTypeSchema, UpdateProductTypeSchema } from "@/lib/schemas/product-variants-schema";
+import { ProductType, VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
@@ -167,54 +166,6 @@ export const deleteProductType = action
         }
     });
 
-
-export const createVariantCombinations = action
-    .use(authMiddleware)
-    .schema(z.array(VariantCombinationSchema))
-    .action(async ({ parsedInput, ctx }) => {
-        const { databases } = ctx;
-
-        try {
-            const productId = parsedInput[0]?.productId;
-            if (!productId) {
-                return { error: "Product ID is required" };
-            }
-
-            const existingCombinations = await databases.listDocuments(
-                DATABASE_ID,
-                VARIANT_COMBINATIONS_COLLECTION_ID,
-                [Query.equal("productId", productId)]
-            );
-
-            if (existingCombinations.total > 0) {
-                await Promise.all(existingCombinations.documents.map(doc =>
-                    databases.deleteDocument(
-                        DATABASE_ID,
-                        VARIANT_COMBINATIONS_COLLECTION_ID,
-                        doc.$id
-                    )
-                ));
-            }
-
-            const results = await Promise.all(parsedInput.map(async (combination) => {
-                const combinationDoc = await databases.createDocument(
-                    DATABASE_ID,
-                    VARIANT_COMBINATIONS_COLLECTION_ID,
-                    ID.unique(),
-                    combination
-                );
-
-                return combinationDoc;
-            }));
-
-            revalidatePath(`/admin/stores/[storeId]/products/${productId}`);
-            return { success: `Created ${results.length} variant combinations for product` };
-        } catch (error) {
-            console.error("createVariantCombinations error:", error);
-            return { error: error instanceof Error ? error.message : "Failed to create variant combinations" };
-        }
-    });
-
 export const getProductVariants = async (productId: string) => {
     try {
         const { databases } = await createSessionClient();
@@ -234,7 +185,7 @@ export const getProductVariants = async (productId: string) => {
         const templates = templateIds.length > 0
             ? await databases.listDocuments(
                 DATABASE_ID,
-                VARIANT_TEMPLATES_COLLECTION_ID,
+                "VARIANT_TEMPLATES_COLLECTION_ID",
                 [Query.equal("$id", templateIds)]
             )
             : { documents: [] };
@@ -309,7 +260,7 @@ export const getAvailableVariantTemplatesForProductType = async ({
 
         const allTemplates = await databases.listDocuments<VariantTemplate>(
             DATABASE_ID,
-            VARIANT_TEMPLATES_COLLECTION_ID,
+            "VARIANT_TEMPLATES_COLLECTION_ID",
             [
                 ...queries,
                 Query.orderAsc("name")
@@ -338,9 +289,9 @@ export const getAvailableVariantTemplatesForProductType = async ({
 
         const templatesWithOptions = await Promise.all(
             availableTemplates.map(async (template) => {
-                const options = await databases.listDocuments<VariantOptions>(
+                const options = await databases.listDocuments(
                     DATABASE_ID,
-                    VARIANT_OPTIONS_COLLECTION_ID,
+                    "VARIANT_OPTIONS_COLLECTION_ID",
                     [
                         Query.equal("variantTemplateId", template.$id),
                         Query.orderAsc("sortOrder"),

@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
-import VariantTemplateForm from "../enhanced-variant-template-form";
+// import VariantTemplateForm from "../enhanced-variant-template-form";
 import { Edit } from "lucide-react";
-import { VariantTemplatePreview } from "./variant-template-preview";
+// import { VariantTemplatePreview } from "./variant-template-preview";
 import { VariantTemplate } from "@/lib/types";
 
 export const CreateTemplateModal = ({
-    storeId,
+    // storeId,
     // productTypeId,
-    onClose
+    // onClose
 }: {
     storeId?: string;
     // productTypeId?: string;
@@ -21,22 +21,22 @@ export const CreateTemplateModal = ({
                     Create a new variant template with basic options
                 </p>
             </div>
-            <VariantTemplateForm
+            {/* <VariantTemplateForm
                 mode="create"
                 storeId={storeId}
                 // productTypeId={productTypeId}
-                onSuccess={onClose}
-                onCancel={onClose}
-                simplified={true}
-            />
+                // onSuccess={onClose}
+                // onCancel={onClose}
+                // simplified={true}
+            /> */}
         </div>
     )
 };
 
 export const EditTemplateModal = ({
     template,
-    storeId,
-    onClose
+    // storeId,
+    // onClose
 }: {
     template: VariantTemplate;
     storeId?: string;
@@ -50,14 +50,14 @@ export const EditTemplateModal = ({
                     Make quick changes to this variant template
                 </p>
             </div>
-            <VariantTemplateForm
+            {/* <VariantTemplateForm
                 mode="edit"
                 initialData={template}
                 storeId={storeId}
-                onSuccess={onClose}
-                onCancel={onClose}
-                simplified={true}
-            />
+                // onSuccess={onClose}
+                // onCancel={onClose}
+                // simplified={true}
+            /> */}
         </div>
     )
 }
@@ -94,7 +94,7 @@ export const ViewTemplateModal = ({
                     </Button>
                 </div>
             </div>
-            <VariantTemplatePreview template={template} />
+            {/* <VariantTemplatePreview template={template} /> */}
         </div>
     );
 }

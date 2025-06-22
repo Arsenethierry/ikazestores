@@ -8,19 +8,20 @@ import ProductTypeForm from "@/features/variants management/components/product-t
 import { ItemNotFoundCard } from "@/components/item-not-found-card";
 
 interface EditProductTypePageProps {
-    params: {
+    params: Promise<{
         productTypeId: string;
         storeId?: string;
-    };
+    }>;
 }
 
 export default async function EditProductTypePage({ params }: EditProductTypePageProps) {
+    const resolvedParams = await params; // Resolve the Promise
     return (
         <div className="container mx-auto py-6">
             <Suspense fallback={<EditProductTypePageSkeleton />}>
                 <EditProductTypeContent 
-                    productTypeId={params.productTypeId} 
-                    storeId={params.storeId}
+                    productTypeId={resolvedParams.productTypeId} 
+                    storeId={resolvedParams.storeId}
                 />
             </Suspense>
         </div>

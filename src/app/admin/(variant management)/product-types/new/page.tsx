@@ -5,17 +5,11 @@ import { getAuthState } from "@/lib/user-label-permission";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-interface CreateProductTypePageProps {
-    params: {
-        storeId?: string;
-    };
-}
-
-export default async function CreateProductTypePage({ params }: CreateProductTypePageProps) {
+export default async function CreateProductTypePage() {
     return (
         <div className="container mx-auto py-6">
             <Suspense fallback={<CreateProductTypePageSkeleton />}>
-                <CreateProductTypeContent storeId={params.storeId} />
+                <CreateProductTypeContent />
             </Suspense>
         </div>
     );

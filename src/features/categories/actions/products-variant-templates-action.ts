@@ -3,7 +3,7 @@
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PRODUCTS_BUCKET_ID, VARIANT_OPTIONS_COLLECTION_ID, VARIANT_TEMPLATES_COLLECTION_ID } from "@/lib/env-config";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PRODUCTS_BUCKET_ID } from "@/lib/env-config";
 import { VariantTemplateSchema } from "@/lib/schemas/product-variants-schema";
 import { VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
@@ -27,7 +27,7 @@ export const createVariantTemplate = action
             const templateId = ID.unique();
             const template = await databases.createDocument(
                 DATABASE_ID,
-                VARIANT_TEMPLATES_COLLECTION_ID,
+                "VARIANT_TEMPLATES_COLLECTION_ID",
                 templateId,
                 {
                     name: parsedInput.name,
@@ -41,7 +41,7 @@ export const createVariantTemplate = action
                     productTypeId: parsedInput.productTypeId || null
                 }
             );
-            await rollback.trackDocument(VARIANT_TEMPLATES_COLLECTION_ID, templateId);
+            await rollback.trackDocument("VARIANT_TEMPLATES_COLLECTION_ID", templateId);
 
             if (parsedInput.options) {
                 for (const option of parsedInput.options) {
@@ -59,7 +59,7 @@ export const createVariantTemplate = action
 
                     await databases.createDocument(
                         DATABASE_ID,
-                        VARIANT_OPTIONS_COLLECTION_ID,
+                        "VARIANT_OPTIONS_COLLECTION_ID",
                         ID.unique(),
                         {
                             variantTemplateId: templateId,
@@ -109,7 +109,7 @@ export const getVariantTemplates = async ({
 
         const templates = await databases.listDocuments(
             DATABASE_ID,
-            VARIANT_TEMPLATES_COLLECTION_ID,
+            "VARIANT_TEMPLATES_COLLECTION_ID",
             queries
         );
 
@@ -117,7 +117,7 @@ export const getVariantTemplates = async ({
             templates.documents.map(async (template) => {
                 const options = await databases.listDocuments(
                     DATABASE_ID,
-                    VARIANT_OPTIONS_COLLECTION_ID,
+                    "VARIANT_OPTIONS_COLLECTION_ID",
                     [
                         Query.equal("variantTemplateId", template.$id),
                         Query.orderAsc("sortOrder")
@@ -157,7 +157,7 @@ export const updateVariantTemplate = action
 
             const updatedTemplate = await databases.updateDocument(
                 DATABASE_ID,
-                VARIANT_TEMPLATES_COLLECTION_ID,
+                "VARIANT_TEMPLATES_COLLECTION_ID",
                 templateId,
                 {
                     name: templateData.name,
@@ -171,7 +171,7 @@ export const updateVariantTemplate = action
             if (options) {
                 const existingOptions = await databases.listDocuments(
                     DATABASE_ID,
-                    VARIANT_OPTIONS_COLLECTION_ID,
+                    "VARIANT_OPTIONS_COLLECTION_ID",
                     [Query.equal("variantTemplateId", templateId)]
                 );
 
@@ -198,7 +198,7 @@ export const updateVariantTemplate = action
                         if (existingOption) {
                             await databases.updateDocument(
                                 DATABASE_ID,
-                                VARIANT_OPTIONS_COLLECTION_ID,
+                                "VARIANT_OPTIONS_COLLECTION_ID",
                                 existingOption.$id,
                                 {
                                     name: option.label || option.value,
@@ -215,7 +215,7 @@ export const updateVariantTemplate = action
                         const optionId = ID.unique();
                         await databases.createDocument(
                             DATABASE_ID,
-                            VARIANT_OPTIONS_COLLECTION_ID,
+                            "VARIANT_OPTIONS_COLLECTION_ID",
                             optionId,
                             {
                                 variantTemplateId: templateId,
@@ -230,7 +230,7 @@ export const updateVariantTemplate = action
                                 storeId: templateData.storeId || null
                             }
                         );
-                        await rollback.trackDocument(VARIANT_OPTIONS_COLLECTION_ID, optionId);
+                        await rollback.trackDocument("VARIANT_OPTIONS_COLLECTION_ID", optionId);
                     }
                 }
 
@@ -238,7 +238,7 @@ export const updateVariantTemplate = action
                 for (const [_, option] of existingOptionsMap) {
                     await databases.deleteDocument(
                         DATABASE_ID,
-                        VARIANT_OPTIONS_COLLECTION_ID,
+                        "VARIANT_OPTIONS_COLLECTION_ID",
                         option.$id
                     );
                 }
@@ -273,7 +273,7 @@ export const deleteVariantTemplate = action
 
             const existingOptions = await databases.listDocuments(
                 DATABASE_ID,
-                VARIANT_OPTIONS_COLLECTION_ID,
+                "VARIANT_OPTIONS_COLLECTION_ID",
                 [Query.equal("variantTemplateId", templateId)]
             );
 
@@ -291,14 +291,14 @@ export const deleteVariantTemplate = action
 
                 await databases.deleteDocument(
                     DATABASE_ID,
-                    VARIANT_OPTIONS_COLLECTION_ID,
+                    "VARIANT_OPTIONS_COLLECTION_ID",
                     option.$id
                 );
             }
 
             await databases.deleteDocument(
                 DATABASE_ID,
-                VARIANT_TEMPLATES_COLLECTION_ID,
+                "VARIANT_TEMPLATES_COLLECTION_ID",
                 templateId
             );
 
@@ -333,7 +333,7 @@ export const getVariantTemplatesForStore = async (storeId?: string | null, produ
 
         const variantTemplates = await databases.listDocuments<VariantTemplate>(
             DATABASE_ID,
-            VARIANT_TEMPLATES_COLLECTION_ID,
+            "VARIANT_TEMPLATES_COLLECTION_ID",
             queries
         );
 

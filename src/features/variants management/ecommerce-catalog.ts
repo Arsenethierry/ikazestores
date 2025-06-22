@@ -93,6 +93,7 @@ export class EcommerceCatalogUtils {
             category.subcategories?.forEach(subcategory => {
                 subcategory.productTypes.forEach(productType => {
                     const productTypeId = `${category.id}-${subcategory.id}-${productType}`;
+                    // @ts-ignore
                     productTypes.push({
                         id: productTypeId,
                         name: this.formatProductTypeName(productType),
@@ -129,23 +130,120 @@ export class EcommerceCatalogUtils {
      * Get all variant templates from catalog data
      */
     static getVariantTemplates(): VariantTemplate[] {
-        // Convert object to array using Object.values() or Object.entries()
-        return Object.values(this.data.variantTemplates).map(template => ({
-            id: template.id,
-            name: template.name,
-            description: template.description,
-            inputType: template.inputType as 'select' | 'multiselect' | 'color' | 'boolean' | 'text',
-            isRequired: template.isRequired,
-            // categoryIds: template.categoryIds,
-            // productTypeIds: template.productTypeIds,
-            // subcategoryIds: template.subcategoryIds,
-            options: template.options?.map((option: VariantOption) => ({
-                value: option.value,
-                name: option.name,
-                additionalPrice: option.additionalPrice,
-                colorCode: option.colorCode
-            }))
-        }));
+        // @ts-ignore
+        return Object.values(this.data.variantTemplates).map((template) => {
+            let group: string | undefined;
+            for (const [groupName, variantIds] of Object.entries(this.data.variantDisplayGroups)) {
+                if (variantIds.includes(template.id)) {
+                    group = groupName
+                        .split('_')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
+                    break;
+                }
+            }
+            if (!group) {
+                for (const [categoryName, variantIds] of Object.entries(this.data.variantCategories)) {
+                    if (variantIds.includes(template.id)) {
+                        group = categoryName
+                            .split('-')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                        break;
+                    }
+                }
+            }
+            group = group || 'Other';
+
+            let type: 'text' | 'color' | 'range' | 'number' | 'select';
+            switch (template.inputType) {
+                case 'color':
+                    type = 'color';
+                    break;
+                case 'text':
+                    type = 'text';
+                    break;
+                case 'boolean':
+                case 'select':
+                case 'multiselect':
+                    type = 'select';
+                    break;
+                default:
+                    const isNumerical = template.options?.every(opt => !isNaN(Number(opt.value)));
+                    type = isNumerical ? 'range' : 'select';
+            }
+
+            let minValue: number | undefined;
+            let maxValue: number | undefined;
+            let step: number | undefined;
+            let unit: string | undefined;
+
+            // @ts-ignore
+            if (type === 'range' || type === 'number') {
+                const values = template.options
+                    ?.map(opt => Number(opt.value))
+                    .filter(val => !isNaN(val))
+                    .sort((a, b) => a - b);
+                if (values?.length) {
+                    minValue = values[0];
+                    maxValue = values[values.length - 1];
+
+                    const diffs = values
+                        .slice(1)
+                        .map((val, i) => val - values[i])
+                        .filter(diff => diff > 0);
+                    step = diffs.length ? Math.min(...diffs) : 1;
+                }
+                if (template.id.includes('spf')) {
+                    unit = 'SPF';
+                } else if (template.id.includes('volume')) {
+                    unit = 'ml';
+                } else if (template.id.includes('battery')) {
+                    unit = 'hours';
+                } else if (template.id.includes('weight')) {
+                    unit = 'lbs';
+                }
+            }
+
+            const categoryIds: string[] = [];
+            const productTypeIds: string[] = [];
+            const subcategoryIds: string[] = [];
+            Object.entries(this.data.productTypeVariantMapping).forEach(([categoryId, mappings]) => {
+                Object.entries(mappings).forEach(([productType, variantIds]) => {
+                    if (variantIds.includes(template.id)) {
+                        categoryIds.push(categoryId);
+                        productTypeIds.push(`${categoryId}-${productType}`);
+                        const parts = productType.split('-');
+                        if (parts.length > 1) {
+                            subcategoryIds.push(`${categoryId}-${parts[0]}`);
+                        }
+                    }
+                });
+            });
+
+            return {
+                $id: template.id,
+                name: template.name,
+                description: template.description,
+                type,
+                isRequired: template.isRequired,
+                categoryIds: categoryIds.length ? categoryIds : undefined,
+                productTypeIds: productTypeIds.length ? productTypeIds : undefined,
+                subcategoryIds: subcategoryIds.length ? subcategoryIds : undefined,
+                variantOptions: template.options?.map((option: VariantOption) => ({
+                    value: option.value,
+                    label: option.name || option.value,
+                    additionalPrice: option.additionalPrice,
+                    colorCode: option.colorCode,
+                    metadata: { count: 0 },
+                })) || [],
+                minValue,
+                maxValue,
+                step,
+                unit,
+                group,
+            };
+        });
     }
 
     static getProductTypesBySubcategory(categoryId: string, subcategoryId: string): ProductType[] {
@@ -156,6 +254,7 @@ export class EcommerceCatalogUtils {
 
         subcategory.productTypes.forEach(productType => {
             const productTypeId = `${categoryId}-${subcategoryId}-${productType}`;
+            // @ts-ignore
             productTypes.push({
                 id: productTypeId,
                 name: this.formatProductTypeName(productType),
@@ -408,7 +507,7 @@ export class EcommerceCatalogUtils {
         Object.entries(variantValues).forEach(([variantId, value]) => {
             const template = this.getVariantTemplateById(variantId);
             if (template?.options) {
-                const option = template.options.find(opt => opt.value === value);
+                const option = template.options.find((opt: any) => opt.value === value);
                 if (option?.additionalPrice) {
                     totalPrice += option.additionalPrice;
                 }
@@ -453,7 +552,7 @@ export class EcommerceCatalogUtils {
             return { displayName: value };
         }
 
-        const option = template.options.find(opt => opt.value === value);
+        const option = template.options.find((opt: any) => opt.value === value);
         if (!option) {
             return { displayName: value };
         }

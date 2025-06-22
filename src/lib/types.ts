@@ -174,13 +174,16 @@ export interface OrderTypes extends Models.Document {
 }
 
 export interface FilterState {
-    price: {
-        min: number;
-        max: number;
-    };
-    sizes: string[];
-    productTypes: string[];
-};
+    storeId?: string;
+    productType?: string;
+    category?: string;
+    page: number;
+    limit: number;
+    sortBy?: string;
+    variants?: { templateId: string; values: string[] }[];
+    priceRange?: { min?: number; max?: number };
+    search?: string;
+}
 
 export enum SortBy {
     newestFirst = 'newest',
@@ -291,21 +294,20 @@ export interface VariantOption {
     colorCode?: string;
 }
 
-export interface VariantTemplate {
+export interface VariantTemplate extends Models.Document {
     id: string;
     name: string;
-    description?: string;
-    subcategoryIds?: string[],
-    inputType: 'select' | 'multiselect' | 'color' | 'boolean' | 'text';
-    options?: VariantOption[];
-    isRequired?: boolean;
-    categoryIds?: string[];
-    productTypeIds?: string[];
-    values?: any;
-    templateId?: string;
+    type: "text" | "color" | "range" | "number" | "select";
+    variantOptions: { value: string; label: string; colorCode?: string; metadata: { count: number } }[];
+    minValue?: number;
+    maxValue?: number;
+    step?: number;
+    unit?: string;
+    group?: string;
+    isRequired?: string; 
 }
 
-export interface ProductType {
+export interface ProductType extends Models.Document {
     id: string;
     name: string;
     description?: string;

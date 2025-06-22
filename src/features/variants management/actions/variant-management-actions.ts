@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { createSessionClient } from "@/lib/appwrite";
-import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID, VARIANT_OPTIONS_COLLECTION_ID, VARIANT_TEMPLATES_COLLECTION_ID } from "@/lib/env-config";
-import { ProductType, VariantOptions, VariantTemplate } from "@/lib/types";
+import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "@/lib/env-config";
+import { ProductType, VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { Query } from "node-appwrite";
@@ -60,7 +59,7 @@ export const getVariantTemplateDetails = async (templateId: string) => {
 
         const variantTemplate = await databases.getDocument<VariantTemplate>(
             DATABASE_ID,
-            VARIANT_TEMPLATES_COLLECTION_ID,
+            "VARIANT_TEMPLATES_COLLECTION_ID",
             templateId
         );
 
@@ -68,9 +67,9 @@ export const getVariantTemplateDetails = async (templateId: string) => {
             return null;
         }
 
-        const variantOptionsResponse = await databases.listDocuments<VariantOptions>(
+        const variantOptionsResponse = await databases.listDocuments(
             DATABASE_ID,
-            VARIANT_OPTIONS_COLLECTION_ID,
+            "VARIANT_OPTIONS_COLLECTION_ID",
             [Query.equal("variantTemplateId", templateId)]
         );
 

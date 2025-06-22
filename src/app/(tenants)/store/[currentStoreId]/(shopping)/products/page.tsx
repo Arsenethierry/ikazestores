@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProductListWithFilters } from "@/features/products/components/filter/product-list-with-filters";
 import { getVirtualStoreById } from "@/lib/actions/vitual-store.action";
 import { AlertTriangle, Package, Store } from "lucide-react";
-import { Metadata } from "next";
+// import { Metadata } from "next";
 // import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -50,66 +50,66 @@ import { Suspense } from "react";
 
 // export default page;
 
-interface StoreProductsPageProps {
-    params: {
-        storeId: string;
-    };
-    searchParams: {
-        productType?: string;
-        category?: string;
-        search?: string;
-        sortBy?: string;
-        page?: string;
-        limit?: string;
-        minPrice?: string;
-        maxPrice?: string;
-        [key: string]: string | undefined;
-    }
-}
+// interface StoreProductsPageProps {
+//     params: {
+//         storeId: string;
+//     };
+//     searchParams: {
+//         productType?: string;
+//         category?: string;
+//         search?: string;
+//         sortBy?: string;
+//         page?: string;
+//         limit?: string;
+//         minPrice?: string;
+//         maxPrice?: string;
+//         [key: string]: string | undefined;
+//     }
+// }
 
-export async function generateMetadata({
-    params,
-    searchParams,
-}: StoreProductsPageProps): Promise<Metadata> {
-    try {
-        const storeResponse = await getVirtualStoreById(params.storeId);
-        const store = storeResponse?.documents?.[0];
-        const storeName = store?.name || "Store";
+// export async function generateMetadata({
+//     params,
+//     searchParams,
+// }: StoreProductsPageProps): Promise<Metadata> {
+//     try {
+//         const storeResponse = await getVirtualStoreById(params.storeId);
+//         const store = storeResponse?.documents?.[0];
+//         const storeName = store?.name || "Store";
 
-        const title = searchParams.search
-            ? `Search: ${searchParams.search} - ${storeName}`
-            : searchParams.category
-                ? `${searchParams.category} - ${storeName}`
-                : `Products - ${storeName}`;
+//         const title = searchParams.search
+//             ? `Search: ${searchParams.search} - ${storeName}`
+//             : searchParams.category
+//                 ? `${searchParams.category} - ${storeName}`
+//                 : `Products - ${storeName}`;
 
-        const description = searchParams.search
-            ? `Search results for "${searchParams.search}" in ${storeName}`
-            : searchParams.category
-                ? `Browse ${searchParams.category} products in ${storeName}`
-                : `Discover amazing products from ${storeName}`;
+//         const description = searchParams.search
+//             ? `Search results for "${searchParams.search}" in ${storeName}`
+//             : searchParams.category
+//                 ? `Browse ${searchParams.category} products in ${storeName}`
+//                 : `Discover amazing products from ${storeName}`;
 
-        return {
-            title,
-            description,
-            openGraph: {
-                title,
-                description,
-                type: 'website',
-                siteName: storeName
-            },
-            robots: {
-                index: true,
-                follow: true,
-            },
-        };
-    } catch (error) {
-        console.error('Error generating metadata:', error);
-        return {
-            title: "Products",
-            description: "Browse our product catalog",
-        };
-    }
-}
+//         return {
+//             title,
+//             description,
+//             openGraph: {
+//                 title,
+//                 description,
+//                 type: 'website',
+//                 siteName: storeName
+//             },
+//             robots: {
+//                 index: true,
+//                 follow: true,
+//             },
+//         };
+//     } catch (error) {
+//         console.error('Error generating metadata:', error);
+//         return {
+//             title: "Products",
+//             description: "Browse our product catalog",
+//         };
+//     }
+// }
 
 export default async function StoreProductsPage(
     props: {

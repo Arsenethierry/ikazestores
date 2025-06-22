@@ -11,13 +11,13 @@ import { SubCategorySchema, UpdateSubCategoryForm } from '@/lib/schemas/products
 import { CurrentUserType, SubCategoryTypes } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
-import { useAction } from 'next-safe-action/hooks';
+// import { useAction } from 'next-safe-action/hooks';
 import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { createSubCategory, updateSubCategory } from '../actions/sub-categories-actions';
+// import { createSubCategory, updateSubCategory } from '../actions/sub-categories-actions';
 import MultipleSelector, { type Option } from '@/components/ui/multiselect';
 
 interface Props {
@@ -44,48 +44,48 @@ export const SubCategoryForm = ({
 
     const formSchema = getSubCategorySchema(isEditMode);
 
-    const {
-        execute: updateCategoryAction,
-        isPending: isUpdating,
-        result: updateSubCategoryResponse
-    } = useAction(updateSubCategory, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data?.success)
-                if (storeId) {
-                    router.push(`/admin/stores/${storeId}/subcategories`)
-                } else {
-                    router.push(`/admin/subcategories`)
-                }
-            } else if (data?.error) {
-                toast.error(data?.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    });
+    // const {
+    //     execute: updateCategoryAction,
+    //     isPending: isUpdating,
+    //     result: updateSubCategoryResponse
+    // } = useAction(updateSubCategory, {
+    //     onSuccess: ({ data }) => {
+    //         if (data?.success) {
+    //             toast.success(data?.success)
+    //             if (storeId) {
+    //                 router.push(`/admin/stores/${storeId}/subcategories`)
+    //             } else {
+    //                 router.push(`/admin/subcategories`)
+    //             }
+    //         } else if (data?.error) {
+    //             toast.error(data?.error)
+    //         }
+    //     },
+    //     onError: ({ error }) => {
+    //         toast.error(error.serverError)
+    //     }
+    // });
 
-    const { execute: createSubCategoryAction,
-        isPending: isCreatingSubCategory,
-        result: createSubCategoryRes
-    } = useAction(createSubCategory, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data?.success)
-                if (storeId) {
-                    router.push(`/admin/stores/${storeId}/subcategories`)
-                } else {
-                    router.push(`/admin/subcategories`)
-                }
-            } else if (data?.error) {
-                toast.error(data?.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    })
+    // const { execute: createSubCategoryAction,
+    //     isPending: isCreatingSubCategory,
+    //     result: createSubCategoryRes
+    // } = useAction(createSubCategory, {
+    //     onSuccess: ({ data }) => {
+    //         if (data?.success) {
+    //             toast.success(data?.success)
+    //             if (storeId) {
+    //                 router.push(`/admin/stores/${storeId}/subcategories`)
+    //             } else {
+    //                 router.push(`/admin/subcategories`)
+    //             }
+    //         } else if (data?.error) {
+    //             toast.error(data?.error)
+    //         }
+    //     },
+    //     onError: ({ error }) => {
+    //         toast.error(error.serverError)
+    //     }
+    // })
 
 
     const [CancelDialog, confirmCancelEdit] = useConfirm(
@@ -133,12 +133,14 @@ export const SubCategoryForm = ({
                     ...updatedValues,
                     subCategoryId: initialValues.$id
                 }
-                updateCategoryAction(formData);
+
+                console.log(formData)
+                // updateCategoryAction(formData);
             } else {
                 toast.info("No changes detected");
             }
         } else {
-            createSubCategoryAction(values as z.infer<typeof SubCategorySchema>)
+            // createSubCategoryAction(values as z.infer<typeof SubCategorySchema>)
         }
     }
 
@@ -148,9 +150,11 @@ export const SubCategoryForm = ({
         router.back()
     }
 
-    const isLoading = isCreatingSubCategory || isUpdating;
+    // const isLoading = isCreatingSubCategory || isUpdating;
+    const isLoading = false
 
-    const error = isEditMode ? updateSubCategoryResponse.data?.error : createSubCategoryRes.data?.error;
+    // const error = isEditMode ? updateSubCategoryResponse.data?.error : createSubCategoryRes.data?.error;
+    const error = null
 
     return (
         <>

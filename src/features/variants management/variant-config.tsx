@@ -339,16 +339,16 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                         addValueToVariant(variantIndex, {
                                             value: 'true',
                                             label: 'Yes',
-                                            additionalPrice: template.options?.find(o => o.value === 'true')?.additionalPrice || 0
+                                            additionalPrice: template.options?.find((o: any) => o.value === 'true')?.additionalPrice || 0
                                         });
                                     }
                                 }}
                                 disabled={variant.values?.some((v: any) => v.value === 'true')}
                             >
                                 Yes
-                                {template.options?.find(o => o.value === 'true')?.additionalPrice && (
+                                {template.options?.find((o: any) => o.value === 'true')?.additionalPrice && (
                                     <span className="ml-2 text-xs text-green-600">
-                                        +${template.options.find(o => o.value === 'true')?.additionalPrice}
+                                        +${template.options.find((o: any) => o.value === 'true')?.additionalPrice}
                                     </span>
                                 )}
                             </Button>
@@ -360,16 +360,16 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                         addValueToVariant(variantIndex, {
                                             value: 'false',
                                             label: 'No',
-                                            additionalPrice: template.options?.find(o => o.value === 'false')?.additionalPrice || 0
+                                            additionalPrice: template.options?.find((o: any) => o.value === 'false')?.additionalPrice || 0
                                         });
                                     }
                                 }}
                                 disabled={variant.values?.some((v: any) => v.value === 'false')}
                             >
                                 No
-                                {template.options?.find(o => o.value === 'false')?.additionalPrice && (
+                                {template.options?.find((o: any) => o.value === 'false')?.additionalPrice && (
                                     <span className="ml-2 text-xs text-green-600">
-                                        +${template.options.find(o => o.value === 'false')?.additionalPrice}
+                                        +${template.options.find((o: any) => o.value === 'false')?.additionalPrice}
                                     </span>
                                 )}
                             </Button>

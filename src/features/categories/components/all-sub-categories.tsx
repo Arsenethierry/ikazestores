@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useConfirm } from '@/hooks/use-confirm';
-import { toast } from 'sonner';
-import { useAction } from 'next-safe-action/hooks';
-import { deleteSubcategoryById } from '../actions/sub-categories-actions';
+// import { toast } from 'sonner';
+// import { useAction } from 'next-safe-action/hooks';
+// import { deleteSubcategoryById } from '../actions/sub-categories-actions';
 
 interface PageProps {
     subcategories: SubCategoryTypes[],
@@ -28,19 +28,20 @@ export const AllSubCategories = ({
         "destructive"
     );
 
-    const { executeAsync } = useAction(deleteSubcategoryById, {
-        onSuccess: () => {
-            toast.success("Category deleted successfully")
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    })
+    // const { executeAsync } = useAction(deleteSubcategoryById, {
+    //     onSuccess: () => {
+    //         toast.success("Category deleted successfully")
+    //     },
+    //     onError: ({ error }) => {
+    //         toast.error(error.serverError)
+    //     }
+    // })
 
     const handleDelete = async (categoryId: string) => {
         const ok = await confirmDeleteProduct();
         if (!ok) return;
-        executeAsync({ categoryId })
+        console.log(categoryId)
+        // executeAsync({ categoryId })
     };
 
     const canDelete = (subCategory: SubCategoryTypes) => currentUser!.$id === subCategory.createdBy;
