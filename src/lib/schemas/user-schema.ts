@@ -39,15 +39,15 @@ export const CompletePasswordRecoverySchema = z.object({
 });
 
 export const profileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
-  bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
-  website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  instagram: z.string().optional(),
-  twitter: z.string().optional(),
-  facebook: z.string().optional(),
-  linkedin: z.string().optional(),
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
+    bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
+    website: z.string().url('Invalid URL').optional().or(z.literal('')),
+    instagram: z.string().optional(),
+    twitter: z.string().optional(),
+    facebook: z.string().optional(),
+    linkedin: z.string().optional(),
 })
 
 export const AddNewUserLabels = z.object({
@@ -57,4 +57,17 @@ export const AddNewUserLabels = z.object({
 
 export const DeleteUserAccount = z.object({
     userId: z.string(),
-})
+});
+
+export const physicalSellerApplicationData = z.object({
+    businessName: z.string().min(2, "Business name must be at least 2 characters"),
+    businessAddress: z.string().min(10, "Please provide a complete business address"),
+    businessPhone: z.string().min(10, "Please provide a valid phone number"),
+    taxId: z.string().optional(),
+    businessLicense: z.string().optional(),
+    reason: z.string().min(30, "Please explain your motivation (minimum 30 characters)"),
+});
+
+export const applyPhysicalSellerActionSchema = physicalSellerApplicationData.extend({
+    userId: z.string()
+});

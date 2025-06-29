@@ -5,16 +5,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useConfirm } from '@/hooks/use-confirm';
-import { deleteUserAccount, updateUserAccountType } from '@/lib/actions/auth.action';
+import { applyPhysicalSeller, deleteUserAccount, updateUserAccountType } from '@/lib/actions/auth.action';
 import { UserRole } from '@/lib/constants';
-import { profileSchema } from '@/lib/schemas/user-schema';
+import { physicalSellerApplicationData, profileSchema } from '@/lib/schemas/user-schema';
 import { UserDataTypes } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, Clock, Crown, Edit, Facebook, Instagram, Linkedin, Loader2, Save, ShieldCheck, Store, Twitter, User, ArrowUp } from 'lucide-react';
+import { Camera, Clock, Crown, Edit, Facebook, Instagram, Linkedin, Loader2, Save, ShieldCheck, Store, Twitter, User, ArrowUp, FileText } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -23,6 +24,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 type ProfileFormData = z.infer<typeof profileSchema>
+type PhysicalSellerApplicationDataTypes = z.infer<typeof physicalSellerApplicationData>
 
 // Role helper functions
 const getRoleDisplayName = (labels: string[], teams?: string[]) => {
@@ -60,9 +62,17 @@ interface ProfilePageProps {
     isSystemAgent: boolean;
     isSystemAdmin: boolean;
     userData: UserDataTypes;
+    hasPhysicalSellerPending: boolean;
 }
 
-export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isSystemAgent, isVirtualStoreOwner }: ProfilePageProps) => {
+export const ProfilePage = ({
+    userData,
+    isPhysicalStoreOwner,
+    isSystemAdmin,
+    isSystemAgent,
+    isVirtualStoreOwner,
+    hasPhysicalSellerPending
+}: ProfilePageProps) => {
     const [isUpdating, setIsUpdating] = useState(false)
     const [isEditing, setIsEditing] = useState(false);
     const router = useRouter();
@@ -79,6 +89,12 @@ export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isS
         "destructive"
     );
 
+    const [PhysicalSellerApplicationDialog, confirmPhysicalSellerApplication] = useConfirm(
+        "Apply for Physical Seller Account?",
+        "Your application will be reviewed by system administrators. You'll be notified once approved.",
+        "teritary"
+    );
+
     const isNormalUser = !isVirtualStoreOwner && !isPhysicalStoreOwner && !isSystemAdmin && !isSystemAgent;
 
     const profileForm = useForm<ProfileFormData>({
@@ -93,8 +109,22 @@ export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isS
             twitter: '',
             facebook: '',
             linkedin: '',
-        }
+        },
+        mode: "onChange"
     });
+
+    const physicalSellerForm = useForm<PhysicalSellerApplicationDataTypes>({
+        resolver: zodResolver(physicalSellerApplicationData),
+        defaultValues: {
+            businessName: '',
+            businessAddress: '',
+            businessPhone: '',
+            businessLicense: '',
+            taxId: '',
+            reason: ''
+        },
+        mode: "onChange"
+    })
 
     const { execute: upgradeAccount, isPending: isUpgrading } = useAction(updateUserAccountType, {
         onSuccess: async ({ data }) => {
@@ -115,6 +145,20 @@ export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isS
             if (data?.success) {
                 toast.success("You account has been deleted");
                 router.push("/sign-up")
+            } else if (data?.error) {
+                toast.error(data?.error)
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    });
+
+    const { execute: applyPhysicalSellerMt, isPending: applyPhysicalSellerPending } = useAction(applyPhysicalSeller, {
+        onSuccess: async ({ data }) => {
+            if (data?.success) {
+                toast.success(data.success ?? "Request sent!");
+                router.refresh()
             } else if (data?.error) {
                 toast.error(data?.error)
             }
@@ -148,9 +192,19 @@ export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isS
         deleteAccount({
             userId: userData.$id
         })
+    };
+
+    const onPhysicalSellerApplicationSubmit = async (data: PhysicalSellerApplicationDataTypes) => {
+        const ok = await confirmPhysicalSellerApplication();
+        if (!ok) return;
+
+        applyPhysicalSellerMt({
+            userId: userData.$id,
+            ...data
+        });
     }
 
-    const isLoading = isDeletingAccount || isUpgrading
+    const isLoading = isDeletingAccount || isUpgrading || applyPhysicalSellerPending
 
     if (!userData) return <AccessDeniedCard />
 
@@ -158,6 +212,7 @@ export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isS
         <div className="container mx-auto py-8 px-4 max-w-4xl">
             <ChangeAccountTypeDialog />
             <DeleteAccountDialog />
+            <PhysicalSellerApplicationDialog />
             <div className='space-y-8'>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="relative">
@@ -212,39 +267,203 @@ export const ProfilePage = ({ userData, isPhysicalStoreOwner, isSystemAdmin, isS
                             <ArrowUp className="h-4 w-4 mr-2" />
                             Delete Account
                         </Button>
-
-                        {isNormalUser && (
-                            <Button
-                                variant="secondary"
-                                type='button'
-                                size="sm"
-                                disabled={isLoading}
-                                onClick={handleUpgradeToVirtualSeller}
-                            >
-                                <ArrowUp className="h-4 w-4 mr-2" />
-                                Upgrade to Virtual Seller
-                            </Button>
-                        )}
                     </div>
                 </div>
 
-                {/* Account Type Information Card - Only show for normal users */}
                 {isNormalUser && (
-                    <Card className="border-blue-200 bg-blue-50">
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-full">
-                                    <Crown className="h-5 w-5 text-blue-600" />
+                    <div className='space-y-4'>
+                        <Card className="border-blue-200 bg-blue-50">
+                            <CardContent className="pt-6 flex justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 rounded-full">
+                                        <Crown className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-blue-900">Upgrade Your Account</h3>
+                                        <p className="text-sm text-blue-700">
+                                            Become a Virtual Seller to start selling products and managing your online store.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-blue-900">Upgrade Your Account</h3>
-                                    <p className="text-sm text-blue-700">
-                                        Become a Virtual Seller to start selling products and managing your online store.
-                                    </p>
+                                <Button
+                                    variant="secondary"
+                                    type='button'
+                                    size="sm"
+                                    disabled={isLoading}
+                                    onClick={handleUpgradeToVirtualSeller}
+                                >
+                                    <ArrowUp className="h-4 w-4 mr-2" />
+                                    Upgrade to Virtual Seller
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-green-200 bg-green-50">
+                            <CardContent className="pt-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-green-100 rounded-full">
+                                            <Store className="h-5 w-5 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-green-900">Apply for Physical Store</h3>
+                                            <p className="text-sm text-green-700">
+                                                {hasPhysicalSellerPending
+                                                    ? "Your physical seller application is under review."
+                                                    : "Apply to become a Physical Seller and manage physical store locations."
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {!hasPhysicalSellerPending && (
+                                        <Drawer>
+                                            <DrawerTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={isLoading}
+                                                    className="bg-white hover:bg-green-50 border-green-300"
+                                                >
+                                                    <FileText className="h-4 w-4 mr-2" />
+                                                    Apply Now
+                                                </Button>
+                                            </DrawerTrigger>
+                                            <DrawerContent className='py-5'>
+                                                <Card className="border-2 border-green-200 mx-auto">
+                                                    <DrawerHeader>
+                                                        <DrawerTitle className="flex items-center gap-2">
+                                                            <Store className="h-5 w-5" />
+                                                            Physical Seller Application
+                                                        </DrawerTitle>
+                                                        <DrawerDescription className="flex items-center gap-2">
+                                                            Complete this form to apply for physical seller status. All information will be reviewed by our team.
+                                                        </DrawerDescription>
+                                                    </DrawerHeader>
+                                                    <CardContent>
+                                                        <Form {...physicalSellerForm}>
+                                                            <form onSubmit={physicalSellerForm.handleSubmit(onPhysicalSellerApplicationSubmit)} className="space-y-6">
+                                                                <div className="space-y-4">
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                        <FormField
+                                                                            control={physicalSellerForm.control}
+                                                                            name="businessName"
+                                                                            render={({ field }) => (
+                                                                                <FormItem>
+                                                                                    <FormLabel>Business Name *</FormLabel>
+                                                                                    <FormControl>
+                                                                                        <Input {...field} placeholder="Enter your business name" />
+                                                                                    </FormControl>
+                                                                                    <FormMessage />
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                        <FormField
+                                                                            control={physicalSellerForm.control}
+                                                                            name="businessPhone"
+                                                                            render={({ field }) => (
+                                                                                <FormItem>
+                                                                                    <FormLabel>Business Phone *</FormLabel>
+                                                                                    <FormControl>
+                                                                                        <Input {...field} placeholder="+250 xxx xxx xxx" />
+                                                                                    </FormControl>
+                                                                                    <FormMessage />
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                    <FormField
+                                                                        control={physicalSellerForm.control}
+                                                                        name="businessAddress"
+                                                                        render={({ field }) => (
+                                                                            <FormItem>
+                                                                                <FormLabel>Business Address *</FormLabel>
+                                                                                <FormControl>
+                                                                                    <Textarea {...field} placeholder="Enter your complete business address" rows={2} />
+                                                                                </FormControl>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )}
+                                                                    />
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                        <FormField
+                                                                            control={physicalSellerForm.control}
+                                                                            name="businessLicense"
+                                                                            render={({ field }) => (
+                                                                                <FormItem>
+                                                                                    <FormLabel>Business License Number</FormLabel>
+                                                                                    <FormControl>
+                                                                                        <Input {...field} placeholder="License number (if applicable)" />
+                                                                                    </FormControl>
+                                                                                    <FormMessage />
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                        <FormField
+                                                                            control={physicalSellerForm.control}
+                                                                            name="taxId"
+                                                                            render={({ field }) => (
+                                                                                <FormItem>
+                                                                                    <FormLabel>Tax ID</FormLabel>
+                                                                                    <FormControl>
+                                                                                        <Input {...field} placeholder="Tax identification number" />
+                                                                                    </FormControl>
+                                                                                    <FormMessage />
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                    <FormField
+                                                                        control={physicalSellerForm.control}
+                                                                        name="reason"
+                                                                        render={({ field }) => (
+                                                                            <FormItem>
+                                                                                <FormLabel>Why do you want to become a Physical Seller? *</FormLabel>
+                                                                                <FormControl>
+                                                                                    <Textarea {...field} placeholder="Explain your motivation and plans for physical selling" rows={3} />
+                                                                                </FormControl>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )}
+                                                                    />
+                                                                    <div className="flex gap-3 pt-4">
+                                                                        <Button
+                                                                            type="submit"
+                                                                            disabled={isLoading}
+                                                                            className="flex-1 max-w-xs mx-auto"
+                                                                        >
+                                                                            {isLoading ? (
+                                                                                <>
+                                                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                                    Submitting Application...
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <FileText className="h-4 w-4 mr-2" />
+                                                                                    Submit Application
+                                                                                </>
+                                                                            )}
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            </form>
+                                                        </Form>
+                                                    </CardContent>
+                                                </Card>
+                                            </DrawerContent>
+                                        </Drawer>
+                                    )}
+
+                                    {hasPhysicalSellerPending && (
+                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                                            <Clock className="h-3 w-3 mr-1" />
+                                            Pending Review
+                                        </Badge>
+                                    )}
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
                 )}
 
                 <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className='space-y-4'>

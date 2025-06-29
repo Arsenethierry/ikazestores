@@ -9,7 +9,7 @@ export enum UserRole {
     VIRTUAL_STORE_OWNER = "virtualStoreOwner",
     STORE_ADMIN = "storeAdmin",
     STORE_STAFF = "storeStaff",
-    PHYSICAL_SELLER_PENDING = 'physical-seller-pending'
+    PHYSICAL_SELLER_PENDING = 'physicalSellerPending'
 }
 
 export const TeamNamesPatterns = {
@@ -57,3 +57,9 @@ export const PRICE_FILTER_VALUE = {
     min: 1,
     max: 10000
 };
+
+export enum PhysicalStoreStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected'
+}
