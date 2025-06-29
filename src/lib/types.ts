@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Models } from "node-appwrite";
+import { UserRole } from "./constants";
 
 export type SignInParams = {
     email: string;
@@ -13,6 +14,13 @@ export type SignUpParams = {
     password: string;
 }
 
+type SocialLinks = {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    linkedin?: string;
+};
+
 export type CurrentUserType = Models.User<Models.Preferences> | null;
 
 export type ImageDimensionConstraints = {
@@ -22,11 +30,13 @@ export type ImageDimensionConstraints = {
     tolerance?: number;
 };
 
-export interface StoreTypes {
-    store: Models.Document;
-};
-
-export type UserRoleType = 'physicalStoreOwner' | 'virtualStoreOwner' | 'buyer' | 'sysAdmin';
+export type UserRoleType =
+    | UserRole.SYS_ADMIN
+    | UserRole.SYS_AGENT
+    | UserRole.PHYSICAL_STORE_OWNER
+    | UserRole.VIRTUAL_STORE_OWNER
+    | UserRole.STORE_ADMIN
+    | UserRole.STORE_STAFF
 
 export type AppwriteDocumentResponse = {
     total: number;
@@ -50,11 +60,27 @@ export interface Cart {
     totalPrice: number;
 };
 
-export type AuthStatus = {
-    isPhysicalStoreOwner: boolean;
+export interface AuthState {
     isAuthenticated: boolean;
-    isVirtualStoreOwner: boolean;
+    user: Models.User<Models.Preferences> | null;
+    roles: UserRoleType[];
+    teams: Models.Team<Models.Preferences>[];
+    memberships: Models.Membership[];
     isSystemAdmin: boolean;
+    isSystemAgent: boolean;
+    isVirtualStoreOwner: boolean;
+    isPhysicalStoreOwner: boolean;
+    isStoreOwner: boolean;
+    isStoreAdmin: boolean;
+    isStoreStaff: boolean;
+    ownedStores: string[];
+    adminStores: string[];
+    staffStores: string[];
+    hasSystemAccess: () => boolean;
+    canAccessStore: (storeId: string) => boolean;
+    getStoreRole: (storeId: string) => 'owner' | 'admin' | 'staff' | null;
+    hasStorePermission: (storeId: string, permission: 'read' | 'write' | 'delete') => boolean;
+    canAccessResource: (resource: string, permission: 'read' | 'write' | 'delete') => boolean;
 }
 
 export interface PhysicalStoreTypes extends Models.Document {
@@ -62,7 +88,7 @@ export interface PhysicalStoreTypes extends Models.Document {
     owner: string,
     description?: string,
     bio?: string,
-    storeType: 'physicalStore' | 'virtualVirtual',
+    storeType: 'physicalStore' | 'virtualStore',
     products?: Models.Document[],
     latitude?: number,
     longitude?: number,
@@ -81,7 +107,7 @@ export interface VirtualStoreTypes extends Models.Document {
     storeBio?: string,
     bannerUrls?: string[] & File[] | undefined;
     bannerIds?: string[];
-    storeType: 'physicalStore' | 'virtualVirtual',
+    storeType: 'physicalStore' | 'virtualStore',
     address?: string,
     country: string,
     storeLogoUrl: string & File | undefined,
@@ -230,6 +256,16 @@ export interface SavedItemType extends Models.Document {
     productData?: VirtualProductTypes
 }
 
+export interface UserDataTypes extends Models.Document {
+    fullName: string;
+    email: string;
+    phoneNumber?: string;
+    phone?: string;
+    bio?: string;
+    website?: string;
+    socialLinks?: SocialLinks;
+}
+
 // export interface ProductType extends Models.Document {
 //     name: string;
 //     description?: string;
@@ -304,7 +340,7 @@ export interface VariantTemplate extends Models.Document {
     step?: number;
     unit?: string;
     group?: string;
-    isRequired?: string; 
+    isRequired?: string;
 }
 
 export interface ProductType extends Models.Document {

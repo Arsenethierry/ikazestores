@@ -4,7 +4,7 @@ import { AUTH_COOKIE } from "@/lib/constants";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID } from "@/lib/env-config";
 import { createMiddleware } from "next-safe-action";
 import { cookies } from "next/headers";
-import { Account, Client, Databases, Storage } from "node-appwrite";
+import { Account, Client, Databases, Storage, Teams } from "node-appwrite";
 
 export const authMiddleware = createMiddleware().define(async ({ next }) => {
     const cookieStore = await cookies();
@@ -24,9 +24,10 @@ export const authMiddleware = createMiddleware().define(async ({ next }) => {
     const account = new Account(client);
     const databases = new Databases(client);
     const storage = new Storage(client);
+    const teams = new Teams(client);
 
     const user = await account.get();
-    return next({ ctx: { user, databases, storage, account } });
+    return next({ ctx: { user, databases, storage, account, teams } });
 });
 
 export const physicalStoreOwnerMiddleware = createMiddleware()

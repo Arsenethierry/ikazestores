@@ -18,6 +18,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { createNewCategory, updateCategory } from '../actions/categories-actions';
+import { SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
+import EcommerceCatalogUtils from '@/features/variants management/ecommerce-catalog';
 
 const getCategorySchema = (isEditMode: boolean) => {
     return isEditMode
@@ -101,11 +103,16 @@ export const CategoryForm = ({
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            categoryName: initialValues?.categoryName ?? "",
+            storeId,
+            categoryName: initialValues?.categoryName ?? '',
+            subcategories: initialValues?.subcategoryIds?.length
+                ? initialValues.subcategoryIds.map((id: string) => ({ id, name: "", slug: "" }))
+                : [],
             slug: initialValues?.slug ?? "",
             icon: undefined,
-            storeId,
-            createdBy: currentUser!.$id
+            createdBy: currentUser!.$id,
+            isActive: initialValues?.isActive ?? true,
+            sortOrder: initialValues?.sortOrder ?? 0,
         },
         mode: "onChange",
     });
@@ -115,19 +122,6 @@ export const CategoryForm = ({
             form.setValue("icon", initialValues?.iconUrl)
         }
     }, [isEditMode, initialValues?.iconUrl, form])
-
-    // Auto-generate slug when category name changes (only in create mode)
-    useEffect(() => {
-        if (!isEditMode) {
-            const subscription = form.watch((value, { name }) => {
-                if (name === 'categoryName' && value.categoryName) {
-                    const slug = generateSlug(value.categoryName);
-                    form.setValue('slug', slug);
-                }
-            });
-            return () => subscription.unsubscribe();
-        }
-    }, [form, isEditMode]);
 
     const { formState: { dirtyFields } } = form;
 
@@ -168,9 +162,18 @@ export const CategoryForm = ({
     }
 
     const isLoading = isCreatingCategory || isUpdating;
-
     const error = isEditMode ? updateCategoryResponse.data?.error : createCategoryRes.data?.error;
-    console.log("hhhh: ", form.formState.errors)
+
+    const addSubcategory = () => {
+        const currentSubs = form.getValues("subcategories") || [];
+        form.setValue("subcategories", [...currentSubs, { id: '', name: "", slug: "" }]);
+    };
+
+    const removeSubcategory = (index: number) => {
+        const currentSubs = form.getValues("subcategories") || [];
+        form.setValue("subcategories", currentSubs.filter((_, i) => i !== index));
+    };
+
     return (
         <Card className='max-w-5xl'>
             <CancelDialog />
@@ -180,24 +183,72 @@ export const CategoryForm = ({
                     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-5">
                         <CustomFormField
                             control={form.control}
-                            name="categoryName"
-                            label='Category Name'
-                            fieldType={FormFieldType.INPUT}
-                            placeholder='Category Name'
-                        />
+                            name="categoryId"
+                            label="Select Category"
+                            fieldType={FormFieldType.SELECT}
+                            placeholder="Select a category from static data"
+                            disabled={isEditMode}
+                        >
+                            <SelectContent>
+                                {EcommerceCatalogUtils.getCategories().map((cat) => (
+                                    <SelectTrigger key={cat.id} value={cat.id}>
+                                        <SelectValue>{cat.name}</SelectValue>
+                                    </SelectTrigger>
+                                ))}
+                            </SelectContent>
+                        </CustomFormField>
                         <CustomFormField
                             control={form.control}
                             name="slug"
-                            label='URL Slug'
+                            label="URL Slug"
                             fieldType={FormFieldType.INPUT}
-                            placeholder='category-url-slug'
-                        // description={!isEditMode ? "This will be auto-generated from the category name" : "URL-friendly version of the category name"}
+                            placeholder="category-url-slug"
                         />
+                        {form.watch("subcategories")?.map((sub, index) => (
+                            <div key={index} className="flex gap-2">
+                                <CustomFormField
+                                    control={form.control}
+                                    name={`subcategories.${index}.name`}
+                                    label={`Subcategory ${index + 1} Name`}
+                                    fieldType={FormFieldType.INPUT}
+                                    placeholder="Enter subcategory name"
+                                />
+                                <CustomFormField
+                                    control={form.control}
+                                    name={`subcategories.${index}.slug`}
+                                    label="Subcategory Slug"
+                                    fieldType={FormFieldType.INPUT}
+                                    placeholder="subcategory-url-slug"
+                                // onChange={(value: string) => {
+                                //     if (!value) {
+                                //         const name = form.getValues(`subcategories.${index}.name`);
+                                //         form.setValue(`subcategories.${index}.slug`, generateSlug(name));
+                                //     }
+                                // }}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={() => removeSubcategory(index)}
+                                    disabled={isLoading}
+                                >
+                                    Remove
+                                </Button>
+                            </div>
+                        ))}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={addSubcategory}
+                            disabled={isLoading}
+                        >
+                            Add Subcategory
+                        </Button>
                         <CustomFormField
                             fieldType={FormFieldType.SKELETON}
                             control={form.control}
                             name="icon"
-                            label="Category thumbnail(Ratio 1:1)"
+                            label="Category Thumbnail (Ratio 1:1)"
                             renderSkeleton={(field) => (
                                 <FormControl>
                                     <SingleImageUploader
@@ -211,21 +262,32 @@ export const CategoryForm = ({
                                 </FormControl>
                             )}
                         />
+                        <CustomFormField
+                            control={form.control}
+                            name="isActive"
+                            label="Is Active"
+                            fieldType={FormFieldType.CHECKBOX}
+                        />
+                        <CustomFormField
+                            control={form.control}
+                            name="sortOrder"
+                            label="Sort Order"
+                            fieldType={FormFieldType.NUMBER_INPUT}
+                            placeholder="Enter sort order"
+                            min={0}
+                        />
                         <div className="flex justify-between items-center">
                             <Button
                                 type="button"
-                                variant={'destructive'}
+                                variant="destructive"
                                 onClick={handleCancel}
                                 disabled={isLoading}
                             >
                                 Cancel
                             </Button>
-                            <Button
-                                type="submit"
-                                disabled={isLoading}
-                            >
-                                <Loader className={isLoading ? "animate-spin" : "hidden"} /> {" "}
-                                {isEditMode ? 'Save changes' : 'Create category'}
+                            <Button type="submit" disabled={isLoading}>
+                                <Loader className={isLoading ? "animate-spin" : "hidden"} />{" "}
+                                {isEditMode ? "Save Changes" : "Add to Store"}
                             </Button>
                         </div>
                     </form>

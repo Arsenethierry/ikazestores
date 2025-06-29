@@ -1,7 +1,7 @@
 import ProductTypeForm from "@/features/variants management/components/product-type-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAllCategoriesByStoreId } from "@/features/categories/actions/categories-actions";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

@@ -2,7 +2,7 @@ import { NoItemsCard } from '@/components/no-items-card';
 import { getUserSavedItems } from '@/features/products/actions/saved-items-action';
 import { getVirtualProductById } from '@/features/products/actions/virtual-products-actions';
 import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 

@@ -1,6 +1,6 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/features/stores/components/sidebar/admin-sidebar";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 
 export default async function AdminLayout({
     children

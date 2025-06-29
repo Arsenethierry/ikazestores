@@ -1,6 +1,6 @@
 import { AccessDeniedCard } from '@/components/access-denied-card';
 import { CollectionForm } from '@/features/collections/components/collection-form';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 

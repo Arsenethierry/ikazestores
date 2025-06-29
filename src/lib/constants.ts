@@ -3,11 +3,28 @@ export const AUTH_COOKIE = "auth-cookie";
 export const CART_COOKIE = "cart-cookie";
 
 export enum UserRole {
+    SYS_ADMIN = "sysAdmin",
+    SYS_AGENT = "sysAgent",
     PHYSICAL_STORE_OWNER = "physicalStoreOwner",
     VIRTUAL_STORE_OWNER = "virtualStoreOwner",
-    BUYER = "buyer",
-    SYS_ADMIN = "sysAdmin"
+    STORE_ADMIN = "storeAdmin",
+    STORE_STAFF = "storeStaff",
+    PHYSICAL_SELLER_PENDING = 'physical-seller-pending'
 }
+
+export const TeamNamesPatterns = {
+    SYSTEM_ADMIN: 'system_ops',
+    SYSTEM_AGENT: 'SystemAgents',
+    STORE_ROLES: {
+        OWNER: 'virtualStoreOwner',
+        ADMIN: 'admin',
+        STAFF: 'staff'
+    },
+    STORE_TEAM: /^Store_(.+)_Team$/,
+    STORE_OWNER_LABEL: /^store-(.+)-owner$/,
+    STORE_ADMIN_LABEL: /^store-(.+)-admin$/,
+    STORE_STAFF_LABEL: /^store-(.+)-staff$/
+} as const;
 
 export enum PaymentMethodType {
     CASH_ON_DELIVERY = "CASH_ON_DELIVERY",
@@ -39,4 +56,4 @@ export enum OrderStatus {
 export const PRICE_FILTER_VALUE = {
     min: 1,
     max: 10000
-}
+};

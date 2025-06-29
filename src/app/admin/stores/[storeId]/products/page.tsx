@@ -7,7 +7,7 @@ import { ProductSekeleton } from '@/features/products/components/products-list-s
 import { productListColumns } from '@/features/products/components/products-list-table/columns';
 import { ProductsDataTable } from '@/features/products/components/products-list-table/data-table';
 import { OriginalProductTypes, VirtualProductTypes } from '@/lib/types';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import Link from 'next/link';
 import React, { Suspense } from 'react';
 

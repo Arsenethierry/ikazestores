@@ -5,7 +5,7 @@ import { parseSubdomain } from "./features/stores/store-domain-helper";
 import { MAIN_DOMAIN } from "./lib/env-config";
 import { getVirtualStoreByDomain } from "./lib/actions/vitual-store.action";
 import { UserRole } from "./lib/constants";
-import { getAuthState } from "./lib/user-label-permission";
+import { getAuthState } from "./lib/user-permission";
 
 const PROTECTED_SUBDOMAINS = ["www", "admin", "api", "dashboard"];
 

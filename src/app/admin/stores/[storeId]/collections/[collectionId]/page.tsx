@@ -1,5 +1,5 @@
 import { CollectionGroupManager } from '@/features/collections/components/collection-group-manager';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

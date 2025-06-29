@@ -3,7 +3,7 @@ import { PhysicalStoreForm } from '@/features/stores/components/physical-store-f
 import { VirtualStoreForm } from '@/features/stores/components/vitual-store-form ';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
 import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
-import { getAuthState, isStoreOwner } from '@/lib/user-label-permission';
+import { getAuthState, isStoreOwner } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 

@@ -1,0 +1,35 @@
+import { AccessDeniedCard } from '@/components/access-denied-card';
+import { ProfilePage } from '@/features/auth/components/profile-page';
+import { getUserData } from '@/lib/actions/auth.action';
+import { getAuthState } from '@/lib/user-permission';
+import { redirect } from 'next/navigation';
+import React from 'react';
+
+async function page() {
+    const {
+        user,
+        isPhysicalStoreOwner,
+        isVirtualStoreOwner,
+        isSystemAdmin,
+        isSystemAgent
+    } = await getAuthState();
+    if (!user) redirect('/sign-in');
+
+    const userData = await getUserData(user.$id);
+
+    if (!userData) return <AccessDeniedCard />
+
+    return (
+        <div>
+            <ProfilePage
+                userData={userData}
+                isVirtualStoreOwner={isVirtualStoreOwner}
+                isPhysicalStoreOwner={isPhysicalStoreOwner}
+                isSystemAdmin={isSystemAdmin}
+                isSystemAgent={isSystemAgent}
+            />
+        </div>
+    );
+}
+
+export default page;

@@ -2,7 +2,6 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { ImageDimensionConstraints } from "./types";
 import lod from 'lodash';
-import DOMPurify from "isomorphic-dompurify";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -75,10 +74,6 @@ export const dateFormatter = (dateObject: Date) => new Intl.DateTimeFormat("en-U
 export const slugify = (text: string) => {
   return lod.kebabCase(text)
 };
-
-export const sanitizedProductDescription = (description: string) => {
-  return DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
-}
 
 export const getStoreLogoInitials = (name: string) => {
   const words = name.trim().split(/\s+/);
@@ -167,18 +162,20 @@ export function formatPrice(price: number, currency: string = 'USD'): string {
 }
 
 export function extractFileIdFromUrl(imageUrl: string): string | null {
-    try {
-        const urlWithoutQuery = imageUrl.split('?')[0];
-        const urlParts = urlWithoutQuery.split('/');
-        const fileId = urlParts[urlParts.length - 2];
-        
-        if (!fileId || !/^[a-zA-Z0-9\-]+$/.test(fileId)) {
-            throw new Error(`Invalid file ID in URL: ${imageUrl}`);
-        }
-        
-        return fileId;
-    } catch (error) {
-        console.error(`Failed to extract file ID from URL: ${imageUrl}`, error);
-        return null;
+  try {
+    const urlWithoutQuery = imageUrl.split('?')[0];
+    const urlParts = urlWithoutQuery.split('/');
+    const fileId = urlParts[urlParts.length - 2];
+
+    if (!fileId || !/^[a-zA-Z0-9\-]+$/.test(fileId)) {
+      throw new Error(`Invalid file ID in URL: ${imageUrl}`);
     }
+
+    return fileId;
+  } catch (error) {
+    console.error(`Failed to extract file ID from URL: ${imageUrl}`, error);
+    return null;
+  }
 }
+
+export const createStoreTeamId = (storeId: string): string => `virtualstore_${storeId}`;

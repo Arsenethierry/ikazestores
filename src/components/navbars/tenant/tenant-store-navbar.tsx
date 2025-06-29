@@ -1,6 +1,6 @@
 import { Loader, Menu } from "lucide-react";
 import Link from "next/link";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { AllCategories } from "../all-categories";
 import { CartNavButton } from "@/features/cart/components/cart-navbar-button";
 import { AccountDropdown } from "../account-dropdown-menu";

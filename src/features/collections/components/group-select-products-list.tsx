@@ -2,16 +2,20 @@
 
 import { ProductPriceDisplay } from '@/features/products/currency/converted-price-component';
 import { VirtualProductTypes } from '@/lib/types';
-import { sanitizedProductDescription } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
+import DOMPurify from "isomorphic-dompurify";
 
 interface GroupProductSelectorProps {
     products: VirtualProductTypes[];
     onSelectionChange?: (selectedIds: string[]) => void;
     initialSelectedIds?: string[];
     existingProductIds?: string[];
+}
+
+const sanitizedProductDescription = (description: string) => {
+  return DOMPurify.sanitize(description, { USE_PROFILES: { html: true } });
 }
 
 export const GroupProductSelector = ({

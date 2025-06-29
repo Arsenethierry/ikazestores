@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProductTypeById } from "@/features/categories/actions/product-types-actions";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { getAllCategoriesByStoreId } from "@/features/categories/actions/categories-actions";
 import ProductTypeForm from "@/features/variants management/components/product-type-form";
 import { ItemNotFoundCard } from "@/components/item-not-found-card";

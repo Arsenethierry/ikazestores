@@ -2,15 +2,16 @@
 
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { cookies, headers } from "next/headers";
-import { AUTH_COOKIE } from "../constants";
+import { AUTH_COOKIE, UserRole } from "../constants";
 import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
-import { ID, OAuthProvider, Query } from "node-appwrite";
+import { ID, OAuthProvider, Query, Models } from "node-appwrite";
 import { redirect } from "next/navigation";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
-import { updateUserLabels } from "./user-labels";
-import { CompletePasswordRecoverySchema, InitiatePasswordRecoverySchema, loginSchema, signupSchema, verifyEmilSchema } from "../schemas/user-schema";
+import { AddNewUserLabels, CompletePasswordRecoverySchema, DeleteUserAccount, InitiatePasswordRecoverySchema, loginSchema, signupSchema, verifyEmilSchema } from "../schemas/user-schema";
 import countriesData from "@/data/countries.json";
+import { UserDataTypes } from "../types";
+import { updateUserLabels } from "./user-labels";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -52,7 +53,7 @@ export const logInAction = action
 
 export const signUpAction = action
     .schema(signupSchema)
-    .action(async ({ parsedInput: { email, password, phoneNumber, fullName, role } }) => {
+    .action(async ({ parsedInput: { email, password, phoneNumber, fullName } }) => {
         try {
             const { account, databases, users } = await createAdminClient();
             const isExistingUser = await users.list([Query.equal("email", [email])]);
@@ -61,12 +62,36 @@ export const signUpAction = action
                 return { error: "User with this email already exists" };
             }
 
+            const anonymousSession = await account.createAnonymousSession();
+
+            const cookieStore = await cookies();
+            cookieStore.set(AUTH_COOKIE, anonymousSession.secret, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'strict',
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 60 * 5
+            });
+
             const newAcc = await account.create(
                 ID.unique(),
                 email,
                 password,
                 fullName
             );
+
+            if (phoneNumber) {
+                try {
+                    const cleanedPhone = phoneNumber.replace(/[^\d+]/g, '');
+                    if (cleanedPhone.startsWith('+') && cleanedPhone.length <= 16) {
+                        await account.updatePhone(cleanedPhone, password);
+                    } else {
+                        console.warn('Invalid phone number format:', phoneNumber);
+                    }
+                } catch (error) {
+                    console.warn('Failed to add phone number during signup:', error);
+                }
+            }
 
             await databases.createDocument(
                 DATABASE_ID,
@@ -75,13 +100,19 @@ export const signUpAction = action
                 {
                     fullName,
                     email,
-                    phoneNumber
+                    phoneNumber: phoneNumber || ""
                 }
             );
 
-            const session = await account.createEmailPasswordSession(email, password);
+            try {
+                await account.deleteSession(anonymousSession.$id);
+            } catch (error) {
+                console.warn('Failed to delete anonymous session:', error);
+            }
 
-            const cookieStore = await cookies();
+            cookieStore.delete(AUTH_COOKIE);
+
+            const session = await account.createEmailPasswordSession(email, password);
 
             cookieStore.set(AUTH_COOKIE, session.secret, {
                 path: '/',
@@ -91,10 +122,8 @@ export const signUpAction = action
                 maxAge: 30 * 24 * 60 * 60
             });
 
-            await updateUserLabels(newAcc.$id, [role]);
-
             return {
-                success: "Account created.",
+                success: "Account created successfully.",
                 user: newAcc
             };
         } catch (error) {
@@ -143,8 +172,7 @@ export const logoutCurrentUser = async () => {
 export const getUserData = async (userId: string) => {
     try {
         const { databases } = await createSessionClient();
-
-        const userData = await databases.getDocument(
+        const userData = await databases.getDocument<UserDataTypes>(
             DATABASE_ID,
             USER_DATA_ID,
             userId
@@ -282,3 +310,143 @@ export const getCurrencyList = async () => {
         console.error("getCurrencyList:", error);
     }
 }
+
+export async function getUserTeams() {
+    try {
+        const { teams } = await createSessionClient();
+
+        const teamsList = await teams.list();
+
+        return teamsList.teams || [];
+    } catch (error) {
+        console.error('Error fetching user teams:', error);
+        return [];
+    }
+}
+
+export async function getUserMemberships(): Promise<Models.Membership[]> {
+    try {
+        const { teams } = await createSessionClient();
+
+        const teamList = await teams.list();
+        const allMemberships: Models.Membership[] = [];
+
+        for (const team of teamList.teams) {
+            try {
+                const memberships = await teams.listMemberships(team.$id);
+                const enhancedMemberships = memberships.memberships.map(memberships => ({
+                    ...memberships,
+                    teamName: team.name,
+                    teamId: team.$id
+                }));
+
+                allMemberships.push(...enhancedMemberships);
+            } catch (error) {
+                console.error(`Error fetching memberships for team ${team.$id}:`, error);
+                // Continue with other teams even if one fails
+                continue;
+            }
+        }
+
+        return allMemberships;
+    } catch (error) {
+        console.error('Error fetching user memberships:', error);
+        return [];
+    }
+}
+
+export async function getUserMembershipForTeam(teamId: string): Promise<Models.Membership | null> {
+    try {
+        const { teams, account } = await createSessionClient();
+        const user = await account.get();
+        const memberships = await teams.listMemberships(teamId);
+
+        const userMembership = memberships.memberships.find(
+            membership => membership.userId === user.$id
+        );
+
+        if (userMembership) {
+            // Get team details to add team name
+            const team = await teams.get(teamId);
+            return {
+                ...userMembership,
+                teamName: team.name,
+                teamId: team.$id,
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Error fetching user membership for team ${teamId}:`, error);
+        return null;
+    }
+}
+
+export async function isUserMemberOfTeam(teamId: string): Promise<boolean> {
+    try {
+        const membership = await getUserMembershipForTeam(teamId);
+        return membership !== null;
+    } catch (error) {
+        console.error(`Error checking team membership for ${teamId}:`, error);
+        return false;
+    }
+}
+
+export async function getUserRoleInTeam(teamId: string): Promise<string | null> {
+    try {
+        const membership = await getUserMembershipForTeam(teamId);
+        return membership?.roles?.[0] || null;
+    } catch (error) {
+        console.error(`Error getting user role in team ${teamId}:`, error);
+        return null;
+    }
+}
+
+export async function getTeamsByPattern(pattern: RegExp): Promise<Models.Team<Models.Preferences>[]> {
+    try {
+        const teams = await getUserTeams();
+        return teams.filter(team => pattern.test(team.name));
+    } catch (error) {
+        console.error('Error filtering teams by pattern:', error);
+        return [];
+    }
+}
+
+export const updateUserAccountType = action
+    .schema(AddNewUserLabels)
+    .use(authMiddleware)
+    .action(async ({ parsedInput, ctx }) => {
+        const { user } = ctx;
+        try {
+            if (parsedInput.labels.length === 1 && parsedInput.labels[0] === UserRole.VIRTUAL_STORE_OWNER && user.$id === parsedInput.userId) {
+                updateUserLabels(parsedInput.userId, parsedInput.labels);
+                // await teams.create()
+                return { success: true }
+            }
+            return { error: "something went wrong" }
+        } catch (error) {
+            console.error('updateUserAccountType Error:', error);
+            return { error: error instanceof Error ? error.message : "updateUserAccountType failed" };
+        }
+    });
+
+export const deleteUserAccount = action
+    .schema(DeleteUserAccount)
+    .use(authMiddleware)
+    .action(async ({ parsedInput, ctx }) => {
+        const { user: currentUser } = ctx;
+        const { users } = await createAdminClient();
+        try {
+            if (currentUser.$id !== parsedInput.userId) {
+                return { error: "Action denied." }
+            }
+            await users.delete(parsedInput.userId);
+            const cookieStore = await cookies();
+
+            cookieStore.delete(AUTH_COOKIE)
+            return { success: "Your account has been deleted." }
+        } catch (error) {
+            console.error('deleteUserAccount Error:', error);
+            return { error: error instanceof Error ? error.message : "updateUserAccountType failed" };
+        }
+    })

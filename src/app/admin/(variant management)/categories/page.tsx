@@ -2,7 +2,7 @@ import { NoItemsCard } from '@/components/no-items-card';
 import { buttonVariants } from '@/components/ui/button';
 import { getGeneralCategories } from '@/features/categories/actions/categories-actions';
 import { AllCategories } from '@/features/categories/components/categories-page';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import Link from 'next/link';
 import React from 'react';
 

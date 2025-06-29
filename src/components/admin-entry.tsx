@@ -3,7 +3,7 @@
 import SpinningLoader from "@/components/spinning-loader";
 import { getAllPshyicalStoresByOwnerId } from "@/lib/actions/physical-store.action";
 import { getAllVirtualStoresByOwnerId } from "@/lib/actions/vitual-store.action";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation"
 import { useEffect } from "react";

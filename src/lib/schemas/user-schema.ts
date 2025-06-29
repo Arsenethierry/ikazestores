@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { UserRole } from "../constants";
 
 export const loginSchema = z.object({
     email: z.string().email(),
@@ -13,8 +12,7 @@ export const signupSchema = z.object({
         .string()
         .min(1, { message: 'Please confirm your password' }),
     fullName: z.string().min(1, "Required"),
-    phoneNumber: z.string().min(10),
-    role: z.nativeEnum(UserRole),
+    phoneNumber: z.string().min(10, { message: "Number must be at least 10 digits" }),
 }).superRefine((val, ctx) => {
     if (val.password !== val.confirmPassword) {
         ctx.addIssue({
@@ -39,3 +37,24 @@ export const CompletePasswordRecoverySchema = z.object({
     userId: z.string(),
     newPassword: z.string()
 });
+
+export const profileSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
+  bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
+  website: z.string().url('Invalid URL').optional().or(z.literal('')),
+  instagram: z.string().optional(),
+  twitter: z.string().optional(),
+  facebook: z.string().optional(),
+  linkedin: z.string().optional(),
+})
+
+export const AddNewUserLabels = z.object({
+    userId: z.string(),
+    labels: z.array(z.string())
+});
+
+export const DeleteUserAccount = z.object({
+    userId: z.string(),
+})

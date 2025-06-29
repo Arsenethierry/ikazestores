@@ -1,16 +1,15 @@
 "use server";
 
-import { ID, Query } from "node-appwrite";
-import { createSessionClient } from "../appwrite";
+import { ID, Permission, Query, Role } from "node-appwrite";
+import { createAdminClient, createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { AppwriteRollback } from "./rollback";
-import { updateUserLabels } from "./user-labels";
-import { UserRole } from "../constants";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
 import { getUserLocale } from "./auth.action";
 import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "../schemas/stores-schema";
 import { VirtualStoreTypes } from "../types";
+import { TeamNamesPatterns } from "../constants";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -29,7 +28,8 @@ export const createVirtualStoreAction = action
         desccription,
         storeBio,
     }, ctx }) => {
-        const { databases, storage, user } = ctx
+        const { databases, storage, user, teams } = ctx;
+        const adminApi = await createAdminClient();
         const rollback = new AppwriteRollback(storage, databases);
 
         try {
@@ -58,12 +58,26 @@ export const createVirtualStoreAction = action
 
             await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
 
-            await updateUserLabels(user.$id, [UserRole.VIRTUAL_STORE_OWNER])
+            const storeId = ID.unique();
+            const storeTeam = await teams.create(
+                storeId,
+                `${storeName} - ${storeId}`,
+                [TeamNamesPatterns.STORE_ROLES.OWNER, TeamNamesPatterns.STORE_ROLES.ADMIN, TeamNamesPatterns.STORE_ROLES.STAFF]
+            );
 
-            const newVirtualStore = await databases.createDocument(
+            // await teams.createMembership(
+            //     storeTeam.$id,
+            //     [TeamNamesPatterns.STORE_ROLES.OWNER],
+            //     user.email,
+            //     user.$id,
+            //     undefined,
+            //     `${APPWRITE_ENDPOINT}/stores/${storeTeam.$id}/join`
+            // )
+
+            const newVirtualStore = await adminApi.databases.createDocument(
                 DATABASE_ID,
                 VIRTUAL_STORE_ID,
-                ID.unique(),
+                storeTeam.$id,
                 {
                     storeName: storeName,
                     owner: user.$id,
@@ -76,7 +90,15 @@ export const createVirtualStoreAction = action
                     locale: (await getUserLocale())?.country,
                     desccription,
                     storeBio
-                }
+                },
+                [
+                    Permission.read(Role.any()),
+                    Permission.update(Role.team(storeTeam.$id, 'virtualStoreOwner')),
+                    Permission.delete(Role.team(storeTeam.$id, 'virtualStoreOwner')),
+                    Permission.update(Role.team(storeTeam.$id, 'admin')),
+                    Permission.update(Role.team('system_admins', 'sysAdmin')),
+                    Permission.delete(Role.team('system_admins', 'sysAdmin'))
+                ]
             );
             await rollback.trackDocument(VIRTUAL_STORE_ID, newVirtualStore.$id);
 
@@ -102,22 +124,34 @@ export const getAllVirtualStores = async () => {
     }
 }
 
-export const deleteVirtualStore = async (VirtualStoreId: string, bannerIds: string[]) => {
+export const deleteVirtualStore = async (VirtualStoreId: string, bannerIds?: string[], logoId?: string) => {
     try {
-        const { databases, storage } = await createSessionClient();
-        await Promise.all(
-            bannerIds.map(async bannerId => {
-                await storage.deleteFile(
-                    STORE_BUCKET_ID,
-                    bannerId
-                )
-            })
-        )
+        const { databases, storage, teams } = await createSessionClient();
+        if (bannerIds) {
+            await Promise.all(
+                bannerIds.map(async bannerId => {
+                    await storage.deleteFile(
+                        STORE_BUCKET_ID,
+                        bannerId
+                    )
+                })
+            )
+        }
+        if (logoId) {
+            await storage.deleteFile(
+                STORE_BUCKET_ID,
+                logoId
+            )
+        }
+
+
         await databases.deleteDocument(
             DATABASE_ID,
             VIRTUAL_STORE_ID,
             VirtualStoreId
         );
+
+        await teams.delete(VirtualStoreId);
     } catch (error) {
         console.log(`error deleting virtual store: ${error}`)
         throw error

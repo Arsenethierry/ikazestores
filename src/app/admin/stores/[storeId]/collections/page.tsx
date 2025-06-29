@@ -3,7 +3,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAllCollectionsByStoreId } from '@/features/collections/actions/collections-actions';
 import { DeleteCollectionButton } from '@/features/collections/components/delete-collection-button';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';

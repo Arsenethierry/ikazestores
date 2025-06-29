@@ -42,8 +42,8 @@ export function VirtualStoreForm({
     const router = useRouter();
 
     const countries: Option[] = countriesData.map(country => ({
-        value: country.code,
-        label: country.name
+        label: country.name,
+        value: country.name
     }));
 
     const {

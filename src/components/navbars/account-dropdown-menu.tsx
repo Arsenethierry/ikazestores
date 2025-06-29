@@ -1,17 +1,17 @@
-import { CircleUser, LayoutDashboard, ShoppingBag, User } from "lucide-react";
+import { CircleUser, Contact, LayoutDashboard, ShoppingBag, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import Link from "next/link";
 import LogoutButton from "@/features/auth/components/logout-button";
-import { AuthStatus } from "@/lib/types";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { IS_DEVELOPMENT } from "@/lib/domain-utils";
+import { AuthState } from "@/lib/types";
 
-export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner, isSystemAdmin }: AuthStatus) => (
+export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner, isSystemAdmin }: AuthState) => (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant={'ghost'} className='text-white font-medium cursor-pointer hidden md:inline-flex'>
-                <CircleUser className='h-4 m-auto' />
+                <User className='h-4 m-auto' />
                 <span className='ml-2'>Account</span>
             </Button>
         </DropdownMenuTrigger>
@@ -22,8 +22,12 @@ export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtu
                 <>
                     {isAuthenticated ? <>
                         <DropdownMenuItem>
-                            <User />
-                            <span>Profile</span>
+                            <DropdownMenuItem className='cursor-pointer w-full'>
+                                <Link href={'/profile'} className='w-full font-medium cursor-pointer inline-flex'>
+                                    <Contact className='h-4 my-auto mr-2' />
+                                    <span>My Profile</span>
+                                </Link>
+                            </DropdownMenuItem>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                             <DropdownMenuItem className='cursor-pointer w-full'>

@@ -13,10 +13,10 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { Bolt, Ellipsis, Trash } from "lucide-react";
 import { useDeleteVirtualStore } from "../mutations/use-virtual-store-mutations";
 import { useDeletePhysicalStore } from "../mutations/use-physical-store-mutations";
-import { StoreTypes } from "@/lib/types";
+import { VirtualStoreTypes } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
-export const StoreQuickActions = ({ store }: StoreTypes) => {
+export const StoreQuickActions = ({ store }: { store: VirtualStoreTypes }) => {
     const router = useRouter();
 
     const { mutate: deleteVirtualStore } = useDeleteVirtualStore();
@@ -34,7 +34,7 @@ export const StoreQuickActions = ({ store }: StoreTypes) => {
 
         if (!ok) return;
         if (store.storeType === 'virtualStore') {
-            deleteVirtualStore([store.$id, store.bannerIds])
+            deleteVirtualStore([store.$id, store.bannerIds, store.storeLogoId])
         } else if (store.storeType === 'physicalStore') {
             deletePhysicalStore([store.$id, store.bannerIds])
         }

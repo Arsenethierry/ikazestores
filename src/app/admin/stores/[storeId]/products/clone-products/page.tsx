@@ -3,7 +3,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CloneProductsPage from '@/features/products/components/clone-products/default-view-products';
 import { CloneNearByProducts } from '@/features/products/components/clone-products/clone-near-by-products';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { MapPinHouse, TableOfContents } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';

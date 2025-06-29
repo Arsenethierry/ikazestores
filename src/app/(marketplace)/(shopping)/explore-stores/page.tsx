@@ -1,6 +1,6 @@
 import { StoreCard } from '@/features/stores/components/store-card';
 import { getAllVirtualStores } from '@/lib/actions/vitual-store.action';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import React from 'react';
 
 async function ExploreStoresPage() {

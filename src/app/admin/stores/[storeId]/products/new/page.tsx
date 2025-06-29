@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductForm } from "@/features/products/components/product-form";
 import { getPhysicalStoreById } from "@/lib/actions/physical-store.action";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { AlertTriangle, ArrowLeft, Package2, Tags, Layers } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";

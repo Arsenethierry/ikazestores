@@ -1,6 +1,7 @@
 import { AccessDeniedCard } from '@/components/access-denied-card';
 import { CategoryForm } from '@/features/categories/components/new-category-form';
-import { getAuthState } from '@/lib/user-label-permission';
+import EcommerceCatalogUtils from '@/features/variants management/ecommerce-catalog';
+import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
@@ -13,6 +14,8 @@ async function NewCategory() {
     if(!user) redirect('/');
 
     if(!isSystemAdmin) return <AccessDeniedCard />
+
+    const categories = EcommerceCatalogUtils.getCategories();
     
     return <CategoryForm currentUser={user} storeId={null} />
 }

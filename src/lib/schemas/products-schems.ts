@@ -155,25 +155,34 @@ export const DeleteProductSchema = z.object({
 })
 
 export const CategorySchema = z.object({
-    categoryName: z.string().min(2, { message: "Category name is required" }).max(50, { message: "Category name must not exceed 20 characters long" }),
-    icon: z.custom<File>()
-        .refine(file => file instanceof File, {
-            message: "Icon thumbnail is required"
-        }),
     storeId: z.string().nullable(),
+    categoryName: z.string().min(1, "Category name is required"),
+    subcategories: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        slug: z.string().optional(),
+    })).optional(),
+    slug: z.string().min(1, "Slug is required"),
+    icon: z.instanceof(File).optional(),
     createdBy: z.string(),
-    slug: z.string().max(50, { message: "Slug must not exceed 50 characters" }),
-    parentCategoryId: z.string().nullable().optional(),
     isActive: z.boolean().default(true),
-    sortOrder: z.number().default(0)
+    sortOrder: z.number().optional(),
 });
 
 export const UpdateCategoryForm = z.object({
-    categoryName: z.string().max(50, { message: "Category name must not exceed 20 characters long" }).optional(),
-    icon: z.custom<File>().optional(),
-    oldFileId: z.string().optional().nullable(),
-    iconUrl: z.string().optional(),
-    slug: z.string().optional()
+    categoryId: z.string(),
+    storeId: z.string().nullable(),
+    categoryName: z.string().min(1, "Category name is required").optional(),
+    subcategories: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        slug: z.string().optional(),
+    })).optional(),
+    slug: z.string().min(1, "Slug is required").optional(),
+    icon: z.instanceof(File).optional(),
+    oldFileId: z.string().optional(),
+    isActive: z.boolean().optional(),
+    sortOrder: z.number().optional(),
 });
 
 export const UpdateCategoryActionSchema = UpdateCategoryForm.extend({

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { AccessDeniedCard } from "@/components/access-denied-card";
 import { getProductTypes } from "@/features/categories/actions/product-types-actions";
 import ProductTypesClient from "../../../../features/variants management/components/product-types-client";

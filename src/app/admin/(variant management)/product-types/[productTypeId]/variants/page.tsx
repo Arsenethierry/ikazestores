@@ -9,7 +9,7 @@ import { getAvailableVariantTemplatesForProductType, getProductTypeById } from "
 import { ProductTypeVariantStats } from "@/features/variants management/components/product-type-variants-stats";
 import { VariantTemplatesList } from "@/features/variants management/components/variant-templates-list";
 import { VariantTemplate } from "@/lib/types";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { ArrowLeft, Package, Plus, Settings } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";

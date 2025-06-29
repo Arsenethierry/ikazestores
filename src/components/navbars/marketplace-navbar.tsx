@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Loader, Menu } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AllCategories } from './all-categories';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { Suspense } from 'react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { AccountDropdown } from './account-dropdown-menu';

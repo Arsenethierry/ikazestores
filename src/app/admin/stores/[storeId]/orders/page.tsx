@@ -1,6 +1,6 @@
 import { AccessDeniedCard } from '@/components/access-denied-card';
 import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
-import { getAuthState, isStoreOwner } from '@/lib/user-label-permission';
+import { getAuthState, isStoreOwner } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 

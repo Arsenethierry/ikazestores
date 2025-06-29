@@ -1,5 +1,5 @@
 import AdminEntry from "@/components/admin-entry";
-import { getAuthState } from "@/lib/user-label-permission";
+import { getAuthState } from "@/lib/user-permission";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 
 export default async function AdminPage() {

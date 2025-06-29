@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { CurrentUserType, PhysicalStoreTypes } from "@/lib/types";
 import { StoreQuickActions } from "./store-action-button";
-import { isStoreOwner } from "@/lib/user-label-permission";
+import { isStoreOwner } from "@/lib/user-permission";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

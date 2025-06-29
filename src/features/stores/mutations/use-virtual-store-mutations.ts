@@ -8,8 +8,8 @@ export const useDeleteVirtualStore = () => {
     const router = useRouter();
 
     const mutate = useMutation({
-        mutationFn: ([virtualStoreId, bannerIds]: [virtualStoreId: string, bannerIds: string[]]) =>
-            deleteVirtualStore(virtualStoreId, bannerIds),
+        mutationFn: ([virtualStoreId, bannerIds, logoId]: [virtualStoreId: string, bannerIds?: string[], logoId?: string]) =>
+            deleteVirtualStore(virtualStoreId, bannerIds, logoId),
         onSuccess: () => {
             toast.success("Store deleted successfully")
             router.refresh();

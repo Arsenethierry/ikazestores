@@ -1,5 +1,5 @@
 import { getCollectionById } from '@/features/collections/actions/collections-actions';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React, { Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

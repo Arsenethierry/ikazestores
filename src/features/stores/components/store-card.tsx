@@ -6,7 +6,7 @@ import React from 'react';
 import { StoreQuickActions } from './store-action-button';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { Badge } from '@/components/ui/badge';
-import { isStoreOwner } from '@/lib/user-label-permission';
+import { isStoreOwner } from '@/lib/user-permission';
 
 export const StoreCard = ({ store, currentUser }: { store: VirtualStoreTypes, currentUser: CurrentUserType }) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?

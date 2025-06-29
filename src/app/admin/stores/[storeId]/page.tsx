@@ -3,7 +3,7 @@ import { StoreCard } from '@/features/stores/components/store-card';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
 import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
 import { PhysicalStoreTypes, VirtualStoreTypes } from '@/lib/types';
-import { getAuthState, isStoreOwner } from '@/lib/user-label-permission';
+import { getAuthState, isStoreOwner } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
 

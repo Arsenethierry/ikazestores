@@ -5,7 +5,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components
 import { getAllCustomerOrders } from '@/features/order/actions/order-actions';
 import { OrderItemRow } from '@/features/order/my-orders/order-item-row';
 import { OrderTypes } from '@/lib/types';
-import { getAuthState } from '@/lib/user-label-permission';
+import { getAuthState } from '@/lib/user-permission';
 import { dateFormatter } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 import React from 'react';

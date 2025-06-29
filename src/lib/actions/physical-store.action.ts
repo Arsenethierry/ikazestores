@@ -90,17 +90,19 @@ export const getAllPshyicalStores = async () => {
     }
 }
 
-export const deletePhysicalStore = async (physicalStoreId: string, bannerIds: string[]) => {
+export const deletePhysicalStore = async (physicalStoreId: string, bannerIds?: string[]) => {
     try {
         const { databases, storage } = await createSessionClient();
-        await Promise.all(
-            bannerIds.map(async bannerId => {
-                await storage.deleteFile(
-                    STORE_BUCKET_ID,
-                    bannerId
-                )
-            })
-        );
+        if (bannerIds) {
+            await Promise.all(
+                bannerIds.map(async bannerId => {
+                    await storage.deleteFile(
+                        STORE_BUCKET_ID,
+                        bannerId
+                    )
+                })
+            );
+        }
         await databases.deleteDocument(
             DATABASE_ID,
             PHYSICAL_STORE_ID,
