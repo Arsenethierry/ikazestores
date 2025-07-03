@@ -71,3 +71,15 @@ export const physicalSellerApplicationData = z.object({
 export const applyPhysicalSellerActionSchema = physicalSellerApplicationData.extend({
     userId: z.string()
 });
+
+export const reviewApplicationSchema = z.object({
+    userId: z.string(),
+    reviewNotes: z.string().optional(),
+    action: z.enum(['approve', 'reject'])
+});
+
+export const changeUserRoleSchema = z.object({
+    userId: z.string(),
+    newRole: z.string(),
+    reason: z.string().optional()
+});

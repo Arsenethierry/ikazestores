@@ -2,17 +2,16 @@
 
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { cookies, headers } from "next/headers";
-import { AUTH_COOKIE, PhysicalStoreStatus, UserRole } from "../constants";
-import { DATABASE_ID, MAIN_DOMAIN, PHYSICAL_SELLER_APPLICATIONS, USER_DATA_ID } from "../env-config";
+import { AUTH_COOKIE, UserAccountType, UserRole } from "../constants";
+import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
 import { ID, OAuthProvider, Query, Models } from "node-appwrite";
 import { redirect } from "next/navigation";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
-import { AddNewUserLabels, applyPhysicalSellerActionSchema, CompletePasswordRecoverySchema, DeleteUserAccount, InitiatePasswordRecoverySchema, loginSchema, signupSchema, verifyEmilSchema } from "../schemas/user-schema";
+import { AddNewUserLabels, CompletePasswordRecoverySchema, DeleteUserAccount, InitiatePasswordRecoverySchema, loginSchema, signupSchema, verifyEmilSchema } from "../schemas/user-schema";
 import countriesData from "@/data/countries.json";
 import { UserDataTypes } from "../types";
 import { updateUserLabels } from "./user-labels";
-import { AppwriteRollback } from "./rollback";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -101,7 +100,8 @@ export const signUpAction = action
                 {
                     fullName,
                     email,
-                    phoneNumber: phoneNumber || ""
+                    phoneNumber: phoneNumber || "",
+                    accountType: UserAccountType.BUYER
                 }
             );
 
@@ -434,75 +434,26 @@ export const deleteUserAccount = action
     .schema(DeleteUserAccount)
     .use(authMiddleware)
     .action(async ({ parsedInput, ctx }) => {
-        const { user: currentUser } = ctx;
+        const { user: currentUser, databases } = ctx;
         const { users } = await createAdminClient();
+        const cookieStore = await cookies();
         try {
             if (currentUser.$id !== parsedInput.userId) {
                 return { error: "Action denied." }
             }
+            
+            await databases.deleteDocument(
+                DATABASE_ID,
+                USER_DATA_ID,
+                parsedInput.userId
+            );
+
             await users.delete(parsedInput.userId);
-            const cookieStore = await cookies();
 
             cookieStore.delete(AUTH_COOKIE)
             return { success: "Your account has been deleted." }
         } catch (error) {
             console.error('deleteUserAccount Error:', error);
             return { error: error instanceof Error ? error.message : "updateUserAccountType failed" };
-        }
-    });
-
-export const applyPhysicalSeller = action
-    .schema(applyPhysicalSellerActionSchema)
-    .use(authMiddleware)
-    .action(async ({ parsedInput, ctx }) => {
-        const { user, databases, storage } = ctx;
-        const rollback = new AppwriteRollback(storage, databases);
-
-        try {
-            if (user.$id !== parsedInput.userId) {
-                return { error: "Unauthorized: You can only apply for your own account" };
-            }
-            const currentLabels = user.labels || [];
-            if (currentLabels.includes(UserRole.PHYSICAL_SELLER_PENDING) ||
-                currentLabels.includes(UserRole.PHYSICAL_STORE_OWNER)) {
-                return { error: "You already have a physical seller application or are already a physical seller" };
-            }
-
-            const updatedLabels = [...currentLabels, UserRole.PHYSICAL_SELLER_PENDING];
-
-            const applicationData = {
-                userId: parsedInput.userId,
-                businessName: parsedInput.businessName,
-                businessAddress: parsedInput.businessAddress,
-                businessPhone: parsedInput.businessPhone,
-                businessLicense: parsedInput.businessLicense,
-                taxId: parsedInput.taxId || null,
-                reason: parsedInput.reason,
-                status: PhysicalStoreStatus.PENDING,
-                appliedAt: new Date(),
-                reviewedAt: null,
-                reviewedBy: null,
-                reviewNotes: null
-            };
-
-            const app = await databases.createDocument(
-                DATABASE_ID,
-                PHYSICAL_SELLER_APPLICATIONS,
-                ID.unique(),
-                applicationData
-            );
-            await rollback.trackDocument(PHYSICAL_SELLER_APPLICATIONS, app.$id);
-
-            await updateUserLabels(parsedInput.userId, updatedLabels);
-
-            return {
-                success: "Physical seller application submitted successfully. You will be notified once reviewed."
-            };
-        } catch (error) {
-            console.error('applyPhysicalSeller Error:', error);
-            await rollback.rollback();
-            return {
-                error: error instanceof Error ? error.message : "Failed to submit physical seller application"
-            };
         }
     });

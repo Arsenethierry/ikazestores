@@ -6,7 +6,8 @@ import {
     Layers,
     Palette,
     Grid3X3,
-    FolderTree
+    FolderTree,
+    User
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -28,6 +29,18 @@ export const getSidebarLinks = (storeId: string | null) => ({
                 {
                     title: "Store Settings",
                     url: "/admin/stores/settings",
+                },
+            ],
+        },
+        {
+            title: "Manage Users",
+            url: "#",
+            icon: User,
+            isActive: true,
+            items: [
+                {
+                    title: "All Users",
+                    url: "/admin/users",
                 },
             ],
         },

@@ -5,11 +5,12 @@ export const CART_COOKIE = "cart-cookie";
 export enum UserRole {
     SYS_ADMIN = "sysAdmin",
     SYS_AGENT = "sysAgent",
-    PHYSICAL_STORE_OWNER = "physicalStoreOwner",
+    PHYSICAL_STORE_OWNER = "physicalSeller",
     VIRTUAL_STORE_OWNER = "virtualStoreOwner",
     STORE_ADMIN = "storeAdmin",
     STORE_STAFF = "storeStaff",
-    PHYSICAL_SELLER_PENDING = 'physicalSellerPending'
+    PHYSICAL_SELLER_PENDING = 'physicalSellerPending',
+    BUYER = 'buyer',
 }
 
 export const TeamNamesPatterns = {
@@ -62,4 +63,12 @@ export enum PhysicalStoreStatus {
     PENDING = 'pending',
     APPROVED = 'approved',
     REJECTED = 'rejected'
+}
+
+export enum UserAccountType {
+    BUYER = "buyer",
+    SYS_ADMIN = "sysAdmin",
+    SYS_AGENT = "sysAgent",
+    PHYSICAL_STORE_SELLER = "physicalSeller",
+    VIRTUAL_STORE_SELLER = "virtualSeller",
 }

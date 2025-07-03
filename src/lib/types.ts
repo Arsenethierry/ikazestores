@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Models } from "node-appwrite";
-import { UserRole } from "./constants";
+import { UserAccountType, UserRole } from "./constants";
 
 export type SignInParams = {
     email: string;
@@ -260,10 +260,10 @@ export interface UserDataTypes extends Models.Document {
     fullName: string;
     email: string;
     phoneNumber?: string;
-    phone?: string;
-    bio?: string;
-    website?: string;
-    socialLinks?: SocialLinks;
+    accountType: UserAccountType
+    // bio?: string;
+    // website?: string;
+    // socialLinks?: SocialLinks;
 }
 
 // export interface ProductType extends Models.Document {

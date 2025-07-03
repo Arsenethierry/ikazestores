@@ -9,8 +9,9 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, Dr
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { applyPhysicalSeller } from '@/features/users/users-actions';
 import { useConfirm } from '@/hooks/use-confirm';
-import { applyPhysicalSeller, deleteUserAccount, updateUserAccountType } from '@/lib/actions/auth.action';
+import { deleteUserAccount, updateUserAccountType } from '@/lib/actions/auth.action';
 import { UserRole } from '@/lib/constants';
 import { physicalSellerApplicationData, profileSchema } from '@/lib/schemas/user-schema';
 import { UserDataTypes } from '@/lib/types';
