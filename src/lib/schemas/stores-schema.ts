@@ -8,8 +8,8 @@ export const createPhysicalStoreFormSchema = z.object({
     storeLogo: z.custom<File>(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    address: z.string().max(500).optional(),
-    country: z.string().min(1)
+    address: z.string().min(5, "Address must be at least 5 characters"),
+    country: z.string().min(1, "Country is required"),
 });
 
 export const createVirtualStoreFormSchema = z.object({

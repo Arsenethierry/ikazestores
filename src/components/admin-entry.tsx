@@ -29,7 +29,7 @@ export default function AdminEntry() {
             }
             return null
         },
-        enabled: !!authState?.user && !authState?.isSystemAdmin, // Only run if we have a user and not a system admin
+        enabled: !!authState?.user && !authState?.isSystemAdmin,
         staleTime: 5 * 60 * 1000,
     });
 

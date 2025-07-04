@@ -1,7 +1,7 @@
 "use server";
 
-import { ID, Query } from "node-appwrite";
-import { createSessionClient } from "../appwrite";
+import { ID, Permission, Query, Role } from "node-appwrite";
+import { createAdminClient, createSessionClient } from "../appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PHYSICAL_STORE_ID, STORE_BUCKET_ID } from "../env-config";
 import { AppwriteRollback } from "./rollback";
 import { updateUserLabels } from "./user-labels";
@@ -21,20 +21,23 @@ const action = createSafeActionClient({
 export const createPhysicalStoreAction = action
     .use(authMiddleware)
     .schema(createPhysicalStoreFormSchema)
-    .action(async ({ parsedInput: {
-        storeLogo,
-        storeName,
-        address,
-        description,
-        latitude,
-        longitude,
-        storeBio,
-        country
-    }, ctx }) => {
-        const { databases, storage, user } = ctx;
-        const rollback = new AppwriteRollback(storage, databases);
+    .action(async ({ parsedInput, ctx }) => {
+        console.log("parsedInput: ", parsedInput)
+        const {
+            storeLogo,
+            storeName,
+            address,
+            description,
+            latitude,
+            longitude,
+            storeBio,
+            country
+        } = parsedInput
+        const { storage, user, teams } = ctx;
+        const { databases } = await createAdminClient();
+        const rollback = new AppwriteRollback(storage, databases, teams);
         try {
-
+            const storeId = ID.unique();
             const storeLogoUploaded = await storage.createFile(
                 STORE_BUCKET_ID,
                 ID.unique(),
@@ -43,29 +46,43 @@ export const createPhysicalStoreAction = action
 
             await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
 
-            await updateUserLabels(user.$id, [UserRole.PHYSICAL_STORE_OWNER])
+            const newStoreTeam = await teams.create(
+                storeId,
+                storeName + "Team",
+                ["owner", "admin", 'staff']
+            );
+            await rollback.trackTeam(newStoreTeam.$id);
 
             const newPhysicalStore = await databases.createDocument(
                 DATABASE_ID,
                 PHYSICAL_STORE_ID,
-                ID.unique(),
+                storeId,
                 {
                     storeName,
                     description,
                     bio: storeBio,
                     owner: user.$id,
-                    storeType: 'physicalStore',
+                    // storeType: 'physicalStore',
                     latitude,
                     longitude,
                     address,
                     country,
                     storeLogoId: storeLogoUploaded.$id,
                     storeLogoUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
-                    createFrom: (await getUserLocale())?.country
-                }
+                    createdFrom: (await getUserLocale())?.country
+                },
+                [
+                    Permission.delete(Role.team(newStoreTeam.$id, "owner")),
+                    Permission.delete(Role.label(UserRole.SYS_ADMIN)),
+                    Permission.update(Role.team(newStoreTeam.$id, "owner")),
+                    Permission.update(Role.team(newStoreTeam.$id, "admin")),
+                    Permission.read(Role.any())
+                ]
             );
 
             await rollback.trackDocument(PHYSICAL_STORE_ID, newPhysicalStore.$id);
+
+            await updateUserLabels(user.$id, [UserRole.PHYSICAL_STORE_OWNER]);
 
             return { success: "Store created successfully.", storeId: newPhysicalStore.$id };
         } catch (error) {

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorAlert from "@/components/error-alert";
-import { Check, ChevronsUpDown, Loader } from "lucide-react";
+import { Check, ChevronsUpDown, Loader, MapPin, Search } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { CurrentUserType, PhysicalStoreTypes } from "@/lib/types";
 import { SingleImageUploader } from "@/components/file-uploader";
@@ -33,6 +33,12 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { createPhysicalStoreFormSchema } from "@/lib/schemas/stores-schema";
+import dynamic from "next/dynamic";
+
+const MapLocationPicker = dynamic(() => import("./MapLocationPicker"), {
+    ssr: false,
+    loading: () => <div className="h-96 bg-gray-100 rounded-md flex items-center justify-center">Loading map...</div>
+})
 
 export function PhysicalStoreForm({
     currentUser, initialValues = null
@@ -49,6 +55,8 @@ export function PhysicalStoreForm({
 
     const [selectedCountry, setSelectedCountry] = useState(initialValues?.country ?? "");
     const [open, setOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
 
     const {
         execute: updateStore,
@@ -100,8 +108,8 @@ export function PhysicalStoreForm({
             storeBio: initialValues?.storeBio ?? "",
             address: initialValues?.address ?? "",
             storeLogo: initialValues?.storeLogoUrl ?? undefined,
-            latitude: undefined,
-            longitude: undefined,
+            latitude: initialValues?.latitude ?? undefined,
+            longitude: initialValues?.longitude ?? undefined,
             country: initialValues?.country ?? ""
         },
         mode: "onChange",
@@ -109,11 +117,48 @@ export function PhysicalStoreForm({
 
     const { formState: { dirtyFields } } = form;
 
+    const searchAddress = async (query: string) => {
+        if (!query.trim()) return;
+
+        setIsSearching(true);
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`
+            );
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                const result = data[0];
+                const lat = parseFloat(result.lat);
+                const lon = parseFloat(result.lon);
+
+                form.setValue('latitude', lat);
+                form.setValue('longitude', lon);
+                form.setValue('address', result.display_name);
+
+                toast.success("Location found and marked on map!");
+            } else {
+                toast.error("No location found for this address");
+            }
+        } catch (error) {
+            console.error("Error searching address:", error);
+            toast.error("Failed to search address");
+        } finally {
+            setIsSearching(false)
+        }
+    }
+
     function onSubmit(values: z.infer<typeof createPhysicalStoreFormSchema>) {
         if (!currentUser) {
             toast.error("Something went wrong, try again");
             return;
         }
+
+        if (!values.latitude || !values.longitude) {
+            toast.error("Please select a location on the map or search for an address");
+            return;
+        }
+
         if (isEditMode && initialValues) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatedValues: Record<string, any> = {};
@@ -123,6 +168,8 @@ export function PhysicalStoreForm({
             if (dirtyFields.storeBio) updatedValues.storeBio = values.storeBio;
             if (dirtyFields.address) updatedValues.address = values.address;
             if (dirtyFields.country) updatedValues.country = values.country;
+            if (dirtyFields.latitude) updatedValues.latitude = values.latitude;
+            if (dirtyFields.longitude) updatedValues.longitude = values.longitude;
             if (dirtyFields.storeLogo) {
                 updatedValues.storeLogo = values.storeLogo;
                 updatedValues.oldFileId = initialValues?.storeLogoId ?? null;
@@ -143,7 +190,7 @@ export function PhysicalStoreForm({
 
     useEffect(() => {
         const detectLocation = async () => {
-            if (isEditMode) {
+            if (isEditMode && initialValues?.latitude && initialValues?.longitude) {
                 return;
             } else {
                 try {
@@ -160,7 +207,7 @@ export function PhysicalStoreForm({
             }
         };
         detectLocation()
-    }, [form, isEditMode]);
+    }, [form, isEditMode, initialValues]);
 
     const handleCountrySelect = (value: string) => {
         setSelectedCountry(value);
@@ -174,6 +221,14 @@ export function PhysicalStoreForm({
         router.back()
     }
 
+    const handleMapLocationChange = (lat: number, lng: number, address?: string) => {
+        form.setValue('latitude', lat);
+        form.setValue('longitude', lng);
+        if (address) {
+            form.setValue('address', address);
+        }
+    };
+
     const isLoading = isCreatingStore || isUpdating;
 
     const error = isEditMode ? updateStoreResponse.data?.error : createStoreResponse.data?.error;
@@ -182,13 +237,12 @@ export function PhysicalStoreForm({
         <Card className="border-t-0 rounded-t-none">
             <CancelDialog />
             <CardHeader>
-                <CardTitle>Create a physical store</CardTitle>
+                <CardTitle>{isEditMode ? 'Edit physical store' : 'Create a physical store'}</CardTitle>
             </CardHeader>
             <CardContent>
                 {error && <ErrorAlert errorMessage={error} />}
                 <Form {...form}>
                     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-
                         <FormField
                             control={form.control}
                             name="storeName"
@@ -288,13 +342,72 @@ export function PhysicalStoreForm({
                                     <FormItem>
                                         <FormLabel>Address</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Full address of your physical store" {...field} />
+                                            <Input disabled placeholder="Full address of your physical store" {...field} />
                                         </FormControl>
+                                        <FormDescription>
+                                            This will be updated when you select a location on the map
+                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
+
+                        <div className="space-y-4">
+                            <FormLabel>Search Address or Mark Location on Map</FormLabel>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Search for an address (e.g., 123 Main St, City, Country)"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            searchAddress(searchQuery);
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => searchAddress(searchQuery)}
+                                    disabled={isSearching || !searchQuery.trim()}
+                                >
+                                    {isSearching ? (
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Search className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            </div>
+                            <FormDescription>
+                                Search for an address or click on the map to mark your store location
+                            </FormDescription>
+                        </div>
+
+                        <div className="space-y-4">
+                            <FormLabel>Store Location</FormLabel>
+                            <div className="border rounded-lg overflow-hidden">
+                                <MapLocationPicker
+                                    initialLat={form.watch('latitude')}
+                                    initialLng={form.watch("longitude")}
+                                    onLocationChange={handleMapLocationChange}
+                                />
+                            </div>
+                            <FormDescription>
+                                Click on the map to set your store location. The marker shows your current selection.
+                            </FormDescription>
+
+                            {form.watch("latitude") && form.watch("longitude") && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>
+                                        Location: {form.watch("latitude")?.toFixed(6)}, {form.watch("longitude")?.toFixed(6)}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
                         <CustomFormField
                             fieldType={FormFieldType.SKELETON}
                             control={form.control}

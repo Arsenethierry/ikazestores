@@ -28,24 +28,24 @@ type ProfileFormData = z.infer<typeof profileSchema>
 type PhysicalSellerApplicationDataTypes = z.infer<typeof physicalSellerApplicationData>
 
 // Role helper functions
-const getRoleDisplayName = (labels: string[], teams?: string[]) => {
+const getRoleDisplayName = (labels: string, teams?: string[]) => {
     // Check for system admin team membership
-    if (teams?.includes('SystemAdmins')) return 'System Admin'
+    if (teams?.includes(UserRole.SYS_ADMIN)) return 'System Admin'
 
     // Check labels for roles
-    if (labels?.includes('virtual-seller')) return 'Virtual Seller'
-    if (labels?.includes('physical-seller')) return 'Physical Seller'
-    if (labels?.includes('physical-seller-pending')) return 'Physical Seller (Pending)'
+    if (labels?.includes(UserRole.VIRTUAL_STORE_OWNER)) return 'Virtual Seller'
+    if (labels?.includes(UserRole.PHYSICAL_STORE_OWNER)) return 'Physical Seller'
+    if (labels?.includes(UserRole.PHYSICAL_SELLER_PENDING)) return 'Physical Seller (Pending)'
 
     // Default role
     return 'User'
 }
 
 const getRoleBadgeVariant = (labels: string[], teams?: string[]) => {
-    if (teams?.includes('SystemAdmins')) return 'default'
-    if (labels?.includes('virtual-seller')) return 'destructive'
-    if (labels?.includes('physical-seller')) return 'secondary'
-    if (labels?.includes('physical-seller-pending')) return 'outline'
+    if (teams?.includes(UserRole.SYS_ADMIN)) return 'default'
+    if (labels?.includes(UserRole.VIRTUAL_STORE_OWNER)) return 'destructive'
+    if (labels?.includes(UserRole.PHYSICAL_STORE_OWNER)) return 'secondary'
+    if (labels?.includes(UserRole.PHYSICAL_SELLER_PENDING)) return 'outline'
     return 'outline'
 }
 
@@ -240,7 +240,7 @@ export const ProfilePage = ({
                             <h1 className="text-3xl font-bold">{userData.name}</h1>
                             <Badge variant={getRoleBadgeVariant(userData.labels, userData.teams)} className="w-fit">
                                 {getRoleIcon(userData.labels, userData.teams)}
-                                <span className="ml-1">{getRoleDisplayName(userData.labels, userData.teams)}</span>
+                                <span className="ml-1">{getRoleDisplayName(userData.accountType, userData.teams)}</span>
                             </Badge>
                         </div>
                         <p className="text-muted-foreground mb-2">{userData.email}</p>

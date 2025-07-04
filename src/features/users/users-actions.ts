@@ -258,6 +258,7 @@ export const changeUserRole = action
                 USER_DATA_ID,
                 parsedInput.userId
             );
+            
             const currentRole = userData.accountType || UserRole.BUYER;
             if (currentRole === UserRole.SYS_ADMIN && ctx.user.$id === parsedInput.userId && parsedInput.newRole !== UserRole.SYS_ADMIN) {
                 return {

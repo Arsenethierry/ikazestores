@@ -62,9 +62,9 @@ export async function middleware(request: NextRequest) {
             // Check role authorization
             const hasRequiredRole = authConfig.roles.some((role: any) => {
                 switch (role) {
-                    case 'sysAdmin': return auth.isSystemAdmin;
-                    case 'virtualStoreOwner': return auth.isVirtualStoreOwner;
-                    case 'physicalStoreOwner': return auth.isPhysicalStoreOwner;
+                    case UserRole.SYS_ADMIN: return auth.isSystemAdmin;
+                    case UserRole.VIRTUAL_STORE_OWNER: return auth.isVirtualStoreOwner;
+                    case UserRole.PHYSICAL_STORE_OWNER: return auth.isPhysicalStoreOwner;
                     default: return false;
                 }
             });
