@@ -63,8 +63,6 @@ export const physicalSellerApplicationData = z.object({
     businessName: z.string().min(2, "Business name must be at least 2 characters"),
     businessAddress: z.string().min(10, "Please provide a complete business address"),
     businessPhone: z.string().min(10, "Please provide a valid phone number"),
-    taxId: z.string().optional(),
-    businessLicense: z.string().optional(),
     reason: z.string().min(30, "Please explain your motivation (minimum 30 characters)"),
 });
 

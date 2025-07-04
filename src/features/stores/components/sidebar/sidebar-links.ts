@@ -231,60 +231,60 @@ export const getSidebarLinks = (storeId: string | null) => ({
         },
     ],
     physicalStoreAdmin: [
-        {
-            title: "Order Management",
-            url: "#",
-            icon: ShoppingCart,
-            isActive: true,
-            items: [
-                {
-                    title: "All Orders",
-                    url: `/admin/stores/${storeId}/orders`,
-                },
-                {
-                    title: "In-Store Orders",
-                    url: `/admin/stores/${storeId}/orders/in-store`,
-                },
-                {
-                    title: "Online Orders",
-                    url: `/admin/stores/${storeId}/orders/online`,
-                },
-                {
-                    title: "Order Analytics",
-                    url: `/admin/stores/${storeId}/orders/analytics`,
-                },
-            ],
-        },
-        {
-            title: "Categories",
-            url: "#",
-            icon: Layers,
-            items: [
-                {
-                    title: "All Categories",
-                    url: `/admin/stores/${storeId}/categories`,
-                },
-            ],
-        },
-        {
-            title: "Variants",
-            url: "#",
-            icon: Palette,
-            items: [
-                {
-                    title: "Product Types",
-                    url: `/admin/stores/${storeId}/product-types`,
-                },
-                // {
-                //     title: "Templates",
-                //     url: `/admin/stores/${storeId}/variant-templates`,
-                // },
-                // {
-                //     title: "Templates Options",
-                //     url: `/admin/stores/${storeId}/variant-templates/options`,
-                // },
-            ],
-        },
+        // {
+        //     title: "Order Management",
+        //     url: "#",
+        //     icon: ShoppingCart,
+        //     isActive: true,
+        //     items: [
+        //         {
+        //             title: "All Orders",
+        //             url: `/admin/stores/${storeId}/orders`,
+        //         },
+        //         {
+        //             title: "In-Store Orders",
+        //             url: `/admin/stores/${storeId}/orders/in-store`,
+        //         },
+        //         {
+        //             title: "Online Orders",
+        //             url: `/admin/stores/${storeId}/orders/online`,
+        //         },
+        //         {
+        //             title: "Order Analytics",
+        //             url: `/admin/stores/${storeId}/orders/analytics`,
+        //         },
+        //     ],
+        // },
+        // {
+        //     title: "Categories",
+        //     url: "#",
+        //     icon: Layers,
+        //     items: [
+        //         {
+        //             title: "All Categories",
+        //             url: `/admin/stores/${storeId}/categories`,
+        //         },
+        //     ],
+        // },
+        // {
+        //     title: "Variants",
+        //     url: "#",
+        //     icon: Palette,
+        //     items: [
+        //         {
+        //             title: "Product Types",
+        //             url: `/admin/stores/${storeId}/product-types`,
+        //         },
+        //         // {
+        //         //     title: "Templates",
+        //         //     url: `/admin/stores/${storeId}/variant-templates`,
+        //         // },
+        //         // {
+        //         //     title: "Templates Options",
+        //         //     url: `/admin/stores/${storeId}/variant-templates/options`,
+        //         // },
+        //     ],
+        // },
         {
             title: "Products",
             url: "#",

@@ -129,13 +129,12 @@ export const applyPhysicalSeller = action
                     businessName: parsedInput.businessName,
                     businessAddress: parsedInput.businessAddress,
                     businessPhone: parsedInput.businessPhone,
-                    businessLicense: parsedInput.businessLicense,
-                    taxId: parsedInput.taxId || null,
-                    reason: parsedInput.reason,
+                    applicationReason: parsedInput.reason,
                     applicationStatus: PhysicalStoreStatus.PENDING,
                     applicationReviewedAt: null,
                     applicationReviewedBy: null,
-                    applicationReviewNotes: null
+                    applicationReviewNotes: null,
+                    accountType: UserRole.PHYSICAL_SELLER_PENDING
                 }
             );
 
@@ -258,7 +257,7 @@ export const changeUserRole = action
                 USER_DATA_ID,
                 parsedInput.userId
             );
-            
+
             const currentRole = userData.accountType || UserRole.BUYER;
             if (currentRole === UserRole.SYS_ADMIN && ctx.user.$id === parsedInput.userId && parsedInput.newRole !== UserRole.SYS_ADMIN) {
                 return {
@@ -270,7 +269,9 @@ export const changeUserRole = action
                     error: "User already has this role"
                 };
             }
+
             const validRoles = Object.values(UserRole);
+            
             if (!validRoles.includes(parsedInput.newRole as UserRole)) {
                 return {
                     error: "Invalid role specified"
@@ -285,7 +286,8 @@ export const changeUserRole = action
                     roleChangedAt: new Date(),
                     roleChangedBy: ctx.user.$id,
                     roleChangeReason: parsedInput.reason || null,
-                    previousRole: currentRole
+                    previousRole: currentRole,
+                    applicationStatus: null,
                 }
             );
             await updateUserLabels(parsedInput.userId, [parsedInput.newRole]);

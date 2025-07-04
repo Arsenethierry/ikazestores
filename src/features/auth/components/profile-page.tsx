@@ -120,8 +120,6 @@ export const ProfilePage = ({
             businessName: '',
             businessAddress: '',
             businessPhone: '',
-            businessLicense: '',
-            taxId: '',
             reason: ''
         },
         mode: "onChange"
@@ -147,7 +145,7 @@ export const ProfilePage = ({
                 toast.success("You account has been deleted");
                 router.push("/sign-up")
             } else if (data?.error) {
-                toast.error(data?.error)
+                toast.error(data?.error);
             }
         },
         onError: ({ error }) => {
@@ -181,6 +179,7 @@ export const ProfilePage = ({
     const handleUpgradeToVirtualSeller = async () => {
         const ok = await confirmChangeAccountType();
         if (!ok) return;
+
         upgradeAccount({
             userId: userData.$id,
             labels: [UserRole.VIRTUAL_STORE_OWNER]
@@ -190,9 +189,10 @@ export const ProfilePage = ({
     const handleDeleteAccount = async () => {
         const ok = await confirmDeleteAccount();
         if (!ok) return;
+
         deleteAccount({
-            userId: userData.$id
-        })
+            userId: userData.$id,
+        });
     };
 
     const onPhysicalSellerApplicationSubmit = async (data: PhysicalSellerApplicationDataTypes) => {
@@ -262,8 +262,8 @@ export const ProfilePage = ({
                             variant="destructive"
                             type='button'
                             size="sm"
-                            disabled={isLoading}
                             onClick={handleDeleteAccount}
+                            disabled={isLoading}
                         >
                             <ArrowUp className="h-4 w-4 mr-2" />
                             Delete Account
@@ -386,34 +386,6 @@ export const ProfilePage = ({
                                                                             </FormItem>
                                                                         )}
                                                                     />
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                        <FormField
-                                                                            control={physicalSellerForm.control}
-                                                                            name="businessLicense"
-                                                                            render={({ field }) => (
-                                                                                <FormItem>
-                                                                                    <FormLabel>Business License Number</FormLabel>
-                                                                                    <FormControl>
-                                                                                        <Input {...field} placeholder="License number (if applicable)" />
-                                                                                    </FormControl>
-                                                                                    <FormMessage />
-                                                                                </FormItem>
-                                                                            )}
-                                                                        />
-                                                                        <FormField
-                                                                            control={physicalSellerForm.control}
-                                                                            name="taxId"
-                                                                            render={({ field }) => (
-                                                                                <FormItem>
-                                                                                    <FormLabel>Tax ID</FormLabel>
-                                                                                    <FormControl>
-                                                                                        <Input {...field} placeholder="Tax identification number" />
-                                                                                    </FormControl>
-                                                                                    <FormMessage />
-                                                                                </FormItem>
-                                                                            )}
-                                                                        />
-                                                                    </div>
                                                                     <FormField
                                                                         control={physicalSellerForm.control}
                                                                         name="reason"

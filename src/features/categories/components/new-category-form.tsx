@@ -19,21 +19,12 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { createNewCategory, updateCategory } from '../actions/categories-actions';
 import { SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
-import EcommerceCatalogUtils from '@/features/variants management/ecommerce-catalog';
+import { getCategories } from '@/features/variants management/ecommerce-catalog';
 
 const getCategorySchema = (isEditMode: boolean) => {
     return isEditMode
         ? UpdateCategoryForm
         : CategorySchema;
-};
-
-const generateSlug = (name: string): string => {
-    return name
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
 };
 
 export const CategoryForm = ({
@@ -144,7 +135,8 @@ export const CategoryForm = ({
             if (Object.keys(updatedValues).length > 0) {
                 const formData = {
                     ...updatedValues,
-                    categoryId: initialValues.$id
+                    categoryId: initialValues.$id,
+                    storeId
                 }
                 updateCategoryAction(formData);
             } else {
@@ -190,7 +182,7 @@ export const CategoryForm = ({
                             disabled={isEditMode}
                         >
                             <SelectContent>
-                                {EcommerceCatalogUtils.getCategories().map((cat) => (
+                                {getCategories().map((cat) => (
                                     <SelectTrigger key={cat.id} value={cat.id}>
                                         <SelectValue>{cat.name}</SelectValue>
                                     </SelectTrigger>

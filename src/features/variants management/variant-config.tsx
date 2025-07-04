@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { VariantOption, VariantTemplate } from "@/lib/types";
+import { VariantOption, VariantTemplateTypes } from "@/lib/types";
 import { Minus, Package, Plus, Settings, Star, Upload, X } from "lucide-react";
 import Image from "next/image";
 import React from "react";
@@ -24,7 +24,7 @@ interface VariantValue {
 
 interface EnhancedVariantConfigProps {
     control: Control<any>;
-    variantTemplates: VariantTemplate[];
+    variantTemplates: VariantTemplateTypes[];
 }
 export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
     control,
@@ -39,7 +39,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         name: 'variants'
     });
 
-    const addVariantFromTemplate = (template: VariantTemplate) => {
+    const addVariantFromTemplate = (template: VariantTemplateTypes) => {
         const existingVariant = variantFields.find((field: any) => field.id === template.id);
         if (!existingVariant) {
             appendVariant({
@@ -80,12 +80,12 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         const filesArray = Array.from(files);
         const currentVariant = watch(`variants.${variantIndex}`);
         const updatedValues = [...currentVariant.values];
-        
+
         updatedValues[valueIndex] = {
             ...updatedValues[valueIndex],
             images: filesArray
         };
-        
+
         setValue(`variants.${variantIndex}.values`, updatedValues);
     };
 
@@ -101,7 +101,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
 
     const renderVariantValueInput = (
         variantIndex: number,
-        template: VariantTemplate
+        template: VariantTemplateTypes
     ) => {
         const variant = watchedVariants[variantIndex] || { values: [] };
 
@@ -109,11 +109,11 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
             case 'color':
                 return (
                     <div className="space-y-4">
-                        {template.options && template.options.length > 0 && (
+                        {template.variantOptions && template.variantOptions.length > 0 && (
                             <div className="space-y-3">
                                 <h5 className="text-sm font-medium">Pre-configured Colors</h5>
                                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
-                                    {template.options.map((option: VariantOption) => {
+                                    {template.variantOptions.map((option: VariantOption) => {
                                         const isSelected = variant.values?.some((v: any) => v.value === option.value);
                                         return (
                                             <button
@@ -214,11 +214,11 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
             case 'multiselect':
                 return (
                     <div className="space-y-4">
-                        {template.options && template.options.length > 0 && (
+                        {template.variantOptions && template.variantOptions.length > 0 && (
                             <div className="space-y-3">
                                 <h5 className="text-sm font-medium">Pre-configured Options</h5>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                                    {template.options.map((option: VariantOption) => {
+                                    {template.variantOptions.map((option: VariantOption) => {
                                         const isSelected = variant.values?.some((v: any) => v.value === option.value);
                                         return (
                                             <Button
@@ -339,16 +339,16 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                         addValueToVariant(variantIndex, {
                                             value: 'true',
                                             label: 'Yes',
-                                            additionalPrice: template.options?.find((o: any) => o.value === 'true')?.additionalPrice || 0
+                                            additionalPrice: template.variantOptions?.find((o: any) => o.value === 'true')?.additionalPrice || 0
                                         });
                                     }
                                 }}
                                 disabled={variant.values?.some((v: any) => v.value === 'true')}
                             >
                                 Yes
-                                {template.options?.find((o: any) => o.value === 'true')?.additionalPrice && (
+                                {template.variantOptions?.find((o: any) => o.value === 'true')?.additionalPrice && (
                                     <span className="ml-2 text-xs text-green-600">
-                                        +${template.options.find((o: any) => o.value === 'true')?.additionalPrice}
+                                        +${template.variantOptions.find((o: any) => o.value === 'true')?.additionalPrice}
                                     </span>
                                 )}
                             </Button>
@@ -360,16 +360,16 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                         addValueToVariant(variantIndex, {
                                             value: 'false',
                                             label: 'No',
-                                            additionalPrice: template.options?.find((o: any) => o.value === 'false')?.additionalPrice || 0
+                                            additionalPrice: template.variantOptions?.find((o: any) => o.value === 'false')?.additionalPrice || 0
                                         });
                                     }
                                 }}
                                 disabled={variant.values?.some((v: any) => v.value === 'false')}
                             >
                                 No
-                                {template.options?.find((o: any) => o.value === 'false')?.additionalPrice && (
+                                {template.variantOptions?.find((o: any) => o.value === 'false')?.additionalPrice && (
                                     <span className="ml-2 text-xs text-green-600">
-                                        +${template.options.find((o: any) => o.value === 'false')?.additionalPrice}
+                                        +${template.variantOptions.find((o: any) => o.value === 'false')?.additionalPrice}
                                     </span>
                                 )}
                             </Button>
@@ -419,7 +419,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
     const renderSelectedValues = (variantIndex: number) => {
         const currentVariant = watchedVariants[variantIndex] || {};
         const currentValues = currentVariant.values || [];
-        
+
         if (currentValues.length === 0) {
             return (
                 <div className="text-center py-4 text-muted-foreground">
@@ -629,9 +629,6 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                             <Minus className="h-4 w-4" />
                                         </Button>
                                     </div>
-                                    {template.description && (
-                                        <p className="text-sm text-muted-foreground">{template.description}</p>
-                                    )}
                                 </CardHeader>
 
                                 <CardContent className="space-y-6">

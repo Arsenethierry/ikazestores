@@ -4,7 +4,7 @@ import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { cookies, headers } from "next/headers";
 import { AUTH_COOKIE, UserAccountType, UserRole } from "../constants";
 import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
-import { ID, OAuthProvider, Query, Models } from "node-appwrite";
+import { ID, OAuthProvider, Query, Models, Permission, Role } from "node-appwrite";
 import { redirect } from "next/navigation";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
@@ -62,17 +62,6 @@ export const signUpAction = action
                 return { error: "User with this email already exists" };
             }
 
-            const anonymousSession = await account.createAnonymousSession();
-
-            const cookieStore = await cookies();
-            cookieStore.set(AUTH_COOKIE, anonymousSession.secret, {
-                path: '/',
-                httpOnly: true,
-                sameSite: 'strict',
-                secure: process.env.NODE_ENV === 'production',
-                maxAge: 60 * 5
-            });
-
             const newAcc = await account.create(
                 ID.unique(),
                 email,
@@ -102,18 +91,16 @@ export const signUpAction = action
                     email,
                     phoneNumber: phoneNumber || "",
                     accountType: UserAccountType.BUYER
-                }
+                },
+                [
+                    Permission.delete(Role.user(newAcc.$id)),
+                    Permission.update(Role.user(newAcc.$id)),
+                ]
             );
 
-            try {
-                await account.deleteSession(anonymousSession.$id);
-            } catch (error) {
-                console.warn('Failed to delete anonymous session:', error);
-            }
-
-            cookieStore.delete(AUTH_COOKIE);
-
             const session = await account.createEmailPasswordSession(email, password);
+
+            const cookieStore = await cookies();
 
             cookieStore.set(AUTH_COOKIE, session.secret, {
                 path: '/',
@@ -131,7 +118,7 @@ export const signUpAction = action
             console.error('create user action Error', error);
             return { error: error instanceof Error ? error.message : "Failed to create user" };
         }
-    })
+    });
 
 export const createEmailVerification = action
     .use(authMiddleware)
@@ -441,12 +428,18 @@ export const deleteUserAccount = action
             if (currentUser.$id !== parsedInput.userId) {
                 return { error: "Action denied." }
             }
-            
-            await databases.deleteDocument(
-                DATABASE_ID,
-                USER_DATA_ID,
-                parsedInput.userId
-            );
+
+            try {
+                await databases.deleteDocument(DATABASE_ID, USER_DATA_ID, currentUser.$id);
+            } catch (error) {
+                console.warn('Failed to delete user document:', error);
+            }
+
+            try {
+                await ctx.account.deleteSessions();
+            } catch (error) {
+                console.warn('Failed to delete user sessions:', error);
+            }
 
             await users.delete(parsedInput.userId);
 

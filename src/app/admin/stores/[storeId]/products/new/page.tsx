@@ -9,7 +9,7 @@ import { AlertTriangle, ArrowLeft, Package2, Tags, Layers } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import EcommerceCatalogUtils from "@/features/variants management/ecommerce-catalog";
+import { getCategories, getProductTypes, getVariantTemplates } from "@/features/variants management/ecommerce-catalog";
 
 interface ProductCreatePageProps {
     params: Promise<{ storeId: string }>;
@@ -76,9 +76,9 @@ async function ProductCreateContent({ params }: ProductCreatePageProps) {
         );
     }
 
-    const categories = EcommerceCatalogUtils.getCategories();
-    const productTypes = EcommerceCatalogUtils.getProductTypes();
-    const variantTemplates = EcommerceCatalogUtils.getVariantTemplates();
+    const categories = getCategories();
+    const productTypes = getProductTypes();
+    const variantTemplates = getVariantTemplates();
 
     return (
         <div className="space-y-6">
@@ -116,7 +116,6 @@ async function ProductCreateContent({ params }: ProductCreatePageProps) {
                 <span className="font-medium text-foreground">Create</span>
             </nav>
 
-            {/* Catalog Statistics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardContent className="pt-4">
@@ -164,7 +163,6 @@ async function ProductCreateContent({ params }: ProductCreatePageProps) {
                 </Card>
             </div>
 
-            {/* Catalog Overview */}
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -223,7 +221,6 @@ async function ProductCreateContent({ params }: ProductCreatePageProps) {
                 </CardContent>
             </Card>
 
-            {/* Enhanced Product Form */}
             <ProductForm storeData={storeData} />
         </div>
     );

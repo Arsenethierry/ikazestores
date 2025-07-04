@@ -48,9 +48,9 @@ export const createPhysicalStoreAction = action
 
             const newStoreTeam = await teams.create(
                 storeId,
-                storeName + "Team",
-                ["owner", "admin", 'staff']
+                storeName + "Team"
             );
+
             await rollback.trackTeam(newStoreTeam.$id);
 
             const newPhysicalStore = await databases.createDocument(

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Models } from "node-appwrite";
 import { UserAccountType, UserRole } from "./constants";
 
@@ -14,12 +13,12 @@ export type SignUpParams = {
     password: string;
 }
 
-type SocialLinks = {
-    instagram?: string;
-    twitter?: string;
-    facebook?: string;
-    linkedin?: string;
-};
+// type SocialLinks = {
+//     instagram?: string;
+//     twitter?: string;
+//     facebook?: string;
+//     linkedin?: string;
+// };
 
 export type CurrentUserType = Models.User<Models.Preferences> | null;
 
@@ -340,9 +339,32 @@ export interface VariantTemplate extends Models.Document {
     step?: number;
     unit?: string;
     group?: string;
-    isRequired?: string;
+    isRequired?: boolean;
+}
+export interface VariantTemplateTypes {
+    id: string;
+    name: string;
+    inputType: "text" | "color" | "range" | "number" | "select" | 'multiselect' | 'boolean';
+    variantOptions: { value: string; label: string; colorCode?: string; additionalPrice?: number, metadata: { count: number } }[];
+    minValue?: number;
+    maxValue?: number;
+    step?: number;
+    unit?: string;
+    group?: string;
+    isRequired?: boolean;
+    subcategoryIds?: string[];
+    productTypeIds?: string[];
+    categoryIds?: string[];
 }
 
+export interface ProductTypeTypes {
+    id: string;
+    name: string;
+    description?: string;
+    categoryId: string;
+    defaultVariantTemplates?: string[];
+    subcategoryId?: string;
+}
 export interface ProductType extends Models.Document {
     id: string;
     name: string;
@@ -350,4 +372,14 @@ export interface ProductType extends Models.Document {
     categoryId: string;
     defaultVariantTemplates?: string[];
     subcategoryId?: string;
+}
+
+export interface ProductCombination {
+    id: string;
+    variantValues: Record<string, string>;
+    sku: string;
+    price: number;
+    quantity?: number;
+    isDefault?: boolean;
+    variantStrings?: string[];
 }

@@ -21,8 +21,7 @@ import {
     StepperTrigger,
 } from "@/components/ui/stepper";
 import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
-import { Category, PhysicalStoreTypes, ProductType, Subcategory, VariantTemplate } from '@/lib/types';
-import EcommerceCatalogUtils from '@/features/variants management/ecommerce-catalog';
+import { Category, PhysicalStoreTypes, ProductTypeTypes, Subcategory, VariantTemplateTypes } from '@/lib/types';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
@@ -32,6 +31,7 @@ import { useAction } from 'next-safe-action/hooks';
 import { createNewProduct } from '../actions/original-products-actions';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { generateCombinationsWithStrings, getCategories, getCategoryById, getProductTypesBySubcategory, getRecommendedVariantTemplates } from '@/features/variants management/ecommerce-catalog';
 
 // Enhanced Product form schema
 
@@ -79,11 +79,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
     const [selectedProductType, setSelectedProductType] = useState<string>('');
-    const [availableVariants, setAvailableVariants] = useState<VariantTemplate[]>([]);
+    const [availableVariants, setAvailableVariants] = useState<VariantTemplateTypes[]>([]);
     const [currentTag, setCurrentTag] = useState('');
     const [previewImages, setPreviewImages] = useState<string[]>([]);
 
-    // Form Setup
     const form = useForm<ProductFormData>({
         resolver: zodResolver(productFormSchema),
         mode: 'onChange',
@@ -105,12 +104,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         name: 'productCombinations'
     });
 
-    // Catalog Data
-    const categories = EcommerceCatalogUtils.getCategories();
+    const categories = getCategories();
     const subcategories = selectedCategory ?
-        EcommerceCatalogUtils.getCategoryById(selectedCategory)?.subcategories || [] : [];
+        getCategoryById(selectedCategory)?.subcategories || [] : [];
     const productTypes = (selectedCategory && selectedSubcategory) ?
-        EcommerceCatalogUtils.getProductTypesBySubcategory(selectedCategory, selectedSubcategory) : [];
+        getProductTypesBySubcategory(selectedCategory, selectedSubcategory) : [];
 
     const watchedImages = form.watch("images");
     const watchedHasVariants = form.watch("hasVariants");
@@ -118,7 +116,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
     useEffect(() => {
         if (selectedProductType) {
-            const variants = EcommerceCatalogUtils.getRecommendedVariantTemplates(selectedProductType);
+            const variants = getRecommendedVariantTemplates(selectedProductType);
             setAvailableVariants(variants);
         }
     }, [selectedProductType]);
@@ -159,7 +157,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             return;
         }
 
-        const combinations = EcommerceCatalogUtils.generateCombinationsWithStrings(
+        const combinations = generateCombinationsWithStrings(
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             variants,
@@ -510,7 +508,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {productTypes.map((productType: ProductType) => (
+                                            {productTypes.map((productType: ProductTypeTypes) => (
                                                 <SelectItem key={productType.id} value={productType.id}>
                                                     {productType.name}
                                                 </SelectItem>

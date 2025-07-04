@@ -250,7 +250,7 @@ export function PhysicalStoreForm({
                                 <FormItem>
                                     <FormLabel>Store Name</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Placeholder" {...field} />
+                                        <Input placeholder="Store Name" {...field} />
                                     </FormControl>
                                     <FormDescription>
                                         Description
@@ -267,7 +267,7 @@ export function PhysicalStoreForm({
                                 <FormItem>
                                     <FormLabel>Desccription</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Placeholder" {...field} />
+                                        <Input placeholder="Description" {...field} />
                                     </FormControl>
                                     <FormDescription>
                                         Description
@@ -284,7 +284,7 @@ export function PhysicalStoreForm({
                                 <FormItem>
                                     <FormLabel>Store Bio</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Placeholder" {...field} />
+                                        <Input placeholder="Store Bio" {...field} />
                                     </FormControl>
                                     <FormDescription>
                                         Description
