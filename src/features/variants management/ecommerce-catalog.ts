@@ -224,30 +224,34 @@ export function getProductTypesBySubcategory(categoryId: string, subcategoryId: 
 };
 
 export function getVariantTemplatesForProductType(productTypeId: string): VariantTemplateTypes[] {
-    const productType = getProductTypeById(productTypeId);
-    if (!productType) return [];
-
     const parts = productTypeId.split('-');
+    if (parts.length < 3) {
+        console.warn(`Invalid productTypeId format: ${productTypeId}`);
+        return [];
+    }
     const categoryId = parts[0];
     const subcategoryId = parts[1];
     const actualProductType = parts.slice(2).join('-');
 
+    const productType = getProductTypeById(productTypeId);
+    if (!productType) {
+        console.warn(`Product type not found: ${productTypeId}`);
+        return [];
+    }
+
     // @ts-ignore
     const mapping = catalogData.productTypeVariantMapping?.[categoryId]?.[actualProductType] || [];
     return getVariantTemplates().filter(template => {
-        if (mapping.includes(template.id)) return true;
+        if (mapping.includes(template.id)) {
+            return true;
+        }
 
-        const matchesSubcategory = !template.subcategoryIds?.length ||
-            template.subcategoryIds.includes(subcategoryId);
+        const matchesCategory = template.categoryIds?.includes(categoryId) ?? false;
+        const matchesSubcategory = template.subcategoryIds?.includes(`${categoryId}-${subcategoryId}`) ?? false;
+        const matchesProductType = template.productTypeIds?.includes(productTypeId) ?? false;
 
-        const matchesCategory = !template.categoryIds?.length ||
-            template.categoryIds.includes(categoryId);
-
-        const matchesProductType = !template.productTypeIds?.length ||
-            template.productTypeIds.includes(productTypeId);
-
-        return matchesCategory && matchesSubcategory && matchesProductType;
-    })
+        return (matchesCategory || matchesSubcategory || matchesProductType) && mapping.length === 0;
+    });
 }
 
 export function getRecommendedVariantTemplates(productTypeId: string): VariantTemplateTypes[] {

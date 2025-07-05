@@ -20,7 +20,7 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
-import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Category, PhysicalStoreTypes, ProductTypeTypes, Subcategory, VariantTemplateTypes } from '@/lib/types';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -32,6 +32,7 @@ import { createNewProduct } from '../actions/original-products-actions';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { generateCombinationsWithStrings, getCategories, getCategoryById, getProductTypesBySubcategory, getRecommendedVariantTemplates } from '@/features/variants management/ecommerce-catalog';
+import { ProductCombinations } from './product-combinations';
 
 // Enhanced Product form schema
 
@@ -623,6 +624,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                     )}
                 </CardContent>
             </Card>
+
+            {form.watch("hasVariants") && (
+                <ProductCombinations
+                    control={form.control}
+                    basePrice={form.watch("basePrice") || 0}
+                    baseSku={form.watch("sku") || ''}
+                    variants={form.watch('variants') || []}
+                    onRegenerateAll={generateVariantCombinations}
+                />
+            )}
+
+            <div className="mt-4">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                        console.log('Variants:', form.getValues('variants')); // Debug log
+                        generateVariantCombinations();
+                        console.log('Generated Combinations:', form.getValues('productCombinations')); // Debug log
+                    }}
+                    className="flex items-center gap-2"
+                >
+                    <RefreshCw className="h-4 w-4" />
+                    Generate Combinations
+                </Button>
+            </div>
         </div>
     );
 
@@ -784,7 +811,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                             Generated Variant Filter Strings
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            These strings will be stored in Appwrite for easy filtering. Perfect for your T-shirt example: Size Large = &quot;size-l&quot;
+                            These strings will be stored in database for easy filtering. Perfect for your T-shirt example: Size Large = &quot;size-l&quot;
                         </p>
                     </CardHeader>
                     <CardContent>

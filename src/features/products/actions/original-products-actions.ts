@@ -34,8 +34,6 @@ export const createNewProduct = action
         const { databases, storage, user } = ctx;
         const rollback = new AppwriteRollback(storage, databases);
         try {
-
-            console.log(parsedInput)
             if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
                 const invalidCombinations = parsedInput.productCombinations.filter(
                     (combo: any) => combo.price < parsedInput.basePrice
@@ -65,24 +63,28 @@ export const createNewProduct = action
 
             const productId = ID.unique();
             const productData = {
-                title: parsedInput.name,
+                storeId: parsedInput.storeId,
+                name: parsedInput.name,
                 description: parsedInput.description,
                 shortDescription: parsedInput.shortDescription || "",
                 sku: parsedInput.sku,
                 basePrice: parsedInput.basePrice,
+                status: parsedInput.status,
+                featured: parsedInput.featured,
                 categoryId: parsedInput.categoryId,
                 subcategoryId: parsedInput.subcategoryId,
                 productTypeId: parsedInput.productTypeId,
-                status: parsedInput.status,
-                featured: parsedInput.featured,
-                generalProductImages: imageUrls.map(image => image),
-                // tags: parsedInput.tags,
-                brand: parsedInput.brand || "",
-                model: parsedInput.model || "",
-                createdBy: user.$id,
-                storeId: parsedInput.storeId,
+                tags: parsedInput.tags || [],
+                weight: 0,
+                dimensions: "",
                 hasVariants: parsedInput.hasVariants || false,
-                storeOriginCountry: parsedInput.storeOriginCountry
+                variantIds: [],
+                combinationIds: [],
+                images: imageUrls.map(image => image),
+                storeLat: parsedInput.storeLat || 0,
+                storeLong: parsedInput.storeLong || 0,
+                storeOriginCountry: parsedInput.storeOriginCountry,
+                createdBy: user.$id
             };
 
             const newProduct = await databases.createDocument(
@@ -93,25 +95,29 @@ export const createNewProduct = action
             );
             await rollback.trackDocument(ORIGINAL_PRODUCT_ID, newProduct.$id);
 
+            const variantIds: string[] = [];
             if (parsedInput.hasVariants && parsedInput.variants && parsedInput.variants.length > 0) {
-                for (const variant of parsedInput.variants) {
+                const variants = parsedInput.variants.map(async (variant) => {
                     const variantId = ID.unique();
+                    variantIds.push(variantId);
+
                     await databases.createDocument(
                         DATABASE_ID,
                         PRODUCT_VARIANTS_COLLECTION_ID,
                         variantId,
                         {
                             productId,
-                            variantTemplateId: variant.templateId,
+                            templateId: variant.templateId,
                             name: variant.name,
-                            type: variant.type,
+                            inputType: variant.type,
+                            values: JSON.stringify(variant.values),
                             required: variant.required || false,
-                            storeId: parsedInput.storeId,
+                            sortOrder: 0
                         }
                     );
                     await rollback.trackDocument(PRODUCT_VARIANTS_COLLECTION_ID, variantId);
 
-                    for (const option of variant.values) {
+                    const options = variant.values.map(async (option) => {
                         const optionId = ID.unique();
                         await databases.createDocument(
                             DATABASE_ID,
@@ -126,13 +132,35 @@ export const createNewProduct = action
                                 isDefault: option.isDefault || false
                             }
                         )
-                    }
-                }
+                    });
+
+                    await Promise.all(options)
+                });
+
+                await Promise.all(variants)
             }
 
-            if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
-                for (const combination of parsedInput.productCombinations) {
+            const combinationIds: string[] = [];
+            if (parsedInput.hasVariants && parsedInput.productCombinations?.length) {
+                const combination = parsedInput.productCombinations.map(async (combination) => {
                     const combinationId = ID.unique();
+                    combinationIds.push(combinationId);
+
+                    const combinationImageUrls: string[] = [];
+                    if (combination.images?.length) {
+                        const combImagePromises = combination.images.map(async (image) => {
+                            const uploadedImage = await storage.createFile(
+                                PRODUCTS_BUCKET_ID,
+                                ID.unique(),
+                                image
+                            );
+                            await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
+                            return `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`;
+                        });
+
+                        const uploadedCombImageUrls = await Promise.all(combImagePromises);
+                        combinationImageUrls.push(...uploadedCombImageUrls);
+                    };
 
                     await databases.createDocument(
                         DATABASE_ID,
@@ -140,18 +168,19 @@ export const createNewProduct = action
                         combinationId,
                         {
                             productId,
+                            variantStrings: combination.variantStrings?.map(variantString => variantString) || [],
                             sku: combination.sku,
                             price: combination.price,
-                            quantity: combination.quantity || 0,
+                            stockQuantity: combination.quantity || 0,
+                            isActive: true,
                             weight: combination.weight || 0,
-                            isDefault: combination.isDefault || false,
-                            variantStrings: combination.variantStrings || [],
-                            createdBy: user.$id,
+                            dimensions: "",
+                            images: combinationImageUrls.map(image => image)
                         }
                     );
                     await rollback.trackDocument(VARIANT_COMBINATIONS_COLLECTION_ID, combinationId);
 
-                    for (const [templateId, value] of Object.entries(combination.variantValues)) {
+                    const combinationValues = Object.entries(combination.variantValues).map(async ([templateId, value]) => {
                         const valueId = ID.unique();
                         await databases.createDocument(
                             DATABASE_ID,
@@ -160,12 +189,28 @@ export const createNewProduct = action
                             {
                                 combinationId,
                                 variantTemplateId: templateId,
-                                value
+                                value: String(value)
                             }
                         );
                         await rollback.trackDocument(VARIANT_COMBINATION_VALUES_COLLECTION_ID, valueId);
+                    });
+
+                    await Promise.all(combinationValues);
+                });
+
+                await Promise.all(combination);
+            }
+
+            if (variantIds.length > 0 || combinationIds.length > 0) {
+                await databases.updateDocument(
+                    DATABASE_ID,
+                    ORIGINAL_PRODUCT_ID,
+                    productId,
+                    {
+                        variantIds,
+                        combinationIds
                     }
-                }
+                );
             }
 
             revalidatePath('/admin/stores/[storeId]/products');

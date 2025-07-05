@@ -382,4 +382,5 @@ export interface ProductCombination {
     quantity?: number;
     isDefault?: boolean;
     variantStrings?: string[];
+    weight?: number;
 }

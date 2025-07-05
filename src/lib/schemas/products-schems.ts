@@ -1,83 +1,27 @@
 import { z } from "zod";
 import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "../constants";
 // import { VariantCombinationSchema } from "./product-variants-schema";
-// import { ProductVariantInstanceSchema, VariantCombinationSchema } from "./product-variants-schema";
+import { ProductVariantSchema, VariantCombinationSchema } from "./product-variants-schema";
 
 export const productFormSchema = z.object({
-    // Basic Information
     name: z.string().min(1, 'Product name is required'),
     description: z.string().min(10, 'Description must be at least 10 characters'),
     shortDescription: z.string().optional(),
     sku: z.string().min(1, 'SKU is required'),
     basePrice: z.number().min(0, 'Price must be positive'),
-    // quantity: z.number().min(0, 'Quantity must be 0 or greater'),
-
-    // Category & Type
     categoryId: z.string().min(1, 'Category is required'),
     subcategoryId: z.string().min(1, 'Subcategory is required'),
     productTypeId: z.string().min(1, 'Product type is required'),
-
-    // Pricing & Inventory
-    // compareAtPrice: z.number().optional().nullable(),
-    // costPerItem: z.number().optional(),
-    // trackQuantity: z.boolean().default(true),
-    // lowStockThreshold: z.number().min(0).optional(),
-
-    // Physical Properties
-    // weight: z.number().optional(),
-    // dimensions: z.object({
-    //     length: z.number().optional(),
-    //     width: z.number().optional(),
-    //     height: z.number().optional(),
-    //     unit: z.string().default('cm')
-    // }).optional(),
-
-    // Product Status
     status: z.enum(['active', 'draft', 'archived']).default('active'),
     featured: z.boolean().default(false),
-
-    // SEO
-    // seoTitle: z.string().optional(),
-    // seoDescription: z.string().optional(),
-
-    // Variants
     hasVariants: z.boolean().default(false),
-    variants: z.array(z.object({
-        templateId: z.string(),
-        name: z.string(),
-        type: z.enum(['text', 'color', 'select', 'boolean', 'multiselect']),
-        values: z.array(z.object({
-            value: z.string(),
-            label: z.string().optional(),
-            colorCode: z.string().optional(),
-            additionalPrice: z.number().optional(),
-            isDefault: z.boolean().default(false)
-        })),
-        required: z.boolean().default(false)
-    })).optional(),
+    variants: ProductVariantSchema,
+    productCombinations: VariantCombinationSchema,
 
-    // Product Combinations with variant strings
-    productCombinations: z.array(z.object({
-        id: z.string(),
-        variantValues: z.record(z.string()),
-        sku: z.string(),
-        price: z.number(),
-        quantity: z.number().optional(),
-        weight: z.number().optional(),
-        barcode: z.string().optional(),
-        images: z.array(z.any()).optional(),
-        isDefault: z.boolean().default(false),
-        // Simple variant strings for filtering - this is what we want!
-        variantStrings: z.array(z.string()).optional()
-    })).optional(),
-
-    // Images
     images: z.array(z.any()).min(1, 'At least one image is required'),
 
-    // Tags
     tags: z.array(z.string()).default([]),
 
-    // Additional Properties
     brand: z.string().optional(),
     model: z.string().optional(),
 });

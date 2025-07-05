@@ -63,7 +63,7 @@ export const DeleteProductTypeSchema = z.object({
     productTypeId: z.string().min(1, "Product type ID is required"),
 });
 
-export const ProductVariantInstanceSchema = z.object({
+export const ProductVariantSchema = z.object({
     productId: z.string(),
     variantTemplateId: z.string(),
     selectedOptions: z.array(z.string()),

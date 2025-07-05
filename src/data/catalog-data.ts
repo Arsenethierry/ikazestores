@@ -1057,240 +1057,197 @@ export const catalogData = {
 
     // Enhanced Product Type to Variant Template Mapping
     "productTypeVariantMapping": {
-        // ===== FASHION & APPAREL =====
-        "shirts-tops": ["size-clothing", "color", "clothing-material", "clothing-fit", "clothing-sleeve", "clothing-neckline", "condition", "brand-tier"],
-        "pants-bottoms": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "dresses": ["size-clothing", "color", "clothing-material", "clothing-fit", "clothing-neckline", "condition", "brand-tier"],
-        "outerwear-jackets": ["size-clothing", "color", "clothing-material", "condition", "brand-tier", "warranty"],
-        "tops-blouses": ["size-clothing", "color", "clothing-material", "clothing-fit", "clothing-sleeve", "clothing-neckline", "condition", "brand-tier"],
-        "pants-skirts": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "outerwear-coats": ["size-clothing", "color", "clothing-material", "condition", "brand-tier", "warranty"],
-        "lingerie-sleepwear": ["size-clothing", "color", "clothing-material", "condition", "brand-tier"],
-        "activewear-sportswear": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "activewear-yoga": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "suits-formal": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "underwear-sleepwear": ["size-clothing", "color", "clothing-material", "condition", "brand-tier"],
-        "maternity-wear": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "plus-size": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
-        "swimwear": ["size-clothing", "color", "clothing-material", "condition", "brand-tier"],
+        "fashion-apparel": {
+            "mens-clothing-shirts-tops": ["size-clothing", "color", "clothing-material", "clothing-fit", "clothing-sleeve", "clothing-neckline", "condition", "brand-tier"],
+            "mens-clothing-pants-bottoms": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "mens-clothing-outerwear-jackets": ["size-clothing", "color", "clothing-material", "condition", "brand-tier", "warranty"],
+            "mens-clothing-underwear-sleepwear": ["size-clothing", "color", "clothing-material", "condition", "brand-tier"],
+            "mens-clothing-activewear-sportswear": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "mens-clothing-suits-formal": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "mens-clothing-swimwear": ["size-clothing", "color", "clothing-material", "condition", "brand-tier"],
+            "womens-clothing-tops-blouses": ["size-clothing", "color", "clothing-material", "clothing-fit", "clothing-sleeve", "clothing-neckline", "condition", "brand-tier"],
+            "womens-clothing-dresses": ["size-clothing", "color", "clothing-material", "clothing-fit", "clothing-neckline", "condition", "brand-tier"],
+            "womens-clothing-pants-skirts": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "womens-clothing-outerwear-coats": ["size-clothing", "color", "clothing-material", "condition", "brand-tier", "warranty"],
+            "womens-clothing-lingerie-sleepwear": ["size-clothing", "color", "clothing-material", "condition", "brand-tier"],
+            "womens-clothing-activewear-yoga": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "womens-clothing-maternity-wear": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "womens-clothing-plus-size": ["size-clothing", "color", "clothing-material", "clothing-fit", "condition", "brand-tier"],
+            "shoes-athletic-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
+            "shoes-casual-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
+            "shoes-dress-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
+            "shoes-boots": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
+            "shoes-sandals-flipflops": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
+            "shoes-high-heels": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
+            "shoes-slippers": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
+            "accessories-bags-handbags": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "accessories-jewelry": ["color", "clothing-material", "condition", "brand-tier", "warranty"],
+            "accessories-watches": ["color", "condition", "brand-tier", "warranty"],
+            "accessories-belts": ["color", "clothing-material", "condition", "brand-tier"],
+            "accessories-hats-caps": ["color", "clothing-material", "condition", "brand-tier"],
+            "accessories-scarves-gloves": ["color", "clothing-material", "condition", "brand-tier"],
+            "accessories-sunglasses": ["color", "condition", "brand-tier", "warranty"],
+            "accessories-hair-accessories": ["color", "clothing-material", "condition", "brand-tier"]
+        },
+        "electronics-technology": {
+            "smartphones-mobile-smartphones": ["color", "phone-storage", "ram", "camera-quality", "network-type", "battery-life", "condition", "brand-tier", "warranty"],
+            "smartphones-mobile-phone-cases-covers": ["color", "clothing-material", "condition", "brand-tier"],
+            "smartphones-mobile-screen-protectors": ["condition", "brand-tier"],
+            "smartphones-mobile-chargers-cables": ["color", "connectivity", "condition", "brand-tier", "warranty"],
+            "smartphones-mobile-power-banks": ["color", "battery-life", "condition", "brand-tier", "warranty"],
+            "smartphones-mobile-phone-stands-mounts": ["color", "clothing-material", "condition", "brand-tier"],
+            "computers-laptops-desktop-computers": ["color", "processor", "ram", "storage", "storage-type", "graphics-card", "operating-system", "connectivity", "condition", "brand-tier", "warranty"],
+            "computers-laptops-laptops": ["color", "processor", "ram", "storage", "storage-type", "screen-size", "resolution", "graphics-card", "operating-system", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
+            "computers-laptops-tablets": ["color", "storage", "ram", "screen-size", "resolution", "connectivity", "battery-life", "operating-system", "condition", "brand-tier", "warranty"],
+            "computers-laptops-computer-components": ["condition", "brand-tier", "warranty"],
+            "computers-laptops-monitors": ["color", "screen-size", "resolution", "connectivity", "condition", "brand-tier", "warranty"],
+            "computers-laptops-keyboards-mice": ["color", "connectivity", "condition", "brand-tier", "warranty"],
+            "computers-laptops-storage permission": ["storage", "storage-type", "connectivity", "condition", "brand-tier", "warranty"],
+            "audio-video-headphones-earbuds": ["color", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
+            "audio-video-speakers": ["color", "connectivity", "power-consumption", "condition", "brand-tier", "warranty"],
+            "audio-video-tvs-displays": ["screen-size", "resolution", "connectivity", "energy-rating", "condition", "brand-tier", "warranty"],
+            "audio-video-cameras": ["color", "storage", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
+            "audio-video-gaming-consoles": ["color", "storage", "connectivity", "condition", "brand-tier", "warranty"],
+            "audio-video-streaming-devices": ["color", "storage", "connectivity", "condition", "brand-tier", "warranty"],
+            "smart-home-iot-smart-speakers": ["color", "connectivity", "condition", "brand-tier", "warranty"],
+            "smart-home-iot-security-cameras": ["color", "resolution", "connectivity", "condition", "brand-tier", "warranty"],
+            "smart-home-iot-smart-lights": ["color", "connectivity", "energy-rating", "condition", "brand-tier", "warranty"],
+            "smart-home-iot-thermostats": ["color", "connectivity", "energy-rating", "condition", "brand-tier", "warranty"],
+            "smart-home-iot-smart-plugs": ["color", "connectivity", "condition", "brand-tier", "warranty"],
+            "smart-home-iot-home-automation": ["color", "connectivity", "condition", "brand-tier", "warranty"]
+        },
 
-        // SHOES
-        "athletic-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
-        "casual-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
-        "dress-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
-        "boots": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier", "warranty"],
-        "sandals-flipflops": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
-        "high-heels": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
-        "slippers": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
-        "kids-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
-
-        // ACCESSORIES
-        "bags-handbags": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "jewelry": ["color", "clothing-material", "condition", "brand-tier", "warranty"],
-        "watches": ["color", "condition", "brand-tier", "warranty"],
-        "belts": ["color", "clothing-material", "condition", "brand-tier"],
-        "hats-caps": ["color", "clothing-material", "condition", "brand-tier"],
-        "scarves-gloves": ["color", "clothing-material", "condition", "brand-tier"],
-        "sunglasses": ["color", "condition", "brand-tier", "warranty"],
-        "hair-accessories": ["color", "clothing-material", "condition", "brand-tier"],
-
-        // ===== ELECTRONICS & TECHNOLOGY =====
-        // SMARTPHONES & MOBILE
-        "smartphones": ["color", "phone-storage", "ram", "camera-quality", "network-type", "battery-life", "condition", "brand-tier", "warranty"],
-        "phone-cases-covers": ["color", "clothing-material", "condition", "brand-tier"],
-        "screen-protectors": ["condition", "brand-tier"],
-        "chargers-cables": ["color", "connectivity", "condition", "brand-tier", "warranty"],
-        "power-banks": ["color", "battery-life", "condition", "brand-tier", "warranty"],
-        "phone-stands-mounts": ["color", "clothing-material", "condition", "brand-tier"],
-
-        // COMPUTERS & LAPTOPS
-        "desktop-computers": ["color", "processor", "ram", "storage", "storage-type", "graphics-card", "operating-system", "connectivity", "condition", "brand-tier", "warranty"],
-        "laptops": ["color", "processor", "ram", "storage", "storage-type", "screen-size", "resolution", "graphics-card", "operating-system", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
-        "tablets": ["color", "storage", "ram", "screen-size", "resolution", "connectivity", "battery-life", "operating-system", "condition", "brand-tier", "warranty"],
-        "computer-components": ["condition", "brand-tier", "warranty"],
-        "monitors": ["color", "screen-size", "resolution", "connectivity", "condition", "brand-tier", "warranty"],
-        "keyboards-mice": ["color", "connectivity", "condition", "brand-tier", "warranty"],
-        "storage-devices": ["storage", "storage-type", "connectivity", "condition", "brand-tier", "warranty"],
-
-        // AUDIO & VIDEO
-        "headphones-earbuds": ["color", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
-        "speakers": ["color", "connectivity", "power-consumption", "condition", "brand-tier", "warranty"],
-        "tvs-displays": ["screen-size", "resolution", "connectivity", "energy-rating", "condition", "brand-tier", "warranty"],
-        "cameras": ["color", "storage", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
-        "gaming-consoles": ["color", "storage", "connectivity", "condition", "brand-tier", "warranty"],
-        "streaming-devices": ["color", "storage", "connectivity", "condition", "brand-tier", "warranty"],
-
-        // SMART HOME & IOT
-        "smart-speakers": ["color", "connectivity", "condition", "brand-tier", "warranty"],
-        "security-cameras": ["color", "resolution", "connectivity", "condition", "brand-tier", "warranty"],
-        "smart-lights": ["color", "connectivity", "energy-rating", "condition", "brand-tier", "warranty"],
-        "thermostats": ["color", "connectivity", "energy-rating", "condition", "brand-tier", "warranty"],
-        "smart-plugs": ["color", "connectivity", "condition", "brand-tier", "warranty"],
-        "home-automation": ["color", "connectivity", "condition", "brand-tier", "warranty"],
-
-        // ===== HOME & GARDEN =====
-        // FURNITURE
-        "living-room": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "seating-capacity", "condition", "brand-tier", "warranty"],
-        "bedroom": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "dining-room": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "seating-capacity", "condition", "brand-tier", "warranty"],
-        "office-furniture": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "outdoor-furniture": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "seating-capacity", "condition", "brand-tier", "warranty"],
-        "storage-organization": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-
-        // HOME DECOR
-        "wall-art-prints": ["color", "furniture-dimensions", "condition", "brand-tier"],
-        "candles-fragrances": ["color", "volume-size", "condition", "brand-tier"],
-        "rugs-carpets": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "curtains-blinds": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier"],
-        "mirrors": ["color", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "vases-planters": ["color", "furniture-material", "furniture-dimensions", "condition", "brand-tier"],
-
-        // KITCHEN & DINING
-        "cookware-bakeware": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier", "warranty"],
-        "kitchen-appliances": ["color", "appliance-capacity", "energy-rating", "power-consumption", "condition", "brand-tier", "warranty"],
-        "dinnerware-serveware": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier"],
-        "kitchen-tools-gadgets": ["color", "furniture-material", "condition", "brand-tier", "warranty"],
-        "storage-containers": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier"],
-        "coffee-tea-accessories": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier", "warranty"],
-
-        // GARDEN & OUTDOOR
-        "plants-seeds": ["color", "age-range", "condition", "brand-tier"],
-        "garden-tools": ["color", "furniture-material", "condition", "brand-tier", "warranty"],
-        "outdoor-lighting": ["color", "energy-rating", "power-consumption", "condition", "brand-tier", "warranty"],
-        "patio-deck": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "grills-outdoor-cooking": ["color", "furniture-material", "appliance-capacity", "power-consumption", "condition", "brand-tier", "warranty"],
-        "lawn-care": ["color", "power-consumption", "condition", "brand-tier", "warranty"],
-
-        // ===== HEALTH & BEAUTY =====
-        // SKINCARE
-        "cleansers": ["skin-type", "volume-size", "condition", "brand-tier"],
-        "moisturizers": ["skin-type", "spf-level", "volume-size", "condition", "brand-tier"],
-        "serums-treatments": ["skin-type", "volume-size", "condition", "brand-tier"],
-        "sun-protection": ["skin-type", "spf-level", "volume-size", "condition", "brand-tier"],
-        "anti-aging": ["skin-type", "volume-size", "condition", "brand-tier"],
-        "acne-treatment": ["skin-type", "volume-size", "condition", "brand-tier"],
-
-        // MAKEUP
-        "face-makeup": ["color", "skin-type", "volume-size", "condition", "brand-tier"],
-        "eye-makeup": ["color", "volume-size", "condition", "brand-tier"],
-        "lip-products": ["color", "volume-size", "condition", "brand-tier"],
-        "nail-polish": ["color", "volume-size", "condition", "brand-tier"],
-        "makeup-tools-brushes": ["color", "condition", "brand-tier", "warranty"],
-        "makeup-sets": ["color", "skin-type", "condition", "brand-tier"],
-
-        // HAIR CARE
-        "shampoo-conditioner": ["volume-size", "condition", "brand-tier"],
-        "styling-products": ["volume-size", "condition", "brand-tier"],
-        "hair-tools": ["color", "power-consumption", "condition", "brand-tier", "warranty"],
-        "hair-color": ["color", "volume-size", "condition", "brand-tier"],
-        "hair-treatments": ["volume-size", "condition", "brand-tier"],
-
-        // PERSONAL CARE
-        "oral-care": ["volume-size", "condition", "brand-tier", "warranty"],
-        "body-care": ["skin-type", "volume-size", "condition", "brand-tier"],
-        "deodorants": ["volume-size", "condition", "brand-tier"],
-        "shaving-grooming": ["volume-size", "condition", "brand-tier", "warranty"],
-        "feminine-care": ["volume-size", "condition", "brand-tier"],
-        "mens-grooming": ["volume-size", "condition", "brand-tier", "warranty"],
-
-        // ===== SPORTS & OUTDOORS =====
-        // EXERCISE & FITNESS
-        "cardio-equipment": ["color", "weight-capacity", "power-consumption", "condition", "brand-tier", "warranty"],
-        "strength-training": ["color", "weight-capacity", "resistance-level", "condition", "brand-tier", "warranty"],
-        "yoga-pilates": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier"],
-        "fitness-accessories": ["color", "clothing-material", "resistance-level", "condition", "brand-tier", "warranty"],
-        "gym-bags": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "fitness-trackers": ["color", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
-
-        // OUTDOOR RECREATION
-        "camping-hiking": ["color", "clothing-material", "furniture-dimensions", "weight-capacity", "condition", "brand-tier", "warranty"],
-        "water-sports": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "winter-sports": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "cycling": ["color", "clothing-material", "furniture-dimensions", "weight-capacity", "condition", "brand-tier", "warranty"],
-        "fishing": ["color", "clothing-material", "condition", "brand-tier", "warranty"],
-        "hunting": ["color", "clothing-material", "condition", "brand-tier", "warranty"],
-
-        // TEAM SPORTS
-        "football": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "basketball": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "soccer": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "baseball": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "tennis": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-        "golf": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
-
-        // ===== BOOKS, MOVIES & MUSIC =====
-        // BOOKS
-        "fiction": ["condition", "brand-tier"],
-        "non-fiction": ["condition", "brand-tier"],
-        "educational": ["age-range", "condition", "brand-tier"],
-        "childrens-books": ["age-range", "condition", "brand-tier"],
-        "ebooks": ["condition", "brand-tier"],
-        "audiobooks": ["condition", "brand-tier"],
-
-        // MOVIES & TV
-        "dvds-blurays": ["condition", "brand-tier"],
-        "digital-movies": ["resolution", "condition", "brand-tier"],
-        "tv-series": ["condition", "brand-tier"],
-        "documentaries": ["condition", "brand-tier"],
-
-        // MUSIC
-        "cds-vinyl": ["condition", "brand-tier"],
-        "digital-music": ["condition", "brand-tier"],
-        "musical-instruments": ["color", "furniture-material", "condition", "brand-tier", "warranty"],
-        "audio-equipment": ["color", "connectivity", "power-consumption", "condition", "brand-tier", "warranty"],
-
-        // ===== AUTOMOTIVE =====
-        // CAR PARTS & ACCESSORIES
-        "interior-accessories": ["color", "furniture-material", "vehicle-compatibility", "condition", "brand-tier", "warranty"],
-        "exterior-accessories": ["color", "furniture-material", "vehicle-compatibility", "condition", "brand-tier", "warranty"],
-        "car-care-cleaning": ["volume-size", "condition", "brand-tier"],
-        "tools-equipment": ["color", "condition", "brand-tier", "warranty"],
-        "replacement-parts": ["vehicle-compatibility", "condition", "brand-tier", "warranty"],
-        "performance-parts": ["vehicle-compatibility", "condition", "brand-tier", "warranty"],
-
-        // MOTORCYCLES & ATVS
-        "motorcycle-parts": ["color", "vehicle-compatibility", "condition", "brand-tier", "warranty"],
-        "protective-gear": ["size-clothing", "color", "clothing-material", "safety-certification", "condition", "brand-tier", "warranty"],
-        "maintenance-tools": ["color", "condition", "brand-tier", "warranty"],
-
-        // ===== BABY & KIDS =====
-        // BABY CARE
-        "feeding": ["color", "furniture-material", "appliance-capacity", "age-range", "safety-certification", "condition", "brand-tier"],
-        "diapering": ["age-range", "volume-size", "condition", "brand-tier"],
-        "bath-skincare": ["skin-type", "volume-size", "age-range", "safety-certification", "condition", "brand-tier"],
-        "health-safety": ["age-range", "safety-certification", "condition", "brand-tier", "warranty"],
-        "nursery": ["color", "furniture-material", "furniture-dimensions", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
-        "strollers-car-seats": ["color", "weight-capacity", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
-
-        // KIDS CLOTHING
-        "boys-clothing": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
-        "girls-clothing": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
-        "school-uniforms": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
-        "costumes": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
-
-        // TOYS & GAMES
-        "educational-toys": ["color", "furniture-material", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
-        "action-figures": ["color", "age-range", "safety-certification", "condition", "brand-tier"],
-        "dolls-accessories": ["color", "clothing-material", "age-range", "safety-certification", "condition", "brand-tier"],
-        "building-sets": ["color", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
-        "board-games": ["age-range", "condition", "brand-tier"],
-        "electronic-toys": ["color", "age-range", "safety-certification", "battery-life", "condition", "brand-tier", "warranty"],
-
-        // ===== FOOD & BEVERAGES =====
-        // GROCERY
-        "fresh-produce": ["volume-size", "condition", "brand-tier"],
-        "pantry-staples": ["volume-size", "condition", "brand-tier"],
-        "snacks": ["volume-size", "condition", "brand-tier"],
-        "beverages": ["volume-size", "condition", "brand-tier"],
-        "frozen-foods": ["volume-size", "condition", "brand-tier"],
-        "organic-products": ["volume-size", "condition", "brand-tier"],
-
-        // SPECIALTY FOODS
-        "gourmet-foods": ["volume-size", "condition", "brand-tier"],
-        "international-cuisine": ["volume-size", "condition", "brand-tier"],
-        "dietary-specific": ["volume-size", "condition", "brand-tier"],
-        "supplements": ["volume-size", "condition", "brand-tier"],
-        "pet-food": ["volume-size", "age-range", "condition", "brand-tier"]
+        "home-garden": {
+            "furniture-living-room": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "seating-capacity", "condition", "brand-tier", "warranty"],
+            "furniture-bedroom": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "furniture-dining-room": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "seating-capacity", "condition", "brand-tier", "warranty"],
+            "furniture-office-furniture": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "furniture-outdoor-furniture": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "seating-capacity", "condition", "brand-tier", "warranty"],
+            "furniture-storage-organization": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "home-decor-wall-art-prints": ["color", "furniture-dimensions", "condition", "brand-tier"],
+            "home-decor-candles-fragrances": ["color", "volume-size", "condition", "brand-tier"],
+            "home-decor-rugs-carpets": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "home-decor-curtains-blinds": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier"],
+            "home-decor-mirrors": ["color", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "home-decor-vases-planters": ["color", "furniture-material", "furniture-dimensions", "condition", "brand-tier"],
+            "kitchen-dining-cookware-bakeware": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier", "warranty"],
+            "kitchen-dining-kitchen-appliances": ["color", "appliance-capacity", "energy-rating", "power-consumption", "condition", "brand-tier", "warranty"],
+            "kitchen-dining-dinnerware-serveware": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier"],
+            "kitchen-dining-kitchen-tools-gadgets": ["color", "furniture-material", "condition", "brand-tier", "warranty"],
+            "kitchen-dining-storage-containers": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier"],
+            "kitchen-dining-coffee-tea-accessories": ["color", "furniture-material", "appliance-capacity", "condition", "brand-tier", "warranty"],
+            "garden-outdoor-plants-seeds": ["color", "age-range", "condition", "brand-tier"],
+            "garden-outdoor-garden-tools": ["color", "furniture-material", "condition", "brand-tier", "warranty"],
+            "garden-outdoor-outdoor-lighting": ["color", "energy-rating", "power-consumption", "condition", "brand-tier", "warranty"],
+            "garden-outdoor-patio-deck": ["color", "furniture-material", "furniture-finish", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "garden-outdoor-grills-outdoor-cooking": ["color", "furniture-material", "appliance-capacity", "power-consumption", "condition", "brand-tier", "warranty"],
+            "garden-outdoor-lawn-care": ["color", "power-consumption", "condition", "brand-tier", "warranty"]
+        },
+        "health-beauty": {
+            "skincare-cleansers": ["skin-type", "volume-size", "condition", "brand-tier"],
+            "skincare-moisturizers": ["skin-type", "spf-level", "volume-size", "condition", "brand-tier"],
+            "skincare-serums-treatments": ["skin-type", "volume-size", "condition", "brand-tier"],
+            "skincare-sun-protection": ["skin-type", "spf-level", "volume-size", "condition", "brand-tier"],
+            "skincare-anti-aging": ["skin-type", "volume-size", "condition", "brand-tier"],
+            "skincare-acne-treatment": ["skin-type", "volume-size", "condition", "brand-tier"],
+            "makeup-face-makeup": ["color", "skin-type", "volume-size", "condition", "brand-tier"],
+            "makeup-eye-makeup": ["color", "volume-size", "condition", "brand-tier"],
+            "makeup-lip-products": ["color", "volume-size", "condition", "brand-tier"],
+            "makeup-nail-polish": ["color", "volume-size", "condition", "brand-tier"],
+            "makeup-makeup-tools-brushes": ["color", "condition", "brand-tier", "warranty"],
+            "makeup-makeup-sets": ["color", "skin-type", "condition", "brand-tier"],
+            "hair-care-shampoo-conditioner": ["volume-size", "condition", "brand-tier"],
+            "hair-care-styling-products": ["volume-size", "condition", "brand-tier"],
+            "hair-care-hair-tools": ["color", "power-consumption", "condition", "brand-tier", "warranty"],
+            "hair-care-hair-accessories": ["color", "clothing-material", "condition", "brand-tier"],
+            "hair-care-hair-color": ["color", "volume-size", "condition", "brand-tier"],
+            "hair-care-hair-treatments": ["volume-size", "condition", "brand-tier"],
+            "personal-care-oral-care": ["volume-size", "condition", "brand-tier", "warranty"],
+            "personal-care-body-care": ["skin-type", "volume-size", "condition", "brand-tier"],
+            "personal-care-deodorants": ["volume-size", "condition", "brand-tier"],
+            "personal-care-shaving-grooming": ["volume-size", "condition", "brand-tier", "warranty"],
+            "personal-care-feminine-care": ["volume-size", "condition", "brand-tier"],
+            "personal-care-mens-grooming": ["volume-size", "condition", "brand-tier", "warranty"]
+        },
+        "sports-outdoors": {
+            "exercise-fitness-cardio-equipment": ["color", "weight-capacity", "power-consumption", "condition", "brand-tier", "warranty"],
+            "exercise-fitness-strength-training": ["color", "weight-capacity", "resistance-level", "condition", "brand-tier", "warranty"],
+            "exercise-fitness-yoga-pilates": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier"],
+            "exercise-fitness-fitness-accessories": ["color", "clothing-material", "resistance-level", "condition", "brand-tier", "warranty"],
+            "exercise-fitness-gym-bags": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "exercise-fitness-fitness-trackers": ["color", "connectivity", "battery-life", "condition", "brand-tier", "warranty"],
+            "outdoor-recreation-camping-hiking": ["color", "clothing-material", "furniture-dimensions", "weight-capacity", "condition", "brand-tier", "warranty"],
+            "outdoor-recreation-water-sports": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "outdoor-recreation-winter-sports": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "outdoor-recreation-cycling": ["color", "clothing-material", "furniture-dimensions", "weight-capacity", "condition", "brand-tier", "warranty"],
+            "outdoor-recreation-fishing": ["color", "clothing-material", "condition", "brand-tier", "warranty"],
+            "outdoor-recreation-hunting": ["color", "clothing-material", "condition", "brand-tier", "warranty"],
+            "team-sports-football": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "team-sports-basketball": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "team-sports-soccer": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "team-sports-baseball": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "team-sports-tennis": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"],
+            "team-sports-golf": ["color", "clothing-material", "furniture-dimensions", "condition", "brand-tier", "warranty"]
+        },
+        "books-movies-music": {
+            "books-fiction": ["condition", "brand-tier"],
+            "books-non-fiction": ["condition", "brand-tier"],
+            "books-educational": ["age-range", "condition", "brand-tier"],
+            "books-childrens-books": ["age-range", "condition", "brand-tier"],
+            "books-ebooks": ["condition", "brand-tier"],
+            "books-audiobooks": ["condition", "brand-tier"],
+            "movies-tv-dvds-blurays": ["condition", "brand-tier"],
+            "movies-tv-digital-movies": ["resolution", "condition", "brand-tier"],
+            "movies-tv-tv-series": ["condition", "brand-tier"],
+            "movies-tv-documentaries": ["condition", "brand-tier"],
+            "music-cds-vinyl": ["condition", "brand-tier"],
+            "music-digital-music": ["condition", "brand-tier"],
+            "music-musical-instruments": ["color", "furniture-material", "condition", "brand-tier", "warranty"],
+            "music-audio-equipment": ["color", "connectivity", "power-consumption", "condition", "brand-tier", "warranty"]
+        },
+        "automotive": {
+            "car-parts-accessories-interior-accessories": ["color", "furniture-material", "vehicle-compatibility", "condition", "brand-tier", "warranty"],
+            "car-parts-accessories-exterior-accessories": ["color", "furniture-material", "vehicle-compatibility", "condition", "brand-tier", "warranty"],
+            "car-parts-accessories-car-care-cleaning": ["volume-size", "condition", "brand-tier"],
+            "car-parts-accessories-tools-equipment": ["color", "condition", "brand-tier", "warranty"],
+            "car-parts-accessories-re率先": ["vehicle-compatibility", "condition", "brand-tier", "warranty"],
+            "car-parts-accessories-performance-parts": ["vehicle-compatibility", "condition", "brand-tier", "warranty"],
+            "motorcycles-atvs-motorcycle-parts": ["color", "vehicle-compatibility", "condition", "brand-tier", "warranty"],
+            "motorcycles-atvs-protective-gear": ["size-clothing", "color", "clothing-material", "safety-certification", "condition", "brand-tier", "warranty"],
+            "motorcycles-atvs-maintenance-tools": ["color", "condition", "brand-tier", "warranty"]
+        },
+        "baby-kids": {
+            "baby-care-feeding": ["color", "furniture-material", "appliance-capacity", "age-range", "safety-certification", "condition", "brand-tier"],
+            "baby-care-diapering": ["age-range", "volume-size", "condition", "brand-tier"],
+            "baby-care-bath-skincare": ["skin-type", "volume-size", "age-range", "safety-certification", "condition", "brand-tier"],
+            "baby-care-health-safety": ["age-range", "safety-certification", "condition", "brand-tier", "warranty"],
+            "baby-care-nursery": ["color", "furniture-material", "furniture-dimensions", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
+            "baby-care-strollers-car-seats": ["color", "weight-capacity", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
+            "kids-clothing-boys-clothing": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
+            "kids-clothing-girls-clothing": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
+            "kids-clothing-school-uniforms": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
+            "kids-clothing-costumes": ["size-clothing", "color", "clothing-material", "age-range", "condition", "brand-tier"],
+            "kids-clothing-kids-shoes": ["shoe-size", "shoe-width", "color", "shoe-material", "condition", "brand-tier"],
+            "toys-games-educational-toys": ["color", "furniture-material", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
+            "toys-games-action-figures": ["color", "age-range", "safety-certification", "condition", "brand-tier"],
+            "toys-games-dolls-accessories": ["color", "clothing-material", "age-range", "safety-certification", "condition", "brand-tier"],
+            "toys-games-building-sets": ["color", "age-range", "safety-certification", "condition", "brand-tier", "warranty"],
+            "toys-games-board-games": ["age-range", "condition", "brand-tier"],
+            "toys-games-electronic-toys": ["color", "age-range", "safety-certification", "battery-life", "condition", "brand-tier", "warranty"]
+        },
+        "food-beverages": {
+            "grocery-fresh-produce": ["volume-size", "condition", "brand-tier"],
+            "grocery-pantry-staples": ["volume-size", "condition", "brand-tier"],
+            "grocery-snacks": ["volume-size", "condition", "brand-tier"],
+            "grocery-beverages": ["volume-size", "condition", "brand-tier"],
+            "grocery-frozen-foods": ["volume-size", "condition", "brand-tier"],
+            "grocery-organic-products": ["volume-size", "condition", "brand-tier"],
+            "specialty-foods-gourmet-foods": ["volume-size", "condition", "brand-tier"],
+            "specialty-foods-international-cuisine": ["volume-size", "condition", "brand-tier"],
+            "specialty-foods-dietary-specific": ["volume-size", "condition", "brand-tier"],
+            "specialty-foods-supplements": ["volume-size", "condition", "brand-tier"],
+            "specialty-foods-pet-food": ["volume-size", "condition", "brand-tier"]
+        }
     },
 
     // Additional helper data for frontend implementation
