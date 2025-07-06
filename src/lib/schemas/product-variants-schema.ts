@@ -94,6 +94,7 @@ const SingleVariantCombinationSchema = z.object({
         width: z.number().optional(),
         height: z.number().optional()
     }).optional(),
+    isConfirmed: z.boolean().default(false),
     images: z.array(z.custom<File>().optional()).optional()
 });
 

@@ -621,30 +621,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             </Card>
 
             {form.watch("hasVariants") && (
-                <ProductCombinations
-                    control={form.control}
-                    basePrice={form.watch("basePrice") || 0}
-                    baseSku={form.watch("sku") || ''}
-                    variants={form.watch('variants') || []}
-                    onRegenerateAll={generateVariantCombinations}
-                />
+                <>
+                    <ProductCombinations
+                        control={form.control}
+                        basePrice={form.watch("basePrice") || 0}
+                        baseSku={form.watch("sku") || ''}
+                        variants={form.watch('variants') || []}
+                        onRegenerateAll={generateVariantCombinations}
+                    />
+                    <div className="mt-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                console.log('Variants:', form.getValues('variants')); // Debug log
+                                generateVariantCombinations();
+                                console.log('Generated Combinations:', form.getValues('productCombinations')); // Debug log
+                            }}
+                            className="flex items-center gap-2"
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                            Generate Combinations
+                        </Button>
+                    </div>
+                </>
             )}
 
-            <div className="mt-4">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                        console.log('Variants:', form.getValues('variants')); // Debug log
-                        generateVariantCombinations();
-                        console.log('Generated Combinations:', form.getValues('productCombinations')); // Debug log
-                    }}
-                    className="flex items-center gap-2"
-                >
-                    <RefreshCw className="h-4 w-4" />
-                    Generate Combinations
-                </Button>
-            </div>
         </div>
     );
 
@@ -852,7 +854,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-6 space-y-8">
+        <div className="mx-auto p-6 space-y-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Create New Product</h1>
