@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export enum VariantType {
+export enum VariantInputType {
     SELECT = 'select',
     BOOLEAN = 'boolean',
     TEXT = 'text',
@@ -24,7 +24,7 @@ export const VariantOptionSchema = z.object({
 export const VariantTemplateSchema = z.object({
     name: z.string().min(1, "Template name is required"),
     description: z.string().optional(),
-    type: z.nativeEnum(VariantType),
+    type: z.nativeEnum(VariantInputType),
     isRequired: z.boolean().default(false),
     categoryIds: z.array(z.string()).optional(),
     productTypeId: z.string().optional(),
@@ -63,31 +63,41 @@ export const DeleteProductTypeSchema = z.object({
     productTypeId: z.string().min(1, "Product type ID is required"),
 });
 
-export const ProductVariantSchema = z.object({
-    productId: z.string(),
-    variantTemplateId: z.string(),
-    selectedOptions: z.array(z.string()),
-    customValue: z.string().optional(),
-    additionalPrice: z.number().default(0),
-    sku: z.string().optional(),
-    stock: z.number().default(0),
-    images: z.array(z.string()).optional(),
-    isEnabled: z.boolean().default(true),
+export const ProductVariantSchema = z.array(z.object({
+    templateId: z.string(),
+    name: z.string(),
+    type: z.enum(['boolean', 'text', 'color', 'select', 'boolean', 'multiselect']),
+    values: z.array(
+        z.object({
+            id: z.string(),
+            value: z.string(),
+            label: z.string(),
+            additionalPrice: z.number().default(0),
+            isDefault: z.boolean(),
+            images: z.array(z.string()).default([]),
+        })
+    ),
+    required: z.boolean().default(false)
+})).optional()
+
+const SingleVariantCombinationSchema = z.object({
+    id: z.string(),
+    sku: z.string(),
+    price: z.number(),
+    quantity: z.number(),
+    isDefault: z.boolean(),
+    variantValues: z.record(z.string()),
+    variantStrings: z.array(z.string()).optional(),
+    weight: z.number().optional(),
+    dimensions: z.object({
+        length: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional()
+    }).optional(),
+    images: z.array(z.custom<File>().optional()).optional()
 });
 
-export const VariantCombinationSchema = z.object({
-    id: z.string(),
-    variantValues: z.record(z.array(z.string())),
-    basePrice: z.number(),
-    finalPrice: z.number(),
-    additionalPrices: z.record(z.number()).optional(),
-    sku: z.string().optional(),
-    inventoryQuantity: z.number().optional(),
-    isActive: z.boolean().optional(),
-    displayName: z.string().optional(),
-    shortDescription: z.string().optional(),
-    availability: z.enum(['in_stock', 'out_of_stock']).optional(),
-});
+export const VariantCombinationSchema = z.array(SingleVariantCombinationSchema);
 
 export const ProductFilterSchema = z.object({
     storeId: z.string().optional(),
@@ -123,4 +133,4 @@ export const BulkVariantGenerationSchema = z.object({
     skuPrefix: z.string().optional(),
 });
 
-export type VariantCombinationType = z.infer<typeof VariantCombinationSchema>
+export type ProductCombination = z.infer<typeof SingleVariantCombinationSchema>

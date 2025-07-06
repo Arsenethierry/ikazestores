@@ -21,7 +21,6 @@ import {
     StepperTrigger,
 } from "@/components/ui/stepper";
 import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { Category, PhysicalStoreTypes, ProductTypeTypes, Subcategory, VariantTemplateTypes } from '@/lib/types';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
@@ -33,8 +32,8 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { generateCombinationsWithStrings, getCategories, getCategoryById, getProductTypesBySubcategory, getRecommendedVariantTemplates } from '@/features/variants management/ecommerce-catalog';
 import { ProductCombinations } from './product-combinations';
-
-// Enhanced Product form schema
+import { PhysicalStoreTypes } from '@/lib/types';
+import { Category, ProductType, Subcategory, VariantTemplate } from '@/lib/types/catalog-types';
 
 type ProductFormData = z.infer<typeof productFormSchema>;
 
@@ -80,7 +79,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
     const [selectedProductType, setSelectedProductType] = useState<string>('');
-    const [availableVariants, setAvailableVariants] = useState<VariantTemplateTypes[]>([]);
+    const [availableVariants, setAvailableVariants] = useState<VariantTemplate[]>([]);
     const [currentTag, setCurrentTag] = useState('');
     const [previewImages, setPreviewImages] = useState<string[]>([]);
 
@@ -159,14 +158,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
 
         const combinations = generateCombinationsWithStrings(
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             variants,
             basePrice,
             baseSku
         );
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         replaceCombinations(combinations);
     };
 
@@ -509,7 +504,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {productTypes.map((productType: ProductTypeTypes) => (
+                                            {productTypes.map((productType: ProductType) => (
                                                 <SelectItem key={productType.id} value={productType.id}>
                                                     {productType.name}
                                                 </SelectItem>
@@ -832,13 +827,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                                 </div>
                             ))}
                         </div>
-
-                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <h5 className="font-medium text-blue-900 mb-2">Example Appwrite Query Usage:</h5>
-                            <code className="text-xs text-blue-800 bg-blue-100 p-2 rounded block">
-                                {`// Filter products by size Large\nQuery.contains("productCombinations.variantStrings", "size-l")\n\n// Filter by White color\nQuery.contains("productCombinations.variantStrings", "color-white")`}
-                            </code>
-                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -865,7 +853,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-8">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Create New Product</h1>
@@ -875,7 +862,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 </div>
             </div>
 
-            {/* Progress Stepper */}
             <Stepper value={currentStep} className="w-full">
                 {steps.map(({ step, title, description, icon: Icon }) => (
                     <StepperItem
@@ -904,7 +890,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 ))}
             </Stepper>
 
-            {/* Form */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     {status === "executing" && (
@@ -928,7 +913,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                         {renderStepContent()}
                     </div>
 
-                    {/* Navigation */}
                     <div className="flex justify-between items-center pt-6 border-t bg-background sticky bottom-0">
                         <Button
                             type="button"

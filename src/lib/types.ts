@@ -115,24 +115,6 @@ export interface VirtualStoreTypes extends Models.Document {
     vitualProducts: VirtualProductTypes[],
     locale?: string;
 };
-
-export interface CategoryTypes extends Models.Document {
-    categoryName: string,
-    iconUrl?: File | undefined & string,
-    subCategoriesIds?: string[],
-    iconFileId?: string,
-    storeId?: string,
-    createdBy: string
-}
-export interface SubCategoryTypes extends Models.Document {
-    subCategoryName: string,
-    iconUrl?: File | undefined & string,
-    parentCategoryIds: string[],
-    iconFileId?: string,
-    storeId?: string,
-    createdBy: string
-}
-
 export interface OriginalProductTypes extends Models.Document {
     title: string,
     description: string,
@@ -140,7 +122,7 @@ export interface OriginalProductTypes extends Models.Document {
     createdBy: string,
     store: PhysicalStoreTypes,
     storeId: string,
-    category: CategoryTypes,
+    // category: CategoryTypes,
     seeded: boolean,
     isPublished: boolean,
     storeLat: number,
@@ -263,124 +245,4 @@ export interface UserDataTypes extends Models.Document {
     // bio?: string;
     // website?: string;
     // socialLinks?: SocialLinks;
-}
-
-// export interface ProductType extends Models.Document {
-//     name: string;
-//     description?: string;
-//     storeId?: string;
-//     createdBy: string;
-// };
-
-// export interface VariantOptions extends Models.Document {
-//     variantTemplateId: string;
-//     name: string; // Display name
-//     value: string; // Internal value
-//     additionalPrice: number;
-//     colorCode?: string;
-//     imageUrl?: string;
-//     sortOrder: number;
-//     isActive: boolean;
-//     // Enhanced fields
-//     description?: string;
-//     hexCode?: string; // More specific than colorCode
-//     swatchImage?: string; // Separate from main image
-//     availability: boolean;
-//     popularityScore?: number; // For sorting popular options first
-//     seasonality?: 'spring' | 'summer' | 'fall' | 'winter' | 'year_round';
-//     materialCode?: string; // For fabric/material variants
-//     sizeChart?: string; // Reference to size chart
-// };
-
-// export interface VariantTemplate extends Models.Document {
-//     name: string;
-//     description?: string;
-//     inputType: 'select' | 'multiselect' | 'color' | 'size' | 'text' | 'boolean';
-//     isRequired: boolean;
-//     defaultValue?: string;
-//     displayOrder: number; // For consistent UI ordering
-//     affectsPricing: boolean; // Whether this variant affects price
-//     affectsInventory: boolean; // Whether this variant has separate inventory
-//     affectsShipping: boolean; // Whether this variant affects shipping (size/weight)
-//     options?: VariantOptions[];
-//     validation?: {
-//         minSelections?: number;
-//         maxSelections?: number;
-//         pattern?: string; // For text inputs
-//     };
-// };
-
-export interface Category {
-    id: string;
-    name: string;
-    subcategories?: Subcategory[];
-}
-
-export interface Subcategory {
-    id: string;
-    name: string;
-    productTypes: string[];
-}
-
-export interface VariantOption {
-    value: string;
-    name?: string;
-    additionalPrice?: number;
-    colorCode?: string;
-}
-
-export interface VariantTemplate extends Models.Document {
-    id: string;
-    name: string;
-    type: "text" | "color" | "range" | "number" | "select";
-    variantOptions: { value: string; label: string; colorCode?: string; metadata: { count: number } }[];
-    minValue?: number;
-    maxValue?: number;
-    step?: number;
-    unit?: string;
-    group?: string;
-    isRequired?: boolean;
-}
-export interface VariantTemplateTypes {
-    id: string;
-    name: string;
-    inputType: "text" | "color" | "range" | "number" | "select" | 'multiselect' | 'boolean';
-    variantOptions: { value: string; label: string; colorCode?: string; additionalPrice?: number, metadata: { count: number } }[];
-    minValue?: number;
-    maxValue?: number;
-    step?: number;
-    unit?: string;
-    group?: string;
-    isRequired?: boolean;
-    subcategoryIds?: string[];
-    productTypeIds?: string[];
-    categoryIds?: string[];
-}
-
-export interface ProductTypeTypes {
-    id: string;
-    name: string;
-    description?: string;
-    categoryId: string;
-    defaultVariantTemplates?: string[];
-    subcategoryId?: string;
-}
-export interface ProductType extends Models.Document {
-    id: string;
-    name: string;
-    description?: string;
-    categoryId: string;
-    defaultVariantTemplates?: string[];
-    subcategoryId?: string;
-}
-
-export interface ProductCombination {
-    id: string;
-    variantValues: Record<string, string>;
-    sku: string;
-    price: number;
-    quantity?: number;
-    isDefault?: boolean;
-    variantStrings?: string[];
-    weight?: number;
 }

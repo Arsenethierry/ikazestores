@@ -171,7 +171,7 @@ export const createNewProduct = action
                             variantStrings: combination.variantStrings?.map(variantString => variantString) || [],
                             sku: combination.sku,
                             price: combination.price,
-                            stockQuantity: combination.quantity || 0,
+                            stockQuantity: combination.quantity || 1,
                             isActive: true,
                             weight: combination.weight || 0,
                             dimensions: "",

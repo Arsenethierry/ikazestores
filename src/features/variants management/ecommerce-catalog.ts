@@ -1,23 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { Category, ProductCombination, ProductTypeTypes, Subcategory, VariantOption, VariantTemplateTypes } from "@/lib/types";
 import { catalogData } from "@/data/catalog-data";
-
-interface VariantValue {
-    value: string;
-    label?: string;
-    colorCode?: string;
-    additionalPrice?: number;
-    isDefault?: boolean;
-}
-
-interface Variant {
-    id: string;
-    name: string;
-    type: 'text' | 'color' | 'select' | 'boolean' | 'multiselect';
-    values: VariantValue[];
-    required: boolean;
-}
+import { ProductCombination } from "@/lib/schemas/product-variants-schema";
+import { Category, ProductType, ProductVariant, Subcategory, VariantOption, VariantTemplate } from "@/lib/types/catalog-types";
 
 export function getCategories(): Category[] {
     return catalogData.categories.map(cat => ({
@@ -52,8 +35,8 @@ export function getSubcategoryById(categoryId: string, subcategoryId: string): S
     return category.subcategories.find(sub => sub.id === subcategoryId) || null;
 };
 
-export function getProductTypes(): ProductTypeTypes[] {
-    const productTypes: ProductTypeTypes[] = [];
+export function getProductTypes(): ProductType[] {
+    const productTypes: ProductType[] = [];
 
     catalogData.categories.forEach(category => {
         category.subcategories?.forEach(subcategory => {
@@ -76,15 +59,15 @@ export function getProductTypes(): ProductTypeTypes[] {
     return productTypes;
 };
 
-export function getProductTypesByCategory(categoryId: string): ProductTypeTypes[] {
-    return getProductTypes().filter((type: ProductTypeTypes) => type.categoryId === categoryId);
+export function getProductTypesByCategory(categoryId: string): ProductType[] {
+    return getProductTypes().filter((type: ProductType) => type.categoryId === categoryId);
 }
 
-export function getProductTypeById(productTypeId: string): ProductTypeTypes | null {
-    return getProductTypes().find((type: ProductTypeTypes) => type.id === productTypeId) || null;
+export function getProductTypeById(productTypeId: string): ProductType | null {
+    return getProductTypes().find((type: ProductType) => type.id === productTypeId) || null;
 }
 
-export function getVariantTemplates(): VariantTemplateTypes[] {
+export function getVariantTemplates(): VariantTemplate[] {
     return Object.values(catalogData.variantTemplates).map((template) => {
         let group: string | undefined;
         for (const [groupName, variantIds] of Object.entries(catalogData.variantDisplayGroups)) {
@@ -132,8 +115,7 @@ export function getVariantTemplates(): VariantTemplateTypes[] {
         let step: number | undefined;
         let unit: string | undefined;
 
-        // @ts-ignore
-        if (type === 'range' || type === 'number') {
+        if (type === 'range') {
             const values = template.options
                 ?.map(opt => Number(opt.value))
                 .filter(val => !isNaN(val))
@@ -184,11 +166,11 @@ export function getVariantTemplates(): VariantTemplateTypes[] {
             categoryIds: categoryIds.length ? categoryIds : undefined,
             productTypeIds: productTypeIds.length ? productTypeIds : undefined,
             subcategoryIds: subcategoryIds.length ? subcategoryIds : undefined,
-            variantOptions: template.options?.map((option: VariantOption) => ({
+            variantOptions: template.options?.map((option) => ({
                 value: option.value,
                 label: option.name || option.value,
                 additionalPrice: option.additionalPrice,
-                colorCode: option.colorCode,
+                colorCode: 'colorCode' in option ? option.colorCode : undefined,
                 metadata: { count: 0 },
             })) || [],
             minValue,
@@ -200,11 +182,11 @@ export function getVariantTemplates(): VariantTemplateTypes[] {
     })
 };
 
-export function getProductTypesBySubcategory(categoryId: string, subcategoryId: string): ProductTypeTypes[] {
+export function getProductTypesBySubcategory(categoryId: string, subcategoryId: string): ProductType[] {
     const subcategory = getSubcategoryById(categoryId, subcategoryId);
     if (!subcategory) return [];
 
-    const productTypes: ProductTypeTypes[] = [];
+    const productTypes: ProductType[] = [];
     subcategory.productTypes.forEach(productType => {
         const productTypeId = `${categoryId}-${subcategoryId}-${productType}`;
         productTypes.push({
@@ -223,7 +205,7 @@ export function getProductTypesBySubcategory(categoryId: string, subcategoryId: 
     return productTypes;
 };
 
-export function getVariantTemplatesForProductType(productTypeId: string): VariantTemplateTypes[] {
+export function getVariantTemplatesForProductType(productTypeId: string): VariantTemplate[] {
     const parts = productTypeId.split('-');
     if (parts.length < 3) {
         console.warn(`Invalid productTypeId format: ${productTypeId}`);
@@ -239,8 +221,9 @@ export function getVariantTemplatesForProductType(productTypeId: string): Varian
         return [];
     }
 
-    // @ts-ignore
-    const mapping = catalogData.productTypeVariantMapping?.[categoryId]?.[actualProductType] || [];
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const mapping = catalogData.productTypeVariantMapping?.[categoryId as keyof typeof catalogData.productTypeVariantMapping]?.[actualProductType] || [];
     return getVariantTemplates().filter(template => {
         if (mapping.includes(template.id)) {
             return true;
@@ -254,9 +237,8 @@ export function getVariantTemplatesForProductType(productTypeId: string): Varian
     });
 }
 
-export function getRecommendedVariantTemplates(productTypeId: string): VariantTemplateTypes[] {
+export function getRecommendedVariantTemplates(productTypeId: string): VariantTemplate[] {
     const templates = getVariantTemplatesForProductType(productTypeId);
-
     return templates.sort((a, b) => {
         if (a.isRequired && !b.isRequired) return -1;
         if (!a.isRequired && b.isRequired) return 1;
@@ -272,7 +254,7 @@ export function getRecommendedVariantTemplates(productTypeId: string): VariantTe
     })
 }
 
-export function getVariantTemplateById(templateId: string): VariantTemplateTypes | null {
+export function getVariantTemplateById(templateId: string): VariantTemplate | null {
     return getVariantTemplates().find(template => template.id === templateId) || null;
 };
 
@@ -315,57 +297,66 @@ export function generateVariantStrings(variantValues: Record<string, string>): s
     );
 }
 
-export function generateCombinationsWithStrings(variants: Variant[], basePrice: number, baseSku: string): ProductCombination[] {
+export function generateCombinationsWithStrings(
+    variants: ProductVariant[],
+    basePrice: number,
+    baseSku: string
+): ProductCombination[] {
     const combinations: ProductCombination[] = [];
 
     if (variants.length === 0) {
         return combinations;
     }
 
-    const variantValues = variants.map(v => v.values);
+    const variantValues: VariantOption[][] = variants
+        .filter((v) => !!v && v.values.length > 0)
+        .map(v => v.values);
 
-    function cartesianProduct(arrays: any[][]): any[][] {
-        return arrays.reduce((acc, curr) => {
-            const result: any[] = [];
-            acc.forEach(a => {
-                curr.forEach(b => {
-                    result.push([...a, b]);
+    if (variantValues.length === 0) {
+        return combinations;
+    }
+
+    function cartesianProduct(arrays: VariantOption[][]): VariantOption[][] {
+        return arrays.reduce<VariantOption[][]>(
+            (acc, curr) => {
+                const result: VariantOption[][] = [];
+                acc.forEach(a => {
+                    curr.forEach(b => {
+                        result.push([...a, b]);
+                    });
                 });
-            });
-            return result;
-        }, [[]]);
+                return result;
+            },
+            [[]]
+        );
     }
 
-    if (variantValues.every(v => v.length > 0)) {
-        const products = cartesianProduct(variantValues);
+    const products = cartesianProduct(variantValues);
 
-        products.forEach((combination, index) => {
-            const variantValuesMap: Record<string, string> = {};
-            combination.forEach((value, variantIndex) => {
-                variantValuesMap[variants[variantIndex].id] = value.value;
-            });
+    products.forEach((combination, index) => {
+        const variantValuesMap: Record<string, string> = {};
+        combination.forEach((value, variantIndex) => {
+            variantValuesMap[variants[variantIndex].templateId] = value.value;
+        });
 
-            const calculatedPrice = calculateVariantPrice(basePrice, variantValuesMap);
-            const generatedSKU = generateVariantSKU(baseSku, variantValuesMap);
+        const calculatedPrice = calculateVariantPrice(basePrice, variantValuesMap);
+        const generatedSKU = generateVariantSKU(baseSku, variantValuesMap);
 
-            const combinationData: ProductCombination = {
-                id: `combination-${index}`,
-                variantValues: variantValuesMap,
-                sku: generatedSKU,
-                price: calculatedPrice,
-                quantity: 0,
-                isDefault: index === 0,
+        const combinationData: ProductCombination = {
+            id: `combination-${index}`,
+            variantValues: variantValuesMap,
+            sku: generatedSKU,
+            price: calculatedPrice,
+            quantity: 0,
+            isDefault: index === 0,
+            variantStrings: generateVariantStrings(variantValuesMap),
+        };
 
-                // Generate simple variant strings for filtering
-                variantStrings: generateVariantStrings(variantValuesMap)
-            };
-
-            combinations.push(combinationData);
-        })
-    }
+        combinations.push(combinationData);
+    });
 
     return combinations;
-};
+}
 
 export function filterCombinations(
     combinations: ProductCombination[],
@@ -458,7 +449,8 @@ function getDefaultVariantTemplatesForProductType(
     categoryId: string,
     productType: string
 ): string[] {
-    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const mapping = catalogData.productTypeVariantMapping?.[categoryId]?.[productType];
     return mapping || [];
 }

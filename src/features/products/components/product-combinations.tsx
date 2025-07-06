@@ -3,14 +3,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ProductVariantSchema } from '@/lib/schemas/product-variants-schema';
-import { ProductCombination } from '@/lib/types';
-import { AlertCircle, DollarSign, Hash, Package, Plus, RefreshCw, Trash2, Weight } from 'lucide-react';
-import React from 'react';
+import { ProductCombination, ProductVariantSchema } from '@/lib/schemas/product-variants-schema';
+import { AlertCircle, DollarSign, Download, Hash, ImageDown, Package, Plus, RefreshCw, Ruler, Trash2, Upload, Weight } from 'lucide-react';
+import React, { useState } from 'react';
 import { Control, useFieldArray, useFormContext } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
 interface ProductCombinationsProps {
@@ -19,7 +21,18 @@ interface ProductCombinationsProps {
     baseSku: string;
     variants: z.infer<typeof ProductVariantSchema>;
     onRegenerateAll: () => void;
+};
+
+interface CustomCombinationInput {
+    variantValues: Record<string, string>;
+    sku: string;
+    price: number;
+    quantity: number;
+    weight: number;
+    dimensions?: { length?: number; width?: number; height?: number };
+    images?: File[];
 }
+
 export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
     control,
     basePrice,
@@ -33,25 +46,78 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
         name: 'productCombinations'
     });
 
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [customCombination, setCustomCombination] = useState<CustomCombinationInput>({
+        variantValues: {},
+        sku: `${baseSku}-CUSTOM-${Date.now()}`,
+        price: basePrice,
+        quantity: 0,
+        weight: 0,
+        dimensions: { length: 0, width: 0, height: 0 }
+    });
+
     const combinations = watch('productCombinations') || [];
 
     const handlePriceChange = (index: number, newPrice: number) => {
+        if (newPrice < 0) {
+            toast.error("Price cannot be negative");
+            return;
+        }
         const updatedCombination = { ...combinations[index], price: newPrice };
         update(index, updatedCombination);
-    }
+    };
 
     const handleQuantityChange = (index: number, newQuantity: number) => {
+        if (newQuantity < 0) {
+            toast.error("Quantity cannot be negative");
+            return;
+        }
         const updatedCombination = { ...combinations[index], quantity: newQuantity };
         update(index, updatedCombination);
-    }
+    };
 
     const handleWeightChange = (index: number, newWeight: number) => {
+        if (newWeight < 0) {
+            toast.error("Weight cannot be negative");
+            return;
+        }
         const updatedCombination = { ...combinations[index], weight: newWeight };
         update(index, updatedCombination);
     };
 
+    const handleDimensionChange = (index: number, dimension: 'length' | 'width' | 'height', value: number) => {
+        if (value < 0) {
+            toast.error("Dimensions cannot be negative");
+            return;
+        }
+        const updatedCombination = {
+            ...combinations[index],
+            dimensions: {
+                ...combinations[index].dimensions,
+                [dimension]: value
+            }
+        };
+        update(index, updatedCombination);
+    };
+
     const handleSkuChange = (index: number, newSku: string) => {
+        if (combinations.some((c: ProductCombination, i: number) => i !== index && c.sku === newSku)) {
+            toast.error("SKU must be unique");
+            return;
+        }
         const updatedCombination = { ...combinations[index], sku: newSku };
+        update(index, updatedCombination);
+    };
+
+    const handleImageChange = (index: number, files: File[]) => {
+        if (files.length > 3) {
+            toast.error("Maximum 3 images per combination");
+            return;
+        }
+        const updatedCombination = {
+            ...combinations[index],
+            images: files
+        };
         update(index, updatedCombination);
     };
 
@@ -63,18 +129,109 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
         setValue('productCombinations', updatedCombinations);
     }
 
+    // const addCustomCombination = () => {
+    //     const newCombination: ProductCombination = {
+    //         id: `custom-${Date.now()}`,
+    //         variantValues: {},
+    //         sku: `${baseSku}-CUSTOM-${Date.now()}`,
+    //         price: basePrice,
+    //         quantity: 0,
+    //         weight: 0,
+    //         isDefault: false,
+    //         variantStrings: ['Custom']
+    //     };
+    //     append(newCombination);
+    // };
+
     const addCustomCombination = () => {
+        if (!customCombination.sku) {
+            toast.error("SKU is required for custom combination");
+            return;
+        }
+        if (combinations.some((c: ProductCombination) => c.sku === customCombination.sku)) {
+            toast.error("SKU must be unique");
+            return;
+        }
+        if (Object.keys(customCombination.variantValues).length === 0) {
+            toast.error("At least one variant value is required");
+            return;
+        }
+
         const newCombination: ProductCombination = {
             id: `custom-${Date.now()}`,
+            variantValues: customCombination.variantValues,
+            sku: customCombination.sku,
+            price: customCombination.price,
+            quantity: customCombination.quantity,
+            weight: customCombination.weight,
+            dimensions: customCombination.dimensions,
+            images: customCombination.images,
+            isDefault: combinations.length === 0,
+            variantStrings: Object.entries(customCombination.variantValues).map(([variantId, value]) =>
+                `${variantId}-${value.toLowerCase().replace(/\s+/g, '-')}`
+            )
+        };
+        append(newCombination);
+        setCustomCombination({
             variantValues: {},
             sku: `${baseSku}-CUSTOM-${Date.now()}`,
             price: basePrice,
             quantity: 0,
             weight: 0,
-            isDefault: false,
-            variantStrings: ['Custom']
+            dimensions: { length: 0, width: 0, height: 0 }
+        });
+        setIsAddDialogOpen(false);
+        toast.success("Custom combination added successfully");
+    };
+
+    const exportCombinations = () => {
+        const data = JSON.stringify(combinations, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'product-combinations.json';
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success("Combinations exported successfully");
+    };
+
+    const importCombinations = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target?.result as string);
+                if (Array.isArray(imported)) {
+                    const validCombinations = imported.filter(combo => {
+                        return combo.sku && !combinations.some((c: ProductCombination) => c.sku === combo.sku);
+                    });
+                    setValue('productCombinations', [...combinations, ...validCombinations]);
+                    toast.success(`Imported ${validCombinations.length} valid combinations`);
+                } else {
+                    toast.error("Invalid file format");
+                }
+            } catch (error) {
+                console.log(error)
+                toast.error("Error importing combinations");
+            }
         };
-        append(newCombination);
+        reader.readAsText(file);
+    };
+
+    const batchUpdate = (field: 'price' | 'quantity' | 'weight', value: number) => {
+        if (value < 0) {
+            toast.error(`${field.charAt(0).toUpperCase() + field.slice(1)} cannot be negative`);
+            return;
+        }
+        const updatedCombinations = combinations.map((combo: ProductCombination) => ({
+            ...combo,
+            [field]: value
+        }));
+        setValue('productCombinations', updatedCombinations);
+        toast.success(`Batch updated ${field} for all combinations`);
     };
 
     const getTotalCombinations = () => combinations.length;
@@ -82,7 +239,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
     const getAveragePrice = () => {
         if (combinations.length === 0) return 0;
         const total = combinations.reduce((sum: number, combo: ProductCombination) => sum + combo.price, 0);
-        return total / combinations.length;
+        return (total / combinations.length).toFixed(2);
     };
 
     if (combinations.length === 0) {
@@ -116,7 +273,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                             Product Combinations ({getTotalCombinations()})
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Manage pricing, inventory, and SKUs for each variant combination
+                            Manage pricing, inventory, dimensions, and images for each variant combination
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -134,12 +291,170 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={addCustomCombination}
+                            onClick={exportCombinations}
                             className="flex items-center gap-1"
                         >
-                            <Plus className="h-4 w-4" />
-                            Add Custom
+                            <Download className="h-4 w-4" />
+                            Export
                         </Button>
+                        <label className="cursor-pointer">
+                            <Input
+                                type="file"
+                                accept="application/json"
+                                className="hidden"
+                                onChange={importCombinations}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1"
+                            >
+                                <Upload className="h-4 w-4" />
+                                Import
+                            </Button>
+                        </label>
+                        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-1"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Custom
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Add Custom Combination</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label>SKU</Label>
+                                        <Input
+                                            value={customCombination.sku}
+                                            onChange={(e) => setCustomCombination({
+                                                ...customCombination,
+                                                sku: e.target.value
+                                            })}
+                                            placeholder="Enter unique SKU"
+                                        />
+                                    </div>
+                                    {variants && variants.map((variant) => (
+                                        <div key={variant.templateId}>
+                                            <Label>{variant.name}</Label>
+                                            <Select
+                                                onValueChange={(value) => setCustomCombination({
+                                                    ...customCombination,
+                                                    variantValues: {
+                                                        ...customCombination.variantValues,
+                                                        [variant.templateId]: value
+                                                    }
+                                                })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={`Select ${variant.name}`} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {variant.values.map((value) => (
+                                                        <SelectItem key={value.value} value={value.value}>
+                                                            {value.label || value.value}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    ))}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label>Price</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                value={customCombination.price}
+                                                onChange={(e) => setCustomCombination({
+                                                    ...customCombination,
+                                                    price: parseFloat(e.target.value) || 0
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Quantity</Label>
+                                            <Input
+                                                type="number"
+                                                value={customCombination.quantity}
+                                                onChange={(e) => setCustomCombination({
+                                                    ...customCombination,
+                                                    quantity: parseInt(e.target.value) || 0
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <Label>Length (cm)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={customCombination.dimensions?.length || 0}
+                                                onChange={(e) => setCustomCombination({
+                                                    ...customCombination,
+                                                    dimensions: {
+                                                        ...customCombination.dimensions,
+                                                        length: parseFloat(e.target.value) || 0
+                                                    }
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Width (cm)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={customCombination.dimensions?.width || 0}
+                                                onChange={(e) => setCustomCombination({
+                                                    ...customCombination,
+                                                    dimensions: {
+                                                        ...customCombination.dimensions,
+                                                        width: parseFloat(e.target.value) || 0
+                                                    }
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Height (cm)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={customCombination.dimensions?.height || 0}
+                                                onChange={(e) => setCustomCombination({
+                                                    ...customCombination,
+                                                    dimensions: {
+                                                        ...customCombination.dimensions,
+                                                        height: parseFloat(e.target.value) || 0
+                                                    }
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label>Variant Images (up to 3)</Label>
+                                        <Input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            onChange={(e) => setCustomCombination({
+                                                ...customCombination,
+                                                images: Array.from(e.target.files || [])
+                                            })}
+                                        />
+                                    </div>
+                                    <Button onClick={addCustomCombination}>Add Combination</Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </div>
 
@@ -154,7 +469,38 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">${getAveragePrice().toFixed(2)} Avg Price</span>
+                        <span className="text-sm font-medium">${getAveragePrice()} Avg Price</span>
+                    </div>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h5 className="font-medium text-blue-900 mb-2">Batch Update</h5>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <Label>Batch Price</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                onChange={(e) => batchUpdate('price', parseFloat(e.target.value) || 0)}
+                                placeholder="Set all prices"
+                            />
+                        </div>
+                        <div>
+                            <Label>Batch Quantity</Label>
+                            <Input
+                                type="number"
+                                onChange={(e) => batchUpdate('quantity', parseInt(e.target.value) || 0)}
+                                placeholder="Set all quantities"
+                            />
+                        </div>
+                        <div>
+                            <Label>Batch Weight</Label>
+                            <Input
+                                type="number"
+                                step="0.001"
+                                onChange={(e) => batchUpdate('weight', parseFloat(e.target.value) || 0)}
+                                placeholder="Set all weights"
+                            />
+                        </div>
                     </div>
                 </div>
             </CardHeader>
@@ -169,6 +515,8 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                     <TableHead>Price</TableHead>
                                     <TableHead>Quantity</TableHead>
                                     <TableHead>Weight (kg)</TableHead>
+                                    <TableHead>Dimensions (cm)</TableHead>
+                                    <TableHead>Images</TableHead>
                                     <TableHead>Default</TableHead>
                                     <TableHead className="w-[100px]">Actions</TableHead>
                                 </TableRow>
@@ -232,6 +580,52 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                             </div>
                                         </TableCell>
                                         <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <Ruler className="h-3 w-3 text-muted-foreground" />
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={combination.dimensions?.length || 0}
+                                                        onChange={(e) => handleDimensionChange(index, 'length', parseFloat(e.target.value) || 0)}
+                                                        className="w-16"
+                                                        placeholder="L"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={combination.dimensions?.width || 0}
+                                                        onChange={(e) => handleDimensionChange(index, 'width', parseFloat(e.target.value) || 0)}
+                                                        className="w-16"
+                                                        placeholder="W"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={combination.dimensions?.height || 0}
+                                                        onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
+                                                        className="w-16"
+                                                        placeholder="H"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <ImageDown className="h-3 w-3 text-muted-foreground" />
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={(e) => handleImageChange(index, Array.from(e.target.files || []))}
+                                                    className="text-xs"
+                                                />
+                                                <Badge variant="outline" className="text-xs">
+                                                    {combination.images?.length || 0}/3
+                                                </Badge>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
                                             <Button
                                                 type="button"
                                                 variant={combination.isDefault ? "primary" : "outline"}
@@ -282,7 +676,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                 <Trash2 className="h-3 w-3" />
                                             </Button>
                                         </div>
-
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <Label className="text-xs text-muted-foreground">SKU</Label>
@@ -318,8 +711,48 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                     onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)}
                                                 />
                                             </div>
+                                            <div className="col-span-2">
+                                                <Label className="text-xs text-muted-foreground">Dimensions (cm)</Label>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={combination.dimensions?.length || 0}
+                                                        onChange={(e) => handleDimensionChange(index, 'length', parseFloat(e.target.value) || 0)}
+                                                        placeholder="Length"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={combination.dimensions?.width || 0}
+                                                        onChange={(e) => handleDimensionChange(index, 'width', parseFloat(e.target.value) || 0)}
+                                                        placeholder="Width"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={combination.dimensions?.height || 0}
+                                                        onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
+                                                        placeholder="Height"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <Label className="text-xs text-muted-foreground">Variant Images</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        multiple
+                                                        onChange={(e) => handleImageChange(index, Array.from(e.target.files || []))}
+                                                        className="text-xs"
+                                                    />
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {combination.images?.length || 0}/3
+                                                    </Badge>
+                                                </div>
+                                            </div>
                                         </div>
-
                                         <div className="flex items-center justify-between">
                                             <Button
                                                 type="button"

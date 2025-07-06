@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { VariantOption, VariantTemplateTypes } from "@/lib/types";
+import { VariantOption, VariantTemplate } from "@/lib/types/catalog-types";
 import { Minus, Package, Plus, Settings, Star, Upload, X } from "lucide-react";
 import Image from "next/image";
 import React from "react";
@@ -24,7 +24,7 @@ interface VariantValue {
 
 interface EnhancedVariantConfigProps {
     control: Control<any>;
-    variantTemplates: VariantTemplateTypes[];
+    variantTemplates: VariantTemplate[];
 }
 export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
     control,
@@ -39,7 +39,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         name: 'variants'
     });
 
-    const addVariantFromTemplate = (template: VariantTemplateTypes) => {
+    const addVariantFromTemplate = (template: VariantTemplate) => {
         const existingVariant = variantFields.find((field: any) => field.id === template.id);
         if (!existingVariant) {
             appendVariant({
@@ -101,7 +101,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
 
     const renderVariantValueInput = (
         variantIndex: number,
-        template: VariantTemplateTypes
+        template: VariantTemplate
     ) => {
         const variant = watchedVariants[variantIndex] || { values: [] };
 
@@ -130,7 +130,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     if (!isSelected) {
                                                         addValueToVariant(variantIndex, {
                                                             value: option.value,
-                                                            label: option.name,
+                                                            label: option.colorCode,
                                                             colorCode: option.colorCode,
                                                             additionalPrice: option.additionalPrice
                                                         });
@@ -142,7 +142,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     className="w-8 h-8 rounded-full border border-gray-300 mx-auto"
                                                     style={{ backgroundColor: option.colorCode || option.value }}
                                                 />
-                                                <p className="text-xs mt-1 truncate">{option.name}</p>
+                                                <p className="text-xs mt-1 truncate">{option.colorCode}</p>
                                                 {option.additionalPrice && option.additionalPrice !== 0 && (
                                                     <span className="text-xs text-green-600">
                                                         +${option.additionalPrice}
@@ -230,7 +230,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     if (!isSelected) {
                                                         addValueToVariant(variantIndex, {
                                                             value: option.value,
-                                                            label: option.name,
+                                                            label: option.value,
                                                             additionalPrice: option.additionalPrice
                                                         });
                                                     }
@@ -239,7 +239,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                 className="justify-start text-left h-auto py-2"
                                             >
                                                 <div className="flex flex-col items-start w-full">
-                                                    <span className="font-medium">{option.name}</span>
+                                                    <span className="font-medium">{option.value}</span>
                                                     {option.additionalPrice && option.additionalPrice !== 0 && (
                                                         <span className="text-xs text-green-600">
                                                             {option.additionalPrice > 0 ? '+' : ''}${option.additionalPrice}
@@ -605,7 +605,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                     {variantFields.map((field: any, variantIndex: any) => {
                         const currentVariant = watchedVariants[variantIndex];
                         if (!currentVariant) return null;
-
+                        
                         const template = variantTemplates.find(t => t.id === currentVariant.templateId);
                         if (!template) return null;
 
