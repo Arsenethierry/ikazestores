@@ -22,7 +22,6 @@ export const createPhysicalStoreAction = action
     .use(authMiddleware)
     .schema(createPhysicalStoreFormSchema)
     .action(async ({ parsedInput, ctx }) => {
-        console.log("parsedInput: ", parsedInput)
         const {
             storeLogo,
             storeName,
@@ -31,7 +30,8 @@ export const createPhysicalStoreAction = action
             latitude,
             longitude,
             storeBio,
-            country
+            country,
+            currency
         } = parsedInput
         const { storage, user, teams } = ctx;
         const { databases } = await createAdminClient();
@@ -62,7 +62,7 @@ export const createPhysicalStoreAction = action
                     description,
                     bio: storeBio,
                     owner: user.$id,
-                    // storeType: 'physicalStore',
+                    currency,
                     latitude,
                     longitude,
                     address,
@@ -175,6 +175,7 @@ export const updatePhysicalStore = action
         const rollback = new AppwriteRollback(storage, databases);
 
         try {
+            console.log("vvvvv: ",values)
             const updatedFields = { ...values };
 
             if (storeLogo instanceof File) {

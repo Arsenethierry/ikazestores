@@ -89,7 +89,8 @@ export const createVirtualStoreAction = action
                     subDomain: storeDomain,
                     locale: (await getUserLocale())?.country,
                     desccription,
-                    storeBio
+                    storeBio,
+                    virtualProductsIds: []
                 },
                 [
                     Permission.read(Role.any()),

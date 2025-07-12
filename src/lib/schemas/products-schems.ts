@@ -24,6 +24,7 @@ export const productFormSchema = z.object({
 
     brand: z.string().optional(),
     model: z.string().optional(),
+    currency: z.string()
 });
 
 export const ProductSchemaProps = productFormSchema.extend({
@@ -42,6 +43,7 @@ export const UpdateProductSchemaProps = ProductSchemaProps.merge(
 
 export const VirtualProductSchema = z.object({
     originalProductId: z.string(),
+    shortDescription: z.string(),
     purchasePrice: z.coerce
         .number({ invalid_type_error: "Price must be a number" })
         .positive({ message: "Price must be a positive number" }),
@@ -49,11 +51,18 @@ export const VirtualProductSchema = z.object({
         .number({ invalid_type_error: "Price must be a number" })
         .positive({ message: "Price must be a positive number" }),
     storeId: z.string(),
-    description: z.string(),
-    title: z.string(),
-    generalImageUrls: z.string().array(),
+    description: z.string().min(1, "Description is required"),
+    title: z.string().min(1, "Title is required"),
+    generalImageUrls: z.array(z.string()).default([]),
     createdBy: z.string(),
-    currency: z.string()
+    currency: z.string(),
+    commission: z.number().min(0, "Commission must be greater than or equal to 0"),
+    combinationPrices: z.array(z.object({
+        combinationId: z.string(),
+        basePrice: z.number(),
+        commission: z.number().min(0, "Commission must be ≥ 0"),
+        finalPrice: z.number()
+    })).default([])
 })
 
 export const deleteVirtualProductSchema = z.object({
@@ -243,3 +252,24 @@ export const SaveItemSchema = z.object({
 export const RemoveSavedItemSchema = z.object({
     savedItemId: z.string().min(1, "Saved item ID is required"),
 });
+
+export const GetProductsWithVirtualSchema = z.object({
+    storeId: z.string().optional(),
+    categoryId: z.string().optional(),
+    subcategoryId: z.string().optional(),
+    productTypeId: z.string().optional(),
+    status: z.string().optional(),
+    featured: z.boolean().optional(),
+    search: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    priceMin: z.number().optional(),
+    priceMax: z.number().optional(),
+    limit: z.number().optional(),
+    offset: z.number().optional(),
+    sortBy: z.enum(['name', 'price', 'created', 'updated']).optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
+    userLat: z.number().optional(),
+    userLng: z.number().optional(),
+    radiusKm: z.number().optional(),
+    combinations: VariantCombinationSchema.optional()
+})

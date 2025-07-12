@@ -22,6 +22,8 @@ import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { deleteOriginalProduct } from "../../actions/original-products-actions";
 import { OriginalProductTypes } from "@/lib/types";
+import ErrorAlert from "@/components/error-alert";
+import SpinningLoader from "@/components/spinning-loader";
 
 interface DataTableProps<TValue> {
     columns: ColumnDef<OriginalProductTypes, TValue>[];
@@ -46,11 +48,13 @@ export function ProductsDataTable<TValue>({
         "destructive"
     );
 
-    const { execute: executeDelete, status } = useAction(deleteOriginalProduct, {
+    const { execute: executeDelete, status, result } = useAction(deleteOriginalProduct, {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data.success);
                 setRowSelection({});
+            } else if (data?.error) {
+                toast.error(data.error)
             }
         },
         onError: ({ error }) => {
@@ -108,6 +112,7 @@ export function ProductsDataTable<TValue>({
     return (
         <div className="space-y-4">
             <ConfirmationDialog />
+            {result.data?.error && <ErrorAlert errorMessage={result.data.error ?? 'Something went wrong'} />}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <Input
@@ -129,7 +134,11 @@ export function ProductsDataTable<TValue>({
                                 onClick={handleBulkDelete}
                                 disabled={status === "executing"}
                             >
-                                Delete Selected
+                                {status === 'executing' ? (
+                                    <>
+                                        <SpinningLoader /> <span>deleting...</span>
+                                    </>
+                                ) : 'Delete Selected'}
                             </Button>
                         </div>
                     )}
@@ -149,9 +158,9 @@ export function ProductsDataTable<TValue>({
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
-                                                  header.column.columnDef.header,
-                                                  header.getContext()
-                                              )}
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            )}
                                     </TableHead>
                                 ))}
                             </TableRow>

@@ -20,7 +20,7 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
-import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Package, Info, Settings, Images, ArrowLeft, ArrowRight, Zap, ShoppingCart, CheckCircle, Loader2, AlertCircle, RefreshCw, CircleAlert } from 'lucide-react';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
@@ -34,6 +34,7 @@ import { generateCombinationsWithStrings, getCategories, getCategoryById, getPro
 import { ProductCombinations } from './product-combinations';
 import { PhysicalStoreTypes } from '@/lib/types';
 import { Category, ProductType, Subcategory, VariantTemplate } from '@/lib/types/catalog-types';
+import { useRouter } from 'next/navigation';
 
 type ProductFormData = z.infer<typeof productFormSchema>;
 
@@ -83,6 +84,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const [currentTag, setCurrentTag] = useState('');
     const [previewImages, setPreviewImages] = useState<string[]>([]);
 
+    const router = useRouter();
+
     const form = useForm<ProductFormData>({
         resolver: zodResolver(productFormSchema),
         mode: 'onChange',
@@ -96,6 +99,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             hasVariants: false,
             images: [],
             tags: [],
+            currency: storeData.currency
         }
     });
 
@@ -162,7 +166,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             basePrice,
             baseSku
         );
-        replaceCombinations(combinations);
+        if (combinations.length > 5) {
+            toast.error("Maximum 5 variant combinations allowed to prevent server overload.");
+            replaceCombinations(combinations.slice(0, 5));
+        } else {
+            replaceCombinations(combinations);
+        }
     };
 
     const handleCategoryChange = (categoryId: string) => {
@@ -254,10 +263,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
-    const { execute: createProduct, status, result } = useAction(createNewProduct, {
+    const { execute: createProduct, status, result, } = useAction(createNewProduct, {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data.success)
+                router.push(`/admin/stores/${storeData.$id}/products`)
             } else if (data?.serverError) {
                 toast.error(data.serverError)
             }
@@ -265,7 +275,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         onError: ({ error }) => {
             toast.error(error.serverError || "An unexpected error occurred")
         }
-    })
+    });
+
     const onSubmit = async (values: ProductFormData) => {
         const isValid = await validateStep(currentStep);
 
@@ -891,6 +902,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                     </StepperItem>
                 ))}
             </Stepper>
+
+            {result.data?.error && (
+                <div className="rounded-md border border-red-500/50 px-4 py-3 text-red-600">
+                    <p className="text-sm">
+                        <CircleAlert
+                            className="me-3 -mt-0.5 inline-flex opacity-60"
+                            size={16}
+                            aria-hidden="true"
+                        />
+                        {result.data.error || "An error occurred, please try again"}
+                    </p>
+                </div>
+            )}
 
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

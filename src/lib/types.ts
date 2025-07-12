@@ -1,5 +1,6 @@
 import { Models } from "node-appwrite";
 import { UserAccountType, UserRole } from "./constants";
+import { ProductCombination } from "./schemas/product-variants-schema";
 
 export type SignInParams = {
     email: string;
@@ -107,34 +108,59 @@ export interface VirtualStoreTypes extends Models.Document {
     bannerUrls?: string[] & File[] | undefined;
     bannerIds?: string[];
     storeType: 'physicalStore' | 'virtualStore',
-    address?: string,
     country: string,
     storeLogoUrl: string & File | undefined,
     storeLogoId?: string
     subDomain: string;
-    vitualProducts: VirtualProductTypes[],
+    virtualProductsIds?: string[],
     locale?: string;
+    operatingCountries: string[]
 };
 export interface OriginalProductTypes extends Models.Document {
-    title: string,
+    name: string,
     description: string,
-    basePrice: number,
-    createdBy: string,
-    store: PhysicalStoreTypes,
-    storeId: string,
-    // category: CategoryTypes,
-    seeded: boolean,
-    isPublished: boolean,
-    storeLat: number,
-    storeLong: number,
-    storeOriginCountry: string,
-    colorImages: ColorImagesTypes[],
-    subcategoryIds: string[],
-    generalProductImages: string[],
-    hasVariants: boolean,
-    status: 'text' | 'color' | 'select' | 'boolean' | 'multiselect'
+    shortDescription?: string;
+    sku: string;
+    basePrice: number;
+    status: 'active' | 'archived' | 'draft',
+    featured: boolean;
+    categoryId: string;
+    subcategoryId: string;
+    productTypeId: string;
+    tags: string[],
+    weight: number,
+    dimensions: string;
+    hasVariants: boolean;
+    variantIds: string[];
+    combinationIds: string[],
+    images: string[],
+    storeLat: number;
+    storeLong: number;
+    storeOriginCountry: string;
+    createdBy: string;
+    currency: string;
 }
 
+export interface OriginalProductWithVirtualProducts extends OriginalProductTypes {
+    combinations?: ProductCombinationTypes[];
+    virtualProducts: VirtualProductTypes[];
+    priceRange: {
+        min: number;
+        max: number;
+    };
+}
+
+export interface ProductCombinationTypes extends Models.Document {
+    productId: string;
+    variantStrings?: string[];
+    sku: string;
+    price: number;
+    stockQuantity: number;
+    isActive: boolean;
+    weight?: number;
+    dimensions?: string;
+    images?: string[]
+}
 export interface VirtualProductTypes extends Models.Document {
     purchasePrice: number;
     sellingPrice: number;
@@ -147,7 +173,7 @@ export interface VirtualProductTypes extends Models.Document {
     virtualStoreId: string;
     archived: boolean;
     categoryNames?: string[];
-    currency: string
+    currency: string;
 }
 export interface ColorImagesTypes extends Models.Document {
     colorName: string,
@@ -245,4 +271,23 @@ export interface UserDataTypes extends Models.Document {
     // bio?: string;
     // website?: string;
     // socialLinks?: SocialLinks;
+}
+
+export interface ProductFilters {
+    storeId?: string;
+    categoryId?: string;
+    subcategoryId?: string;
+    productTypeId?: string;
+    status?: string;
+    featured?: boolean;
+    search?: string;
+    tags?: string[];
+    priceMin?: number;
+    priceMax?: number;
+    sortBy?: 'name' | 'price' | 'created' | 'updated';
+    sortOrder?: 'asc' | 'desc';
+    userLat?: number;
+    userLng?: number;
+    radiusKm?: number;
+    combinations?: ProductCombination[]
 }

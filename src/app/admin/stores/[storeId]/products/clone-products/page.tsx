@@ -1,10 +1,7 @@
 import { buttonVariants } from '@/components/ui/button';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CloneProductsPage from '@/features/products/components/clone-products/default-view-products';
-import { CloneNearByProducts } from '@/features/products/components/clone-products/clone-near-by-products';
+import CloneProductsPage from '@/features/products/components/clone-products/clone-products-page';
 import { getAuthState } from '@/lib/user-permission';
-import { MapPinHouse, TableOfContents } from 'lucide-react';
+import { ArrowLeft, TableOfContents } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
@@ -15,68 +12,52 @@ async function page({
 }) {
     const { storeId } = await params;
     const {
-        isPhysicalStoreOwner,
+        // isPhysicalStoreOwner,
         isVirtualStoreOwner,
         isSystemAdmin,
         user
     } = await getAuthState();
 
-    if (!isVirtualStoreOwner) {
-        return <p className='text-3xl text-destructive font-bold'>Access denied!</p>
+    if (!isVirtualStoreOwner && !isSystemAdmin) {
+        return (
+            <div className="container mx-auto px-4 py-6">
+                <div className="text-center py-12">
+                    <h1 className="text-3xl font-bold text-destructive mb-4">Access Denied</h1>
+                    <p className="text-muted-foreground mb-6">
+                        You don&apos;t have permission to access this page. This feature is only available to virtual store owners.
+                    </p>
+                    <Link
+                        href="/dashboard"
+                        className={buttonVariants({ variant: "secondary" })}
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back to Dashboard
+                    </Link>
+                </div>
+            </div>
+        )
     }
-
     return (
-        <div className='flex justify-between gap-2'>
-            <Tabs defaultValue="defaultProductsDisplay">
-                <ScrollArea>
-                    <TabsList className="mb-3 gap-1 bg-transparent">
-                        <TabsTrigger
-                            value="defaultProductsDisplay"
-                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full data-[state=active]:shadow-none"
+        <div className="min-h-screen bg-gray-50/50">
+            <div className="bg-white border-b">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href={`/admin/stores/${storeId}`}
+                            className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
-                            <TableOfContents
-                                className="-ms-0.5 me-1.5 opacity-60"
-                                size={16}
-                                aria-hidden="true"
-                            />
-                            Default
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="nearBy"
-                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full data-[state=active]:shadow-none"
-                        >
-                            <MapPinHouse
-                                className="-ms-0.5 me-1.5 opacity-60"
-                                size={16}
-                                aria-hidden="true"
-                            />
-                            Near By
-                        </TabsTrigger>
-                    </TabsList>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-                <TabsContent value="defaultProductsDisplay">
-                    <CloneProductsPage
-                        storeId={storeId}
-                        isPhysicalStoreOwner={isPhysicalStoreOwner}
-                        isSystemAdmin={isSystemAdmin}
-                        isVirtualStoreOwner={isVirtualStoreOwner}
-                        user={user}
-                    />
-                </TabsContent>
-                <TabsContent value="nearBy">
-                    <CloneNearByProducts
-                        storeId={storeId}
-                        isPhysicalStoreOwner={isPhysicalStoreOwner}
-                        isSystemAdmin={isSystemAdmin}
-                        isVirtualStoreOwner={isVirtualStoreOwner}
-                        user={user}
-                    />
-                </TabsContent>
-            </Tabs>
-            {(isPhysicalStoreOwner || isSystemAdmin) && (
-                <Link href={`/admin/stores/${storeId}/products/new`} className={`${buttonVariants({ size: 'sm' })} mb-5`}>Add New Product</Link>
-            )}
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Store
+                        </Link>
+                        <div className="flex items-center gap-2">
+                            <TableOfContents className="w-5 h-5 text-blue-600" />
+                            <h1 className="text-xl font-semibold">Product Import Center</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <CloneProductsPage storeId={storeId} user={user} />
         </div>
     );
 }

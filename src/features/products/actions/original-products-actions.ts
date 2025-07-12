@@ -11,15 +11,11 @@ import { revalidatePath } from "next/cache";
 import { getAllVirtualPropByOriginalProduct } from "./virtual-products-actions";
 import {
     DeleteProductSchema,
-    // DeleteProductSchema, 
     ProductSchemaProps,
-    // UpdateProductSchemaProps
 } from "@/lib/schemas/products-schems";
 import { OriginalProductTypes } from "@/lib/types";
-import { createSessionClient } from "@/lib/appwrite";
+import { createAdminClient, createDocumentPermissions, createSessionClient } from "@/lib/appwrite";
 import { extractFileIdFromUrl } from "@/lib/utils";
-// import { OriginalProductTypes } from "@/lib/types";
-// import { VariantCombinationType } from "@/lib/schemas/product-variants-schema";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -32,6 +28,7 @@ export const createNewProduct = action
     .schema(ProductSchemaProps)
     .action(async ({ parsedInput, ctx }) => {
         const { databases, storage, user } = ctx;
+        const { databases: adminDB } = await createAdminClient();
         const rollback = new AppwriteRollback(storage, databases);
         try {
             if (parsedInput.hasVariants && parsedInput.productCombinations && parsedInput.productCombinations.length > 0) {
@@ -45,6 +42,8 @@ export const createNewProduct = action
                     };
                 }
             }
+
+            const documentPermissions = createDocumentPermissions({ userId: ctx.user.$id })
 
             const imageUrls: string[] = [];
             if (parsedInput.images && parsedInput.images.length > 0) {
@@ -84,14 +83,16 @@ export const createNewProduct = action
                 storeLat: parsedInput.storeLat || 0,
                 storeLong: parsedInput.storeLong || 0,
                 storeOriginCountry: parsedInput.storeOriginCountry,
-                createdBy: user.$id
+                createdBy: user.$id,
+                currency: parsedInput.currency
             };
 
-            const newProduct = await databases.createDocument(
+            const newProduct = await adminDB.createDocument(
                 DATABASE_ID,
                 ORIGINAL_PRODUCT_ID,
                 productId,
-                productData
+                productData,
+                documentPermissions
             );
             await rollback.trackDocument(ORIGINAL_PRODUCT_ID, newProduct.$id);
 
@@ -148,21 +149,23 @@ export const createNewProduct = action
 
                     const combinationImageUrls: string[] = [];
                     if (combination.images?.length) {
-                        const combImagePromises = combination.images.map(async (image) => {
-                            const uploadedImage = await storage.createFile(
-                                PRODUCTS_BUCKET_ID,
-                                ID.unique(),
-                                image
-                            );
-                            await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
-                            return `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`;
-                        });
+                        const combImagePromises = combination.images
+                            .filter((img): img is File => img !== undefined)
+                            .map(async (image) => {
+                                const uploadedImage = await storage.createFile(
+                                    PRODUCTS_BUCKET_ID,
+                                    ID.unique(),
+                                    image
+                                );
+                                await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
+                                return `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedImage.$id}/view?project=${APPWRITE_PROJECT_ID}`;
+                            });
 
                         const uploadedCombImageUrls = await Promise.all(combImagePromises);
                         combinationImageUrls.push(...uploadedCombImageUrls);
                     };
 
-                    await databases.createDocument(
+                    await adminDB.createDocument(
                         DATABASE_ID,
                         VARIANT_COMBINATIONS_COLLECTION_ID,
                         combinationId,
@@ -176,7 +179,8 @@ export const createNewProduct = action
                             weight: combination.weight || 0,
                             dimensions: "",
                             images: combinationImageUrls.map(image => image)
-                        }
+                        },
+                        documentPermissions
                     );
                     await rollback.trackDocument(VARIANT_COMBINATIONS_COLLECTION_ID, combinationId);
 
@@ -222,6 +226,278 @@ export const createNewProduct = action
         }
     });
 
+export const getOriginalProductWithVariants = async (productId: string) => {
+    try {
+        const { databases } = await createSessionClient();
+        const product = await databases.getDocument(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            productId
+        );
+
+        if (!product) return null;
+
+        let variants: any[] = [];
+        let combinations: any[] = [];
+        let variantOptions: any[] = [];
+        let combinationValues: any[] = [];
+
+        if (product.hasVariants) {
+            if (product.variantIds?.length > 0) {
+                const variantPromises = product.variantIds.map((variantId: string) =>
+                    databases.getDocument(DATABASE_ID, PRODUCT_VARIANTS_COLLECTION_ID, variantId)
+                );
+                variants = await Promise.all(variantPromises);
+
+                const options = variants.map(variant =>
+                    databases.listDocuments(DATABASE_ID, PRODUCT_VARIANT_OPTIONS_COLLECTION_ID, [
+                        Query.equal('variantId', variant.$id)
+                    ])
+                );
+                const optionsResults = await Promise.all(options);
+                variantOptions = optionsResults.flatMap(result => result.documents);
+            }
+
+            if (product.combinationIds?.length > 0) {
+                const combinationPromises = product.combinationIds.map((combinationId: string) =>
+                    databases.getDocument(DATABASE_ID, VARIANT_COMBINATIONS_COLLECTION_ID, combinationId)
+                );
+                combinations = await Promise.all(combinationPromises);
+                const valuePromises = combinations.map(combination =>
+                    databases.listDocuments(DATABASE_ID, VARIANT_COMBINATION_VALUES_COLLECTION_ID, [
+                        Query.equal('combinationId', combination.$id)
+                    ])
+                );
+                const valueResults = await Promise.all(valuePromises);
+                combinationValues = valueResults.flatMap(result => result.documents);
+            }
+        }
+        return {
+            product,
+            variants,
+            combinations,
+            variantOptions,
+            combinationValues
+        };
+    } catch (error) {
+        console.error('Error fetching getOriginalProductWithVariants:', error);
+        return null;
+    }
+};
+
+export async function getProductsList(params: {
+    storeId?: string;
+    categoryId?: string;
+    subcategoryId?: string;
+    productTypeId?: string;
+    status?: string;
+    featured?: boolean;
+    search?: string;
+    tags?: string[];
+    priceMin?: number;
+    priceMax?: number;
+    limit?: number;
+    offset?: number;
+    sortBy?: 'name' | 'price' | 'created' | 'updated';
+    sortOrder?: 'asc' | 'desc';
+}) {
+    try {
+        const { databases } = await createSessionClient();
+        const queries: string[] = [];
+
+        if (params.storeId) queries.push(Query.equal('storeId', params.storeId));
+        if (params.categoryId) queries.push(Query.equal('categoryId', params.categoryId));
+        if (params.subcategoryId) queries.push(Query.equal('subcategoryId', params.subcategoryId));
+        if (params.productTypeId) queries.push(Query.equal('productTypeId', params.productTypeId));
+        if (params.status) queries.push(Query.equal('status', params.status));
+        if (params.featured !== undefined) queries.push(Query.equal('featured', params.featured));
+        if (params.search) queries.push(Query.search('name', params.search));
+        if (params.tags?.length) queries.push(Query.contains('tags', params.tags));
+        if (params.priceMin !== undefined) queries.push(Query.greaterThanEqual('basePrice', params.priceMin));
+        if (params.priceMax !== undefined) queries.push(Query.lessThanEqual('basePrice', params.priceMax));
+
+        if (params.limit) queries.push(Query.limit(params.limit));
+        if (params.offset) queries.push(Query.offset(params.offset));
+        if (params.sortBy) {
+            const order = params.sortOrder === 'desc' ? Query.orderDesc : Query.orderAsc;
+            queries.push(order(params.sortBy));
+        }
+
+        const result = await databases.listDocuments(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            queries
+        );
+
+        const products = await Promise.all(
+            result.documents.map(async (product) => {
+                let priceRange = undefined;
+                if (product.hasVariants && product.combinationIds?.length > 0) {
+                    const combinations = await Promise.all(
+                        product.combinationIds.map((id: string) =>
+                            databases.getDocument(DATABASE_ID, VARIANT_COMBINATIONS_COLLECTION_ID, id)
+                        )
+                    );
+
+                    const prices = combinations.map(combo => combo.price);
+                    priceRange = {
+                        min: Math.min(...prices),
+                        max: Math.max(...prices)
+                    };
+                }
+
+                return {
+                    id: product.$id,
+                    name: product.name,
+                    basePrice: product.basePrice,
+                    images: product.images || [],
+                    status: product.status,
+                    featured: product.featured,
+                    hasVariants: product.hasVariants,
+                    priceRange
+                };
+            })
+        );
+
+        return {
+            products,
+            total: result.total,
+            hasMore: result.total > (params.offset || 0) + products.length
+        };
+    } catch (error) {
+        console.error('Error fetching products list:', error);
+        return { products: [], total: 0, hasMore: false };
+    }
+};
+
+export async function getProductVariantsForSelection(productId: string) {
+    try {
+        const { databases } = await createSessionClient();
+        const product = await databases.getDocument(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            productId
+        );
+        if (!product.hasVariants || !product.variantIds?.length) {
+            return [];
+        }
+        const variants = await Promise.all(
+            product.variantIds.map(async (variantId: string) => {
+                const variant = await databases.getDocument(
+                    DATABASE_ID,
+                    PRODUCT_VARIANTS_COLLECTION_ID,
+                    variantId
+                );
+
+                const options = await databases.listDocuments(
+                    DATABASE_ID,
+                    PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
+                    [Query.equal('variantId', variantId)]
+                );
+
+                return {
+                    ...variant,
+                    options: options.documents
+                };
+            })
+        );
+        return variants;
+    } catch (error) {
+        console.error('Error fetching product variants:', error);
+        return [];
+    }
+}
+
+export async function getAvailableCombinations(
+    productId: string,
+    selectedVariants: Record<string, string> = {}
+) {
+    try {
+        const { databases } = await createSessionClient();
+        const combinations = await databases.listDocuments(
+            DATABASE_ID,
+            VARIANT_COMBINATIONS_COLLECTION_ID,
+            [
+                Query.equal('productId', productId),
+                Query.equal('isActive', true)
+            ]
+        );
+        if (Object.keys(selectedVariants).length === 0) {
+            return combinations.documents;
+        }
+        const filteredCombinations = await Promise.all(
+            combinations.documents.map(async (combination) => {
+                const values = await databases.listDocuments(
+                    DATABASE_ID,
+                    VARIANT_COMBINATION_VALUES_COLLECTION_ID,
+                    [Query.equal('combinationId', combination.$id)]
+                );
+
+                const matches = Object.entries(selectedVariants).every(([templateId, selectedValue]) => {
+                    return values.documents.some(
+                        value => value.variantTemplateId === templateId && value.value === selectedValue
+                    );
+                });
+
+                return matches ? { ...combination, values: values.documents } : null;
+            })
+        );
+        return filteredCombinations.filter(Boolean);
+    } catch (error) {
+        console.error('Error fetching available combinations:', error);
+        return [];
+    }
+}
+
+export async function getRelatedProducts(
+    productId: string,
+    limit: number = 10
+) {
+    try {
+        const { databases } = await createSessionClient();
+        const currentProduct = await databases.getDocument(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            productId
+        );
+        const relatedProducts = await databases.listDocuments(
+            DATABASE_ID,
+            ORIGINAL_PRODUCT_ID,
+            [
+                Query.equal('categoryId', currentProduct.categoryId),
+                Query.equal('status', 'active'),
+                Query.notEqual('$id', productId),
+                Query.limit(limit)
+            ]
+        );
+        return relatedProducts;
+    } catch (error) {
+        console.error('Error fetching related products:', error);
+        return [];
+    }
+}
+
+export async function searchProducts(
+    query: string,
+    filters: {
+        categoryId?: string;
+        priceMin?: number;
+        priceMax?: number;
+        tags?: string[];
+        featured?: boolean;
+    } = {},
+    limit: number = 20
+) {
+    const searchParams = {
+        search: query,
+        ...filters,
+        status: 'active',
+        limit
+    };
+
+    return getProductsList(searchParams);
+}
+
 export const deleteOriginalProduct = action
     .use(authMiddleware)
     .schema(DeleteProductSchema)
@@ -229,6 +505,8 @@ export const deleteOriginalProduct = action
         const { databases, storage } = ctx;
         try {
             const productIds = Array.isArray(parsedInput.productIds) ? parsedInput.productIds : [parsedInput.productIds];
+
+            console.log("productIds: ", productIds)
 
             const batchSize = 5;
             for (let i = 0; i < productIds.length; i += batchSize) {
@@ -241,7 +519,7 @@ export const deleteOriginalProduct = action
                         );
 
                         await Promise.all(
-                            product.generalProductImages.map(async (imageUrl) => {
+                            product.images.map(async (imageUrl: string) => {
                                 const fileId = extractFileIdFromUrl(imageUrl);
                                 if (fileId) {
                                     await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId)

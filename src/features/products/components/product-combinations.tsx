@@ -3,7 +3,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -144,11 +143,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
     //     append(newCombination);
     // };
 
-    const handleConfirmationChange = (index: number, isConfirmed: boolean) => {
-        const updatedCombination = { ...combinations[index], isConfirmed };
-        update(index, updatedCombination);
-    };
-
     const addCustomCombination = () => {
         if (!customCombination.sku) {
             toast.error("SKU is required for custom combination");
@@ -173,7 +167,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
             dimensions: customCombination.dimensions,
             images: customCombination.images,
             isDefault: combinations.length === 0,
-            isConfirmed: false,
             variantStrings: Object.entries(customCombination.variantValues).map(([variantId, value]) =>
                 `${variantId}-${value.toLowerCase().replace(/\s+/g, '-')}`
             )
@@ -518,7 +511,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[250px]">Variant</TableHead>
-                                    <TableHead className="w-[100px]">Confirm</TableHead>
                                     <TableHead>SKU</TableHead>
                                     <TableHead>Price</TableHead>
                                     <TableHead>Quantity</TableHead>
@@ -547,14 +539,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                     </Badge>
                                                 )}
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Checkbox
-                                                checked={combination.isConfirmed}
-                                                onCheckedChange={(checked) =>
-                                                    handleConfirmationChange(index, checked === true)
-                                                }
-                                            />
                                         </TableCell>
                                         <TableCell>
                                             <Input
@@ -691,18 +675,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                             >
                                                 <Trash2 className="h-3 w-3" />
                                             </Button>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`confirm-${index}`}
-                                                checked={combination.isConfirmed}
-                                                onCheckedChange={(checked) =>
-                                                    handleConfirmationChange(index, checked === true)
-                                                }
-                                            />
-                                            <Label htmlFor={`confirm-${index}`} className="text-sm">
-                                                Confirm Availability
-                                            </Label>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>

@@ -20,7 +20,7 @@ const AllStoresPage = async () => {
 
     if (!user) return (
         <AccessDeniedCard />
-    )
+    );
 
     const virtualStores = isSystemAdmin
         ? await getAllVirtualStores()

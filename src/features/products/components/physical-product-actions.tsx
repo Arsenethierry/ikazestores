@@ -14,6 +14,9 @@ import { MoreHorizontal, TrashIcon } from "lucide-react";
 // import { deleteOriginalProduct } from "../actions/original-products-actions";
 // import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
+import { deleteOriginalProduct } from "../actions/original-products-actions";
+import { toast } from "sonner";
+import { useAction } from "next-safe-action/hooks";
 import { OriginalProductTypes } from "@/lib/types";
 
 export const PhysicalProductMenuActions = ({ product }: { product: OriginalProductTypes }) => {
@@ -27,19 +30,19 @@ export const PhysicalProductMenuActions = ({ product }: { product: OriginalProdu
 
     const carnDelete = user && (user.$id === product?.createdBy || user?.$id === product?.store?.owner);
 
-    // const { executeAsync } = useAction(deleteOriginalProduct, {
-    //     onSuccess: () => {
-    //         toast.success("Product deleted successfully")
-    //     },
-    //     onError: ({ error }) => {
-    //         toast.error(error.serverError)
-    //     }
-    // })
+    const { executeAsync } = useAction(deleteOriginalProduct, {
+        onSuccess: () => {
+            toast.success("Product deleted successfully")
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError)
+        }
+    })
 
     const handleDeleteProduct = async () => {
         const ok = await confirmDeleteProduct();
         if (!ok) return;
-        // executeAsync({ productId: product.$id })
+        executeAsync({ productIds: product.$id })
     }
 
     return (

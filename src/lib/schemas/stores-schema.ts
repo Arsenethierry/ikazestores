@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-
 export const createPhysicalStoreFormSchema = z.object({
     storeName: z.string().min(1).max(255),
     description: z.string().max(255).optional(),
@@ -10,6 +9,19 @@ export const createPhysicalStoreFormSchema = z.object({
     longitude: z.number().optional(),
     address: z.string().min(5, "Address must be at least 5 characters"),
     country: z.string().min(1, "Country is required"),
+    currency: z.string()
+});
+
+export const UpdatePhysicalStoreFormSchema = z.object({
+    storeId: z.string().min(1),
+    storeName: z.string().min(1).max(255).optional(),
+    desccription: z.string().max(500).optional(),
+    storeBio: z.string().max(255).optional(),
+    storeLogo: z.custom<File[]>().optional(),
+    storeLogoUrl: z.string().optional(),
+    storeLogoId: z.string().optional(),
+    oldFileId: z.string().optional().nullable(),
+    currency: z.string().optional()
 });
 
 export const createVirtualStoreFormSchema = z.object({
@@ -34,17 +46,6 @@ export const updateVirtualStoreFormSchema = z.object({
     storeBanner: z.custom<File[]>().optional(),
     bannerUrls: z.array(z.string()).optional(),
     bannerIds: z.array(z.string()).optional(),
-    storeLogo: z.custom<File[]>().optional(),
-    storeLogoUrl: z.string().optional(),
-    storeLogoId: z.string().optional(),
-    oldFileId: z.string().optional().nullable(),
-});
-
-export const UpdatePhysicalStoreFormSchema = z.object({
-    storeId: z.string().min(1),
-    storeName: z.string().min(1).max(255).optional(),
-    desccription: z.string().max(500).optional(),
-    storeBio: z.string().max(255).optional(),
     storeLogo: z.custom<File[]>().optional(),
     storeLogoUrl: z.string().optional(),
     storeLogoId: z.string().optional(),

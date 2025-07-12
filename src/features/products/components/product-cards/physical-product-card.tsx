@@ -4,9 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CurrentUserType, OriginalProductTypes, VirtualProductTypes } from '@/lib/types';
+import { CurrentUserType, OriginalProductWithVirtualProducts } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Heart, StarIcon } from 'lucide-react';
+import { Heart, StarIcon} from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -19,14 +19,14 @@ export const PhysicalProductCard = ({
     user,
     isSystemAdmin,
     isPhysicalStoreOwner,
-    isVirtualStoreOwner
+    isVirtualStoreOwner,
 }: {
-    product: OriginalProductTypes,
+    product: OriginalProductWithVirtualProducts,
     storeId: string,
     isVirtualStoreOwner: boolean,
     isPhysicalStoreOwner: boolean,
     isSystemAdmin: boolean,
-    user: CurrentUserType
+    user: CurrentUserType,
 }) => {
 
     const isMyProduct = user ? product?.createdBy === user.$id : false;
@@ -41,18 +41,16 @@ export const PhysicalProductCard = ({
     const discountPercentage = discount || (originalPrice && price ?
         Math.round(((originalPrice - price) / originalPrice) * 100) : null);
 
-    const isAlreadyCloned = (): boolean => product?.vitualProducts?.some((virtualProduct: VirtualProductTypes) => (virtualProduct?.originalProductId === product.$id) && (virtualProduct?.virtualStoreId === storeId));
-
     return (
         <Card className="group w-full max-w-[280px] min-w-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="relative h-60 w-full overflow-hidden">
                 <Carousel className="relative w-full max-w-xs">
                     <CarouselContent>
-                        {product?.generalProductImages?.map((imageUrl: string, index: number) => (
+                        {product?.images?.map((imageUrl: string, index: number) => (
                             <CarouselItem key={index} className='relative h-60 w-full'>
                                 <Image
                                     src={imageUrl}
-                                    alt={product?.title}
+                                    alt={product.name}
                                     fill
                                     className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
                                 />
@@ -96,7 +94,7 @@ export const PhysicalProductCard = ({
                 </div>
             </div>
             <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">
-                <h3 className="font-medium text-sm mb-1 truncate transition-colors duration-300 group-hover:text-gray-900">{product.title}</h3>
+                <h3 className="font-medium text-sm mb-1 truncate transition-colors duration-300 group-hover:text-gray-900">{product.name}</h3>
                 <div className="flex items-center gap-1 mb-2">
                     {[...Array(5)].map((_, i) => (
                         <StarIcon
@@ -117,13 +115,14 @@ export const PhysicalProductCard = ({
                         )}
                     </div>
                     {isVirtualStoreOwner ? (
-                        <div className="transition-transform duration-300 ease-in-out group-hover:scale-105">
-                            <CloneProductModal
-                                currentUser={user}
-                                product={product}
-                                isAlreadyCloned={isAlreadyCloned()}
-                                storeId={storeId}
-                            />
+                        <div className="flex items-center gap-1">
+                            <div className="transition-transform duration-300 ease-in-out group-hover:scale-105">
+                                <CloneProductModal
+                                    currentUser={user}
+                                    product={product}
+                                    storeId={storeId}
+                                />
+                            </div>
                         </div>
                     ) : null}
                 </div>

@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { getUserLocation } from "@/lib/geolocation";
 import { useEffect, useState } from "react";
 import countriesData from '@/data/countries.json';
+import currenciesData from '@/data/currencies.json';
 import { Option } from "@/components/ui/multiselect";
 import { useAction } from "next-safe-action/hooks";
 import { createPhysicalStoreAction, updatePhysicalStore } from "@/lib/actions/physical-store.action";
@@ -53,8 +54,15 @@ export function PhysicalStoreForm({
         label: country.name
     }));
 
+    const currencies: Option[] = currenciesData.map(currency => ({
+        value: currency.value,
+        label: currency.label
+    }));
+
     const [selectedCountry, setSelectedCountry] = useState(initialValues?.country ?? "");
+    const [selectedCurrency, setSelectedCurrency] = useState(initialValues?.currency ?? "");
     const [open, setOpen] = useState(false);
+    const [currencyOpen, setCurrencyOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
 
@@ -110,7 +118,8 @@ export function PhysicalStoreForm({
             storeLogo: initialValues?.storeLogoUrl ?? undefined,
             latitude: initialValues?.latitude ?? undefined,
             longitude: initialValues?.longitude ?? undefined,
-            country: initialValues?.country ?? ""
+            country: initialValues?.country ?? "",
+            currency: initialValues?.currency ?? ""
         },
         mode: "onChange",
     })
@@ -168,6 +177,7 @@ export function PhysicalStoreForm({
             if (dirtyFields.storeBio) updatedValues.storeBio = values.storeBio;
             if (dirtyFields.address) updatedValues.address = values.address;
             if (dirtyFields.country) updatedValues.country = values.country;
+            if (dirtyFields.currency) updatedValues.currency = values.currency;
             if (dirtyFields.latitude) updatedValues.latitude = values.latitude;
             if (dirtyFields.longitude) updatedValues.longitude = values.longitude;
             if (dirtyFields.storeLogo) {
@@ -211,8 +221,14 @@ export function PhysicalStoreForm({
 
     const handleCountrySelect = (value: string) => {
         setSelectedCountry(value);
-        form.setValue("country", value);
+        form.setValue("country", value, { shouldDirty: true });
         setOpen(false);
+    };
+
+    const handleCurrencySelect = (value: string) => {
+        setSelectedCurrency(value);
+        form.setValue("currency", value, { shouldDirty: true });
+        setCurrencyOpen(false);
     };
 
     const handleCancel = async () => {
@@ -253,7 +269,7 @@ export function PhysicalStoreForm({
                                         <Input placeholder="Store Name" {...field} />
                                     </FormControl>
                                     <FormDescription>
-                                        Description
+                                        Enter the name of your physical store
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -265,12 +281,12 @@ export function PhysicalStoreForm({
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Desccription</FormLabel>
+                                    <FormLabel>Description</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Description" {...field} />
+                                        <Input placeholder="Store Description" {...field} />
                                     </FormControl>
                                     <FormDescription>
-                                        Description
+                                        Brief description of your store
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -287,14 +303,14 @@ export function PhysicalStoreForm({
                                         <Input placeholder="Store Bio" {...field} />
                                     </FormControl>
                                     <FormDescription>
-                                        Description
+                                        Additional information about your store
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <FormItem>
                                 <FormLabel>Country</FormLabel>
                                 <Popover open={open} onOpenChange={setOpen}>
@@ -332,26 +348,72 @@ export function PhysicalStoreForm({
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
+                                <FormDescription>
+                                    Select the country where your store is located
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
 
-                            <FormField
-                                control={form.control}
-                                name="address"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Address</FormLabel>
-                                        <FormControl>
-                                            <Input disabled placeholder="Full address of your physical store" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            This will be updated when you select a location on the map
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <FormItem>
+                                <FormLabel>Currency</FormLabel>
+                                <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                            {selectedCurrency
+                                                ? currencies.find((c) => c.value === selectedCurrency)?.label
+                                                : "Select a currency"}
+                                            <ChevronsUpDown className="opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search currency..." />
+                                            <CommandList>
+                                                <CommandEmpty>No currency found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {currencies.map((currency) => (
+                                                        <CommandItem
+                                                            key={currency.value}
+                                                            value={currency.label}
+                                                            onSelect={() => handleCurrencySelect(currency.value)}
+                                                        >
+                                                            {currency.label}
+                                                            <Check
+                                                                className={cn(
+                                                                    "ml-auto",
+                                                                    selectedCurrency === currency.value ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormDescription>
+                                    Select the currency used in your store
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
                         </div>
+
+                        <FormField
+                            control={form.control}
+                            name="address"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Address</FormLabel>
+                                    <FormControl>
+                                        <Input disabled placeholder="Full address of your physical store" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        This will be updated when you select a location on the map
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <div className="space-y-4">
                             <FormLabel>Search Address or Mark Location on Map</FormLabel>

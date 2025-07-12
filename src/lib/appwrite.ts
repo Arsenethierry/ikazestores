@@ -5,13 +5,15 @@ import {
     Client,
     Databases,
     Locale,
+    Permission,
+    Role,
     Storage,
     Teams,
     Users
 } from "node-appwrite";
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE } from './constants';
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID } from './env-config';
+import { AUTH_COOKIE, UserRole } from './constants';
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, SYSTEM_OPERATIONS_TEAM } from './env-config';
 
 export async function createSessionClient() {
     const cookieStore = await cookies()
@@ -63,4 +65,25 @@ export async function createAdminClient() {
             return new Databases(client);
         },
     };
+};
+
+export const createDocumentPermissions = ({ userId }: { userId: string }) => {
+    return [
+        Permission.read(Role.user(userId)),
+        Permission.update(Role.user(userId)),
+        Permission.delete(Role.user(userId)),
+
+        Permission.read(Role.team(SYSTEM_OPERATIONS_TEAM)),
+        Permission.update(Role.team(SYSTEM_OPERATIONS_TEAM)),
+        Permission.update(Role.team(SYSTEM_OPERATIONS_TEAM)),
+        Permission.delete(Role.team(SYSTEM_OPERATIONS_TEAM, 'admin')),
+
+        Permission.update(Role.label(UserRole.SYS_ADMIN)),
+        Permission.delete(Role.label(UserRole.SYS_ADMIN)),
+
+        // Permission.read(Role.label(UserRole.SYS_AGENT)),
+        // Permission.update(Role.label(UserRole.SYS_AGENT)),
+
+        Permission.read(Role.users()),
+    ]
 }

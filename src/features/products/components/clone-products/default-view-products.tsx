@@ -17,7 +17,7 @@ async function CloneProductsPage({
     isSystemAdmin: boolean,
     user: CurrentUserType
 }) {
-
+    
     const result = await getOriginalProductsWithVirtualProducts();
 
     if (result === undefined) {

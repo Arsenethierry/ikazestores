@@ -30,7 +30,7 @@ async function StoreProductsPage({
         }
 
     const virtualProducts = isVirtualStoreOwner
-        ? await getVirtualStoreProducts({ virtualStoreId: storeId, limit: 20 })
+        ? await getVirtualStoreProducts({ virtualStoreId: storeId, limit: 20, withStoreData: true })
         : {
             documents: [],
             total: 0
@@ -38,9 +38,8 @@ async function StoreProductsPage({
 
     return (
         <div className="container mx-auto py-6">
-            {isVirtualStoreOwner && virtualProducts ? (
+            {isVirtualStoreOwner ? (
                 <VirtualStoreProductsView
-                    storeId={storeId}
                     virtualProducts={virtualProducts}
                 />
             ) : isPhysicalStoreOwner ? (
@@ -57,11 +56,9 @@ async function StoreProductsPage({
     );
 
     function VirtualStoreProductsView({
-        storeId,
         virtualProducts
     }: {
-        storeId: string;
-        virtualProducts: { documents: VirtualProductTypes[]; total: number }
+        virtualProducts: { documents: VirtualProductTypes[]; total: number } | null
     }) {
         return (
             <>
@@ -78,7 +75,7 @@ async function StoreProductsPage({
                     </Link>
                 </div>
 
-                {virtualProducts.documents.length === 0 ? (
+                {!virtualProducts || virtualProducts.documents.length === 0 ? (
                     <EmptyVirtualProductsState storeId={storeId} />
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -92,7 +89,7 @@ async function StoreProductsPage({
                     </div>
                 )}
 
-                {virtualProducts.total > 20 && (
+                {virtualProducts && virtualProducts.total > 20 && (
                     <div className="mt-8 text-center">
                         <Link
                             href={`/admin/stores/${storeId}/products?view=all`}

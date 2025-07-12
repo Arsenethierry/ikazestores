@@ -2,8 +2,8 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { PhysicalProductMenuActions } from "../physical-product-actions"
-import { OriginalProductTypes } from "@/lib/types"
 import Image from "next/image"
+import { OriginalProductTypes } from "@/lib/types";
 
 export const productListColumns: ColumnDef<OriginalProductTypes>[] = [
     {

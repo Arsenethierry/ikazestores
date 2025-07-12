@@ -75,6 +75,7 @@ export const ProductVariantSchema = z.array(z.object({
             additionalPrice: z.number().default(0),
             isDefault: z.boolean(),
             images: z.array(z.string()).default([]),
+            colorCode: z.string().optional()
         })
     ),
     required: z.boolean().default(false)
@@ -84,7 +85,7 @@ const SingleVariantCombinationSchema = z.object({
     id: z.string(),
     sku: z.string(),
     price: z.number(),
-    quantity: z.number(),
+    quantity: z.number().min(0, 'Stock quantity is required'),
     isDefault: z.boolean(),
     variantValues: z.record(z.string()),
     variantStrings: z.array(z.string()).optional(),
@@ -94,7 +95,6 @@ const SingleVariantCombinationSchema = z.object({
         width: z.number().optional(),
         height: z.number().optional()
     }).optional(),
-    isConfirmed: z.boolean().default(false),
     images: z.array(z.custom<File>().optional()).optional()
 });
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { FilterState, VariantTemplate, VirtualProductTypes } from "@/lib/types";
+import { FilterState, VirtualProductTypes } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductFilterSidebar } from "./products-filter-sidebar";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,7 +9,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useInView } from "react-intersection-observer";
 import { useDebounce } from "react-use";
-import EcommerceCatalogUtils from "@/features/variants management/ecommerce-catalog";
 import { ArrowUpDown, Filter, Grid3X3, List, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VirtualProductCard } from "../product-cards/virtual-product-card";
+import { VariantTemplate } from "@/lib/types/catalog-types";
+import { getVariantTemplates } from "@/features/variants management/ecommerce-catalog";
 
 interface SortOption {
     value: string;
@@ -202,7 +203,7 @@ export const ProductListWithFilters = ({
     );
 
     const filterGroups = useMemo(() => {
-        const variants = EcommerceCatalogUtils.getVariantTemplates();
+        const variants = getVariantTemplates();
         const grouped: Record<string, VariantTemplate[]> = {};
 
         variants.forEach((variant) => {
@@ -215,7 +216,7 @@ export const ProductListWithFilters = ({
             grouped[groupName].push({
                 id: variant.id,
                 name: variant.name,
-                type: variant.type as "text" | "color" | "range" | "number" | "select",
+                inputType: variant.inputType as "text" | "color" | "range" | "number" | "select",
                 variantOptions: variant.variantOptions.map((v) => ({
                     value: v.value,
                     label: v.label || v.value,

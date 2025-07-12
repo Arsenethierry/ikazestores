@@ -1,0 +1,30 @@
+[
+    {
+        "value": "KES",
+        "label": "Kenyan Shilling (KES)"
+    },
+    {
+        "value": "RWF",
+        "label": "Rwandan Franc (RWF)"
+    },
+    {
+        "value": "BIF",
+        "label": "Burundian Franc (BIF)"
+    },
+    {
+        "value": "TZS",
+        "label": "Tanzanian Shilling (TZS)"
+    },
+    {
+        "value": "CDF",
+        "label": "Congolese Franc (CDF)"
+    },
+    {
+        "value": "ZMW",
+        "label": "Zambian Kwacha (ZMW)"
+    },
+    {
+        "value": "UGX",
+        "label": "Ugandan Shilling (UGX)"
+    }
+]
