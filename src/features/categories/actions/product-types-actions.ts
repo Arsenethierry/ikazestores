@@ -5,7 +5,6 @@ import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "@/lib/env-config";
 import { ProductTypeSchema, UpdateProductTypeSchema } from "@/lib/schemas/product-variants-schema";
-import { ProductType, VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
@@ -79,7 +78,7 @@ export const getProductTypes = async ({
             queries.push(Query.equal("categoryId", categoryId));
         }
 
-        const productTypes = await databases.listDocuments<ProductType>(
+        const productTypes = await databases.listDocuments(
             DATABASE_ID,
             PRODUCT_TYPES_COLLECTION_ID,
             queries
@@ -208,7 +207,7 @@ export const getProductVariants = async (productId: string) => {
 export const getProductTypeById = async ({ productTypeId, storeId }: { productTypeId: string, storeId?: string }) => {
     try {
         const { databases } = await createSessionClient();
-        const productType = await databases.getDocument<ProductType>(
+        const productType = await databases.getDocument(
             DATABASE_ID,
             PRODUCT_TYPES_COLLECTION_ID,
             productTypeId
@@ -258,7 +257,7 @@ export const getAvailableVariantTemplatesForProductType = async ({
             queries.push(Query.isNull("storeId"));
         }
 
-        const allTemplates = await databases.listDocuments<VariantTemplate>(
+        const allTemplates = await databases.listDocuments(
             DATABASE_ID,
             "VARIANT_TEMPLATES_COLLECTION_ID",
             [
@@ -306,12 +305,12 @@ export const getAvailableVariantTemplatesForProductType = async ({
             })
         );
 
-        templatesWithOptions.sort((a, b) => {
-            if (a.isRequired !== b.isRequired) {
-                return a.isRequired ? -1 : 1;
-            }
-            return a.name.localeCompare(b.name);
-        });
+        // templatesWithOptions.sort((a, b) => {
+        //     if (a.isRequired !== b.isRequired) {
+        //         return a.isRequired ? -1 : 1;
+        //     }
+        //     return a.name.localeCompare(b.name);
+        // });
 
         return {
             documents: templatesWithOptions,

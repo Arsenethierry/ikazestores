@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CurrentUserType, OriginalProductWithVirtualProducts } from "@/lib/types";
+import { CurrentUserType, OriginalProductTypes } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 // import { useAction } from "next-safe-action/hooks";
 import Image from "next/image";
@@ -32,7 +33,7 @@ const formSchema = z.object({
 
 type CloneProductProps = {
     currentUser: CurrentUserType,
-    product: OriginalProductWithVirtualProducts,
+    product: OriginalProductTypes,
     storeId: string
 }
 
@@ -49,7 +50,7 @@ export const CloneProductModal = ({ currentUser, product, storeId }: CloneProduc
             description: product.description,
             commission: 0,
             generalImageUrls: product.images || [],
-            combinationPrices: product.combinations && product.combinations.map((comb) => ({
+            combinationPrices: product.combinations && product.combinations.map((comb: any) => ({
                 combinationId: comb.$id,
                 basePrice: comb.price,
                 commission: 0,
@@ -209,7 +210,7 @@ export const CloneProductModal = ({ currentUser, product, storeId }: CloneProduc
                                     render={() => (
                                         <div className="space-y-4">
                                             <FormLabel>Combination Pricing</FormLabel>
-                                            {product.combinations && product.combinations.map((combination, idx) => {
+                                            {product.combinations && product.combinations.map((combination: any, idx: number) => {
                                                 const variantSummary = combination.variantStrings?.join(", ") ?? `Combination ${idx + 1}`;
                                                 const combinationCommission = combinationPrices[idx]?.commission || 0;
                                                 const finalCombinationPrice = combination.price + combinationCommission;

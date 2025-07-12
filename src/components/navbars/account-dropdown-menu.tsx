@@ -5,9 +5,15 @@ import Link from "next/link";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { IS_DEVELOPMENT } from "@/lib/domain-utils";
-import { AuthState } from "@/lib/types";
 
-export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner, isSystemAdmin }: AuthState) => (
+type AccountDropdown = {
+    isAuthenticated: boolean;
+    isPhysicalStoreOwner: boolean;
+    isVirtualStoreOwner: boolean;
+    isSystemAdmin: boolean;
+}
+
+export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner, isSystemAdmin }: AccountDropdown) => (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant={'ghost'} className='text-white font-medium cursor-pointer hidden md:inline-flex'>

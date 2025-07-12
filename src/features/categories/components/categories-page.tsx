@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CategoryTypes, CurrentUserType } from '@/lib/types';
+import { CurrentUserType } from '@/lib/types';
 import Link from 'next/link';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { useAction } from 'next-safe-action/hooks';
 import { deleteCategoryById } from '../actions/categories-actions';
 
 interface PageProps {
-    categories: CategoryTypes[],
+    categories: any[],
     isSystemAdmin: boolean,
     currentUser: CurrentUserType
 }
@@ -50,7 +51,7 @@ export const AllCategories = ({
     };
 
 
-    const canModify = (category: CategoryTypes) => currentUser!.$id === category.createdBy
+    const canModify = (category: any) => currentUser!.$id === category.createdBy
 
     return (
         <Card>

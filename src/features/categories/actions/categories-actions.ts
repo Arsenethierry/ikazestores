@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { authMiddleware } from "@/lib/actions/middlewares";
@@ -8,7 +9,6 @@ import { CategoryById, CategorySchema, UpdateCategoryActionSchema } from "@/lib/
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
-import { CategoryTypes } from "@/lib/types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -70,12 +70,15 @@ export const createNewCategory = action
                 }
             }
 
-            const uploadedIcon = await storage.createFile(
-                PRODUCTS_BUCKET_ID,
-                ID.unique(),
-                icon
-            );
-            await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedIcon.$id);
+            let uploadedIcon;
+            if (icon) {
+                uploadedIcon = await storage.createFile(
+                    PRODUCTS_BUCKET_ID,
+                    ID.unique(),
+                    icon
+                );
+                await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedIcon.$id);
+            }
 
             const newCategory = await databases.createDocument(
                 DATABASE_ID,
@@ -84,13 +87,13 @@ export const createNewCategory = action
                 {
                     categoryName,
                     slug,
-                    iconFileId: uploadedIcon.$id,
+                    iconFileId: uploadedIcon?.$id ?? '',
                     storeId,
                     createdBy,
                     parentCategoryId,
                     isActive,
                     sortOrder,
-                    iconUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedIcon.$id}/view?project=${APPWRITE_PROJECT_ID}`,
+                    iconUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedIcon?.$id}/view?project=${APPWRITE_PROJECT_ID}`,
                 }
             );
             await rollback.trackDocument(CATEGORIES_COLLECTION_ID, newCategory.$id);
@@ -112,7 +115,7 @@ export const getCategoriesWithInheritance = async (storeId?: string | null) => {
     try {
         const { databases } = await createSessionClient();
         let queries;
-        
+
         if (storeId) {
             queries = [
                 Query.or([
@@ -126,7 +129,7 @@ export const getCategoriesWithInheritance = async (storeId?: string | null) => {
             ];
         }
 
-        const categories = await databases.listDocuments<CategoryTypes>(
+        const categories = await databases.listDocuments(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
             [
@@ -138,7 +141,7 @@ export const getCategoriesWithInheritance = async (storeId?: string | null) => {
         );
 
         const categoriesMap = new Map();
-        const rootCategories: CategoryTypes[] = [];
+        const rootCategories: any[] = [];
 
         categories.documents.forEach(category => {
             categoriesMap.set(category.$id, { ...category, children: [] });
@@ -206,7 +209,7 @@ export const updateCategory = action
                     values.icon
                 );
                 await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedIcon.$id);
-                updatedFields.iconUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedIcon.$id}/view?project=${APPWRITE_PROJECT_ID}`
+                // updatedFields.iconUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedIcon.$id}/view?project=${APPWRITE_PROJECT_ID}`
             }
             if (Object.keys(updatedFields).length > 0) {
                 const updatedDocument = await databases.updateDocument(
@@ -261,7 +264,7 @@ export const deleteCategoryById = action
 export const getCategoryById = async (categoryId: string) => {
     try {
         const { databases } = await createSessionClient();
-        const category = await databases.getDocument<CategoryTypes>(
+        const category = await databases.getDocument(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
             categoryId
@@ -281,7 +284,7 @@ export const getCategoryBySlug = async (slug: string, storeId?: string | null) =
             ...(storeId ? [Query.equal("storeId", storeId)] : [Query.isNull("storeId")])
         ];
 
-        const categories = await databases.listDocuments<CategoryTypes>(
+        const categories = await databases.listDocuments(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
             query
@@ -297,7 +300,7 @@ export const getCategoryBySlug = async (slug: string, storeId?: string | null) =
 export const getGeneralCategories = async () => {
     try {
         const { databases } = await createSessionClient();
-        const categories = await databases.listDocuments<CategoryTypes>(
+        const categories = await databases.listDocuments(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
             [
@@ -317,7 +320,7 @@ export const getGeneralCategories = async () => {
 export const getAllCategoriesByStoreId = async ({ storeId }: { storeId: string }) => {
     try {
         const { databases } = await createSessionClient();
-        const categories = await databases.listDocuments<CategoryTypes>(
+        const categories = await databases.listDocuments(
             DATABASE_ID,
             CATEGORIES_COLLECTION_ID,
             [

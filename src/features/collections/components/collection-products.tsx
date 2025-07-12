@@ -47,7 +47,8 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
                     virtualStoreId,
                     limit: Number(pageSize),
                     page: Number(page),
-                    search: search || undefined
+                    search: search || undefined,
+                    withStoreData: true
                 });
                 return result
             } else {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useCallback, useState } from "react";
@@ -17,18 +18,18 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteProductType } from "@/features/categories/actions/product-types-actions";
-import { CurrentUserType, ProductType } from "@/lib/types";
+import { CurrentUserType } from "@/lib/types";
 import { useConfirm } from "@/hooks/use-confirm";
 
 interface ProductTypesClientProps {
     storeId?: string;
-    initialProductTypes: ProductType[];
+    initialProductTypes: any[];
     currentUser: CurrentUserType
 }
 
 export default function ProductTypesClient({ storeId, initialProductTypes, currentUser }: ProductTypesClientProps) {
     const router = useRouter();
-    const [productTypes, setProductTypes] = useState<ProductType[]>(initialProductTypes);
+    const [productTypes, setProductTypes] = useState<any[]>(initialProductTypes);
     const [searchTerm, setSearchTerm] = useState("");
 
     const [ConfirmDialog, confirm] = useConfirm(
@@ -56,7 +57,7 @@ export default function ProductTypesClient({ storeId, initialProductTypes, curre
         }
     });
 
-    const handleDeleteClick = async (productType: ProductType) => {
+    const handleDeleteClick = async (productType: any) => {
         const confirmed = await confirm();
         if (confirmed) {
             await executeDelete({ productTypeId: productType.$id });

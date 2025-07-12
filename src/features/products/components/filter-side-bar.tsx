@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -5,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useProductParams } from "@/hooks/use-product-params";
 import { PRICE_FILTER_VALUE } from "@/lib/constants";
-import { CategoryTypes } from "@/lib/types";
 import { CheckCircle2, Circle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCurrency } from "../currency/currency-context";
@@ -14,7 +14,7 @@ import { convertCurrency } from "../currency/currency-utils";
 // Base currency used for product storage in DB (assuming USD)
 const BASE_CURRENCY = "USD";
 
-export const FilterSidebar = ({ categories }: { categories: CategoryTypes[] }) => {
+export const FilterSidebar = ({ categories }: { categories: any[] }) => {
     const [priceRange, setPriceRange] = useState([PRICE_FILTER_VALUE.min, PRICE_FILTER_VALUE.max]);
 
     const {

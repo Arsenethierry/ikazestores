@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
@@ -8,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormLabel } from '@/components/ui/form';
 import { useConfirm } from '@/hooks/use-confirm';
 import { SubCategorySchema, UpdateSubCategoryForm } from '@/lib/schemas/products-schems';
-import { CurrentUserType, SubCategoryTypes } from '@/lib/types';
+import { CurrentUserType } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
 // import { useAction } from 'next-safe-action/hooks';
@@ -22,7 +23,7 @@ import MultipleSelector, { type Option } from '@/components/ui/multiselect';
 
 interface Props {
     currentUser: CurrentUserType,
-    initialValues?: SubCategoryTypes | null,
+    initialValues?: any | null,
     categoriesOptions: Option[],
     storeId: string | null
 }

@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveModal } from "@/components/responsive-modal";
-import { VariantTemplateSchema, VariantType } from "@/lib/schemas/product-variants-schema";
+import { VariantInputType, VariantTemplateSchema } from "@/lib/schemas/product-variants-schema";
 import { toast } from "sonner";
 import { z } from "zod";
 import { createVariantTemplate } from "@/features/categories/actions/products-variant-templates-action";
@@ -39,7 +39,7 @@ export function CreateVariantTemplateModal({
         defaultValues: {
             name: "",
             description: "",
-            type: VariantType.SELECT,
+            type: VariantInputType.SELECT,
             isRequired: false,
             productTypeId,
             storeId: storeId,
@@ -88,7 +88,7 @@ export function CreateVariantTemplateModal({
 };
 
     const selectedType = form.watch("type");
-    const needsOptions = [VariantType.SELECT, VariantType.MULTISELECT, VariantType.COLOR].includes(selectedType);
+    const needsOptions = [VariantInputType.SELECT, VariantInputType.MULTISELECT, VariantInputType.COLOR].includes(selectedType);
 
     return (
         <>
@@ -123,19 +123,19 @@ export function CreateVariantTemplateModal({
                                     <Label htmlFor="type">Input Type *</Label>
                                     <Select
                                         value={form.watch("type")}
-                                        onValueChange={(value) => form.setValue("type", value as VariantType)}
+                                        onValueChange={(value) => form.setValue("type", value as VariantInputType)}
                                     >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value={VariantType.SELECT}>Select (Dropdown)</SelectItem>
-                                            <SelectItem value={VariantType.MULTISELECT}>Multi-Select</SelectItem>
-                                            <SelectItem value={VariantType.COLOR}>Color Picker</SelectItem>
-                                            <SelectItem value={VariantType.BOOLEAN}>Yes/No Toggle</SelectItem>
-                                            <SelectItem value={VariantType.TEXT}>Text Input</SelectItem>
-                                            <SelectItem value={VariantType.NUMBER}>Number Input</SelectItem>
-                                            <SelectItem value={VariantType.RANGE}>Range Slider</SelectItem>
+                                            <SelectItem value={VariantInputType.SELECT}>Select (Dropdown)</SelectItem>
+                                            <SelectItem value={VariantInputType.MULTISELECT}>Multi-Select</SelectItem>
+                                            <SelectItem value={VariantInputType.COLOR}>Color Picker</SelectItem>
+                                            <SelectItem value={VariantInputType.BOOLEAN}>Yes/No Toggle</SelectItem>
+                                            <SelectItem value={VariantInputType.TEXT}>Text Input</SelectItem>
+                                            <SelectItem value={VariantInputType.NUMBER}>Number Input</SelectItem>
+                                            <SelectItem value={VariantInputType.RANGE}>Range Slider</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -160,7 +160,7 @@ export function CreateVariantTemplateModal({
                                     <Label htmlFor="isRequired">Required</Label>
                                 </div>
 
-                                {selectedType === VariantType.MULTISELECT && (
+                                {selectedType === VariantInputType.MULTISELECT && (
                                     <>
                                         <div className="space-y-2">
                                             <Label htmlFor="minSelections">Min Selections</Label>
@@ -184,7 +184,7 @@ export function CreateVariantTemplateModal({
                                     </>
                                 )}
 
-                                {[VariantType.TEXT, VariantType.SELECT].includes(selectedType) && (
+                                {[VariantInputType.TEXT, VariantInputType.SELECT].includes(selectedType) && (
                                     <div className="flex items-center space-x-2">
                                         <Switch
                                             id="allowCustomValues"
@@ -243,7 +243,7 @@ export function CreateVariantTemplateModal({
                                                     </div>
                                                 </div>
 
-                                                {selectedType === VariantType.COLOR && (
+                                                {selectedType === VariantInputType.COLOR && (
                                                     <div>
                                                         <Label className="text-xs">Hex Color</Label>
                                                         <Input

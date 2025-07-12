@@ -1,4 +1,4 @@
-import { CategoryTypes } from "@/lib/types";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getCategoriesWithInheritance } from "../actions/categories-actions";
 import Link from "next/link";
 import { ChevronRight, Globe, Store } from "lucide-react";
@@ -38,12 +38,12 @@ export const CategoriesCard = async ({
         return category.storeId === storeId;
     });
 
-    const renderCategoryChildren = (children: CategoryTypes[], depth = 0) => {
+    const renderCategoryChildren = (children: any[], depth = 0) => {
         if (depth >= maxDepth || !children || children.length === 0) return null;
 
         return (
             <div className={`grid ${mobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mt-2`}>
-                {children.map((child: CategoryTypes) => (
+                {children.map((child: any) => (
                     <div key={child.$id} className="space-y-1">
                         <Link
                             href={`/products?category=${encodeURIComponent(child.categoryName)}`}
@@ -85,7 +85,7 @@ export const CategoriesCard = async ({
 
     return (
         <div className={`space-y-2 ${mobile ? 'p-2' : ''}`}>
-            {filteredCategories.map((category: CategoryTypes) => {
+            {filteredCategories.map((category: any) => {
                 const hasChildren = category.children && category.children.length > 0;
 
                 return (

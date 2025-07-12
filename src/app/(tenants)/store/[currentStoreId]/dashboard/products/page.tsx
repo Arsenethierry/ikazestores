@@ -10,7 +10,7 @@ const StoreProductsPage = async ({
     params: Promise<{ currentStoreId: string }>
 }) => {
     const { currentStoreId } = await params;
-    const products = await getVirtualStoreProducts({ virtualStoreId: currentStoreId, limit: 10 });
+    const products = await getVirtualStoreProducts({ virtualStoreId: currentStoreId, limit: 10, withStoreData: false });
 
     return (
         <div>

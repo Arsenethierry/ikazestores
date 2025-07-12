@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
 // import VariantTemplateForm from "../enhanced-variant-template-form";
 import { Edit } from "lucide-react";
 // import { VariantTemplatePreview } from "./variant-template-preview";
-import { VariantTemplate } from "@/lib/types";
 
 export const CreateTemplateModal = ({
     // storeId,
@@ -38,7 +38,7 @@ export const EditTemplateModal = ({
     // storeId,
     // onClose
 }: {
-    template: VariantTemplate;
+    template: any;
     storeId?: string;
     onClose: () => void;
 }) => {
@@ -68,7 +68,7 @@ export const ViewTemplateModal = ({
     onEdit,
     readonly
 }: {
-    template: VariantTemplate;
+    template: any;
     onClose: () => void;
     onEdit: () => void;
     readonly: boolean;

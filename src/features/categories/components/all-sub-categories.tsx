@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CurrentUserType, SubCategoryTypes } from '@/lib/types';
+import { CurrentUserType } from '@/lib/types';
 import Link from 'next/link';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { useConfirm } from '@/hooks/use-confirm';
 // import { deleteSubcategoryById } from '../actions/sub-categories-actions';
 
 interface PageProps {
-    subcategories: SubCategoryTypes[],
+    subcategories: any[],
     currentUser: CurrentUserType
 }
 export const AllSubCategories = ({
@@ -44,7 +45,7 @@ export const AllSubCategories = ({
         // executeAsync({ categoryId })
     };
 
-    const canDelete = (subCategory: SubCategoryTypes) => currentUser!.$id === subCategory.createdBy;
+    const canDelete = (subCategory: any) => currentUser!.$id === subCategory.createdBy;
 
     return (
         <Card>

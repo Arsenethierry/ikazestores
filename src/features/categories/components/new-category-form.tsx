@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
@@ -8,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl } from '@/components/ui/form';
 import { useConfirm } from '@/hooks/use-confirm';
 import { CategorySchema, UpdateCategoryForm } from '@/lib/schemas/products-schems';
-import { CategoryTypes, CurrentUserType } from '@/lib/types';
+import { CurrentUserType } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
@@ -33,7 +34,7 @@ export const CategoryForm = ({
     storeId
 }: {
     currentUser: CurrentUserType,
-    initialValues?: CategoryTypes | null,
+    initialValues?: any | null,
     storeId: string | null
 }) => {
     const isEditMode = !!initialValues;

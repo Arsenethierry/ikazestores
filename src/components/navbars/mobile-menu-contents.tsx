@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { Heart, ShoppingCart } from "lucide-react";
 import LogoutButton from "@/features/auth/components/logout-button";
-import { AuthStatus } from "@/lib/types";
 import { ProductSearchField } from "../search/virtual-products-search";
+
+type AuthStatus = {
+    isAuthenticated: boolean;
+    isPhysicalStoreOwner: boolean;
+    isVirtualStoreOwner: boolean;
+    isSystemAdmin: boolean;
+}
 
 export const MobileMenuContent = ({ isAuthenticated, isPhysicalStoreOwner, isVirtualStoreOwner }: AuthStatus) => (
     <>

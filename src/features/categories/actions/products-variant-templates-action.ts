@@ -5,7 +5,6 @@ import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PRODUCTS_BUCKET_ID } from "@/lib/env-config";
 import { VariantTemplateSchema } from "@/lib/schemas/product-variants-schema";
-import { VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
@@ -331,7 +330,7 @@ export const getVariantTemplatesForStore = async (storeId?: string | null, produ
             ...(productTypeId && productTypeId.length > 0 ? [Query.equal("productTypeId", productTypeId)] : [])
         ];
 
-        const variantTemplates = await databases.listDocuments<VariantTemplate>(
+        const variantTemplates = await databases.listDocuments(
             DATABASE_ID,
             "VARIANT_TEMPLATES_COLLECTION_ID",
             queries

@@ -3,7 +3,6 @@
 import { authMiddleware } from "@/lib/actions/middlewares";
 import { createSessionClient } from "@/lib/appwrite";
 import { DATABASE_ID, PRODUCT_TYPES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "@/lib/env-config";
-import { ProductType, VariantTemplate } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 import { Query } from "node-appwrite";
@@ -57,7 +56,7 @@ export const getVariantTemplateDetails = async (templateId: string) => {
     try {
         const { databases } = await createSessionClient();
 
-        const variantTemplate = await databases.getDocument<VariantTemplate>(
+        const variantTemplate = await databases.getDocument(
             DATABASE_ID,
             "VARIANT_TEMPLATES_COLLECTION_ID",
             templateId
@@ -73,10 +72,10 @@ export const getVariantTemplateDetails = async (templateId: string) => {
             [Query.equal("variantTemplateId", templateId)]
         );
 
-        let productType: ProductType | null = null;
+        let productType = null;
         if (variantTemplate.productTypeId) {
             try {
-                productType = await databases.getDocument<ProductType>(
+                productType = await databases.getDocument(
                     DATABASE_ID,
                     PRODUCT_TYPES_COLLECTION_ID,
                     variantTemplate.productTypeId

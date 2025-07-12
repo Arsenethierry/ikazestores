@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ProductSekeleton } from "./products-list-sekeleton";
 
 export const StoreProductsList = async ({ storeId }: { storeId: string }) => {
-  const storeProducts = await getVirtualStoreProducts({ virtualStoreId: storeId, limit: 6 });
+  const storeProducts = await getVirtualStoreProducts({ virtualStoreId: storeId, limit: 6, withStoreData: true });
 
   return (
     <div className="flex flex-wrap gap-2 justify-center md:justify-start">

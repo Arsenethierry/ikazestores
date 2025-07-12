@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -13,10 +14,9 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { Bolt, Ellipsis, Trash } from "lucide-react";
 import { useDeleteVirtualStore } from "../mutations/use-virtual-store-mutations";
 import { useDeletePhysicalStore } from "../mutations/use-physical-store-mutations";
-import { VirtualStoreTypes } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
-export const StoreQuickActions = ({ store }: { store: VirtualStoreTypes }) => {
+export const StoreQuickActions = ({ store }: { store: any }) => {
     const router = useRouter();
 
     const { mutate: deleteVirtualStore } = useDeleteVirtualStore();

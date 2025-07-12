@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -17,7 +18,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { ProductTypeSchema, UpdateProductTypeSchema } from "@/lib/schemas/product-variants-schema";
 import { createProductType, updateProductType } from "@/features/categories/actions/product-types-actions";
-import { CategoryTypes, ProductType } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,8 +26,8 @@ interface ProductTypeFormProps {
   storeId: string;
   userId: string;
   mode: "create" | "edit";
-  categories: CategoryTypes[];
-  initialData?: ProductType
+  categories: any[];
+  initialData?: any
 }
 
 export default function ProductTypeForm({

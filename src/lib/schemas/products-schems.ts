@@ -120,6 +120,7 @@ export const CategorySchema = z.object({
     createdBy: z.string(),
     isActive: z.boolean().default(true),
     sortOrder: z.number().optional(),
+    parentCategoryId: z.string().nullable()
 });
 
 export const UpdateCategoryForm = z.object({

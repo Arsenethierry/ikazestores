@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CurrentUserType, OriginalProductWithVirtualProducts } from '@/lib/types';
+import { CurrentUserType, OriginalProductTypes } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Heart, StarIcon} from 'lucide-react';
 import Image from 'next/image';
@@ -21,7 +21,7 @@ export const PhysicalProductCard = ({
     isPhysicalStoreOwner,
     isVirtualStoreOwner,
 }: {
-    product: OriginalProductWithVirtualProducts,
+    product: OriginalProductTypes,
     storeId: string,
     isVirtualStoreOwner: boolean,
     isPhysicalStoreOwner: boolean,

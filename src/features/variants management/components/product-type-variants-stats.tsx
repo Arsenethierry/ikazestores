@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAvailableVariantTemplatesForProductType } from "@/features/categories/actions/product-types-actions";
 import { getVariantTemplatesForStore } from "@/features/categories/actions/products-variant-templates-action";
-import { VariantTemplate } from "@/lib/types";
 import { Globe, Hash, List, Palette, Sliders, Store, ToggleLeft, Type } from "lucide-react";
 
 interface ProductTypeVariantStatsProps {
@@ -44,19 +44,19 @@ export async function ProductTypeVariantStats({
     const templates = variantTemplates.documents;
 
     const totalTemplates = templates.length;
-    const globalTemplates = templates.filter((t: VariantTemplate) => !t.storeId).length;
-    const storeTemplates = templates.filter((t: VariantTemplate) => t.storeId).length;
-    const requiredTemplates = templates.filter((t: VariantTemplate) => t.isRequired).length;
-    const activeTemplates = templates.filter((t: VariantTemplate) => t.isActive).length;
+    const globalTemplates = templates.filter((t: any) => !t.storeId).length;
+    const storeTemplates = templates.filter((t: any) => t.storeId).length;
+    const requiredTemplates = templates.filter((t: any) => t.isRequired).length;
+    const activeTemplates = templates.filter((t: any) => t.isActive).length;
 
-    const typeStats = templates.reduce((acc: VariantTemplate, template: VariantTemplate) => {
+    const typeStats = templates.reduce((acc: any, template: any) => {
         acc[template.type] = (acc[template.type] || 0) + 1;
         return acc;
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
     }, {} as Record<string, number>);
 
-    const totalOptions = templates.reduce((sum: number, template: VariantTemplate) => {
+    const totalOptions = templates.reduce((sum: number, template: any) => {
         return sum + (template.options?.length || 0);
     }, 0);
 
@@ -152,7 +152,7 @@ export async function ProductTypeVariantStats({
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
-                            {templates.slice(0, 5).map((template: VariantTemplate) => {
+                            {templates.slice(0, 5).map((template: any) => {
                                 const Icon = VARIANT_TYPE_ICONS[template.type as keyof typeof VARIANT_TYPE_ICONS] || List;
                                 const optionsCount = template.options?.length || 0;
 
