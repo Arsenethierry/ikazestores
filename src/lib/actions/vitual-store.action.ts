@@ -2,7 +2,7 @@
 
 import { ID, Permission, Query, Role } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "../appwrite";
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_PRODUCT_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { AppwriteRollback } from "./rollback";
 import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
@@ -111,15 +111,52 @@ export const createVirtualStoreAction = action
         }
     })
 
-export const getAllVirtualStores = async () => {
+export const getAllVirtualStores = async ({ withProducts }: { withProducts: boolean }) => {
     try {
         const { databases } = await createSessionClient();
         const allVirtualStores = await databases.listDocuments<VirtualStoreTypes>(
             DATABASE_ID,
-            VIRTUAL_STORE_ID
+            VIRTUAL_STORE_ID,
+            [
+                Query.limit(5)
+            ]
         );
 
-        return allVirtualStores
+        if (!withProducts) {
+            return allVirtualStores;
+        }
+
+        const storesWithProducts = await Promise.all(
+            allVirtualStores.documents.map(async (store) => {
+                let vitualProducts: VirtualStoreTypes[] = [];
+
+                if (store.virtualProductsIds && store.virtualProductsIds.length > 0) {
+                    try {
+                        const products = await databases.listDocuments<VirtualStoreTypes>(
+                            DATABASE_ID,
+                            VIRTUAL_PRODUCT_ID,
+                            [
+                                Query.equal('$id', store.virtualProductsIds),
+                                Query.equal('virtualStoreId', store.$id)
+                            ]
+                        );
+                        vitualProducts = products.documents;
+                    } catch (productError) {
+                        console.error(`Error fetching products for store ${store.$id}:`, productError);
+                    }
+                }
+
+                return {
+                    ...store,
+                    vitualProducts
+                }
+            })
+        );
+
+        return {
+            ...allVirtualStores,
+            documents: storesWithProducts
+        };
     } catch (error) {
         throw error
     }

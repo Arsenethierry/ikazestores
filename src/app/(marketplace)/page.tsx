@@ -14,7 +14,7 @@ import React, { Suspense } from "react";
 
 export default async function Home() {
   try {
-    const virtualStores = await getAllVirtualStores();
+    const virtualStores = await getAllVirtualStores({ withProducts: true });
 
     if (!virtualStores || virtualStores.total === 0) {
       return (
@@ -39,7 +39,7 @@ export default async function Home() {
               <div className="flex justify-between mb-1 border-t-2 rounded-t-md bg-secondary items-center">
                 <div className="flex gap-2">
                   <Avatar>
-                    <AvatarImage src={store?.storeLogoIdUrl} alt="@shadcn" />
+                    <AvatarImage src={store?.storeLogoUrl} alt={store.storeName} />
                     <AvatarFallback>{getStoreInitials(store.storeName)}</AvatarFallback>
                   </Avatar>
                   <h1 className="text-xl font-bold capitalize truncate">{store.storeName}</h1>
