@@ -6,7 +6,7 @@ export const useGetAllVirtualStores = () => {
         queryKey: ["virtualStores"],
         queryFn: async () => {
             try {
-                const virtualStores = await getAllVirtualStores()
+                const virtualStores = await getAllVirtualStores({ withProducts: true })
                 return virtualStores;
             } catch (error) {
                 throw error;
@@ -17,7 +17,7 @@ export const useGetAllVirtualStores = () => {
 
 export const useGetAllVirtualStoresByOwnerId = (userId: string) => {
     return useQuery({
-        queryKey: ["virtualStores", userId],
+        queryKey: ["userVirtualStores", userId],
         queryFn: async () => {
             try {
                 const virtualStores = await getAllVirtualStoresByOwnerId(userId)

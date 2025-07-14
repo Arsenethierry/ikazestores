@@ -7,7 +7,7 @@ import {
     Palette,
     Grid3X3,
     FolderTree,
-    User
+    User,
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -115,6 +115,34 @@ export const getSidebarLinks = (storeId: string | null) => ({
     ],
     virtualStoreAdmin: [
         {
+            title: "Product Sourcing",
+            url: "#",
+            icon: Package,
+            isActive: true,
+            items: [
+                {
+                    title: "all Products",
+                    url: `/admin/stores/${storeId}/products`,
+                },
+                {
+                    title: "Import Products",
+                    url: `/admin/stores/${storeId}/products/clone-products`,
+                },
+                {
+                    title: "Product Requests",
+                    url: `/admin/stores/${storeId}/products/requests`,
+                },
+                {
+                    title: "Supplier Directory",
+                    url: `/admin/stores/${storeId}/products/suppliers`,
+                },
+                {
+                    title: "Bulk Import",
+                    url: `/admin/stores/${storeId}/products/bulk-import`,
+                },
+            ]
+        },
+        {
             title: "Order Management",
             url: "#",
             icon: ShoppingCart,
@@ -164,21 +192,6 @@ export const getSidebarLinks = (storeId: string | null) => ({
         //         // },
         //     ],
         // },
-        {
-            title: "Products",
-            url: "#",
-            icon: Grid3X3,
-            items: [
-                {
-                    title: "All Products",
-                    url: `/admin/stores/${storeId}/products`,
-                },
-                {
-                    title: "Create Product",
-                    url: `/admin/stores/${storeId}/products/new`,
-                },
-            ],
-        },
         {
             title: "Collections",
             url: "#",

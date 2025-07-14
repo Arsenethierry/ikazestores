@@ -13,6 +13,9 @@ import { SidebarSkeleton } from "./sidebar-skeleton";
 import { AdminDashboardType } from "@/lib/types";
 import { getSidebarLinks } from "./sidebar-links";
 import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { getVirtualStoreById } from "@/lib/actions/vitual-store.action";
+import { getPhysicalStoreById } from "@/lib/actions/physical-store.action";
 
 interface AdminSidebarProps extends React.ComponentProps<typeof Sidebar> {
     adminType: AdminDashboardType
@@ -20,7 +23,25 @@ interface AdminSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
     const { data: user, isPending } = useCurrentUser();
-    const { storeId } = useParams<{ storeId: string; }>()
+    const { storeId } = useParams<{ storeId: string; }>();
+
+    const { data: storeData, isPending: storeDataPending } = useQuery({
+        queryKey: [`${adminType}-store`, storeId],
+        queryFn: async () => {
+            if (!storeId) return null
+
+            if (adminType === 'virtualStoreAdmin') {
+                return getVirtualStoreById(storeId)
+            } else if (adminType === 'physicalStoreAdmin') {
+                return getPhysicalStoreById(storeId)
+            }
+
+            return null;
+        },
+        enabled: !!storeId && adminType !== 'systemAdmin',
+        staleTime: 5 * 60 * 1000,
+        retry: 1,
+    })
 
     if (isPending) return <SidebarSkeleton />;
 
@@ -30,7 +51,23 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
             ? getSidebarLinks(null).systemAdmin
             : adminType === 'virtualStoreAdmin'
                 ? getSidebarLinks(storeId).virtualStoreAdmin
-                : []
+                : [];
+
+    const getDisplayName = () => {
+        if (adminType === 'systemAdmin') {
+            return 'IKAZESTORES';
+        }
+
+        if (storeDataPending) {
+            return 'Loading...'
+        }
+
+        if (storeData && storeData.storeName) {
+            return storeData.storeName
+        }
+
+        return 'IKAZESTORES';
+    }
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -43,7 +80,7 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
                             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                                 <LayoutDashboard className="size-4" />
                             </div>
-                            <p className="text-lg uppercase font-bold">ikazestores</p>
+                            <p className="text-lg uppercase font-bold">{getDisplayName()}</p>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

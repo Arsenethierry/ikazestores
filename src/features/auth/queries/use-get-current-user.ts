@@ -12,6 +12,7 @@ export const useCurrentUser = () => {
                 console.error("Failed to fetch current user:", error);
                 return null;
             }
-        }
+        },
+        retry: 3
     });
 };
