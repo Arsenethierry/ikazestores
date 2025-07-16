@@ -7,7 +7,7 @@ function VSFooter() {
 
                     <div className="sm:col-span-2">
                         <a href="#" className="inline-flex items-center">
-                            <img src="https://mcqmate.com/public/images/logos/60x60.png" alt="logo" className="h-8 w-8"/>
+                            {/* <img src="https://mcqmate.com/public/images/logos/60x60.png" alt="logo" className="h-8 w-8"/> */}
                             <span className="ml-2 text-xl font-bold tracking-wide text-gray-800">Company Name</span>
                         </a>
                         <div className="mt-6 lg:max-w-xl">
@@ -33,16 +33,16 @@ function VSFooter() {
                     </div>
 
                     <div>
-                        <p className="text-base font-bold tracking-wide text-gray-900">COMPANY's Social Medias</p>
+                        <p className="text-base font-bold tracking-wide text-gray-900">COMPANY&apos;s Social Medias</p>
                         <div className="flex items-center gap-1 px-2">
-                            <a href="#" className="w-full min-w-xl">
+                            {/* <a href="#" className="w-full min-w-xl">
                                 <img src="https://mcqmate.com/public/images/icons/playstore.svg" alt="Playstore Button"
                                     className="h-10"/>
                             </a>
                             <a className="w-full min-w-xl" href="https://www.youtube.com/channel/UCo8tEi6SrGFP8XG9O0ljFgA">
                                 <img src="https://mcqmate.com/public/images/icons/youtube.svg" alt="Youtube Button"
                                     className="h-28"/>
-                            </a>
+                            </a> */}
                         </div>
                         <p className="text-base font-bold tracking-wide text-gray-900">Contacts</p>
                         <div className="flex">

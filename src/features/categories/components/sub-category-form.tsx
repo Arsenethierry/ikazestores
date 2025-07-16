@@ -120,7 +120,6 @@ export const SubCategoryForm = ({
             return;
         }
         if (isEditMode && initialValues) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatedValues: Record<string, any> = {};
 
             if (dirtyFields.subCategoryName) updatedValues.subCategoryName = values.subCategoryName;

@@ -4,7 +4,7 @@ import { getAuthState } from '@/lib/user-permission';
 import React from 'react';
 
 async function ExploreStoresPage() {
-    const virtualStores = await getAllVirtualStores();
+    const virtualStores = await getAllVirtualStores({ withProducts: true });
     const { user } = await getAuthState();
 
     return (

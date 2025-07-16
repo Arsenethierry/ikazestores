@@ -123,7 +123,6 @@ export const CategoryForm = ({
             return;
         }
         if (isEditMode && initialValues) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatedValues: Record<string, any> = {};
 
             if (dirtyFields.categoryName) updatedValues.categoryName = values.categoryName;

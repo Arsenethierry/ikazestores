@@ -1,18 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-ignore
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { VirtualProductTypes } from '@/lib/types';
-import { getAuthState } from '@/lib/user-label-permission';
-import { cn, slugify } from '@/lib/utils';
+import { slugify } from '@/lib/utils';
 import { StarIcon } from 'lucide-react';
-import Image from 'next/image';
 import React from 'react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
-import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
-import { getStoreSubdomainUrl } from '@/lib/domain-utils';
-import { SaveItemButton } from '../save-item-button';
+import { getAuthState } from '@/lib/user-permission';
 
 export const VirtualProductCard = async ({
     product,
@@ -125,7 +122,7 @@ export const VirtualProductCard = async ({
       >
         500€
       </span>
-        <img className="p-8 rounded-t-lg" src="https://flowbite.com/docs/images/products/apple-watch.png" alt="product image" />
+        {/* <img className="p-8 rounded-t-lg" src="https://flowbite.com/docs/images/products/apple-watch.png" alt="product image" /> */}
     </a>
              <Link href={`/products/${slugify(product.title)}/${product.$id}`}>
                  <CardContent className="pt-4 px-3 transition-all duration-300 group-hover:bg-gray-50">

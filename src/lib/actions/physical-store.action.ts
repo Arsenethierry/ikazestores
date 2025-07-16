@@ -175,7 +175,6 @@ export const updatePhysicalStore = action
         const rollback = new AppwriteRollback(storage, databases);
 
         try {
-            console.log("vvvvv: ",values)
             const updatedFields = { ...values };
 
             if (storeLogo instanceof File) {

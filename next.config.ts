@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
       },
       {
+        hostname: "iili.io",
+        protocol: "https",
+      },
+      {
         hostname: "placeimg.com",
         protocol: "https",
       }

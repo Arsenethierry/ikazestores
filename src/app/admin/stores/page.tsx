@@ -23,7 +23,7 @@ const AllStoresPage = async () => {
     );
 
     const virtualStores = isSystemAdmin
-        ? await getAllVirtualStores()
+        ? await getAllVirtualStores({ withProducts: true })
         : await getAllVirtualStoresByOwnerId(user.$id);
 
     const physicalStores = isSystemAdmin

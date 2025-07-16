@@ -24,7 +24,6 @@ import { toast } from "sonner";
 import { getUserLocation } from "@/lib/geolocation";
 import { useEffect, useState } from "react";
 import countriesData from '@/data/countries.json';
-import currenciesData from '@/data/currencies.json';
 import { Option } from "@/components/ui/multiselect";
 import { useAction } from "next-safe-action/hooks";
 import { createPhysicalStoreAction, updatePhysicalStore } from "@/lib/actions/physical-store.action";
@@ -54,10 +53,21 @@ export function PhysicalStoreForm({
         label: country.name
     }));
 
-    const currencies: Option[] = currenciesData.map(currency => ({
-        value: currency.value,
-        label: currency.label
+    const currencies: Option[] = countriesData.map(country => ({
+        value: country.currency,
+        label: `${country.currency} - ${country.name}`
     }));
+
+    const uniqueCurrencies = currencies.filter((currency, index, self) =>
+        index === self.findIndex(c => c.value === currency.value)
+    );
+
+    const sortedCurrencies = uniqueCurrencies.sort((a, b) => a.value.localeCompare(b.value));
+
+    // const currencies: Option[] = currenciesData.map(currency => ({
+    //     value: currency.value,
+    //     label: currency.label
+    // }));
 
     const [selectedCountry, setSelectedCountry] = useState(initialValues?.country ?? "");
     const [selectedCurrency, setSelectedCurrency] = useState(initialValues?.currency ?? "");
@@ -360,7 +370,7 @@ export function PhysicalStoreForm({
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" role="combobox" className="w-full justify-between">
                                             {selectedCurrency
-                                                ? currencies.find((c) => c.value === selectedCurrency)?.label
+                                                ? sortedCurrencies.find((c) => c.value === selectedCurrency)?.label
                                                 : "Select a currency"}
                                             <ChevronsUpDown className="opacity-50" />
                                         </Button>
@@ -371,7 +381,7 @@ export function PhysicalStoreForm({
                                             <CommandList>
                                                 <CommandEmpty>No currency found.</CommandEmpty>
                                                 <CommandGroup>
-                                                    {currencies.map((currency) => (
+                                                    {sortedCurrencies.map((currency) => (
                                                         <CommandItem
                                                             key={currency.value}
                                                             value={currency.label}
