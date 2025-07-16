@@ -10,7 +10,8 @@ async function getStoreById<T>(endpoint: string): Promise<T | null> {
     try {
         const headersList = await headers();
         const host = headersList.get('host') || 'localhost:3000';
-        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+        const protocol = headersList.get('x-forwarded-proto') ||
+            (process.env.NODE_ENV === 'production' ? 'https' : 'http');
 
         const baseUrl = `${protocol}://${host}`;
         const response = await fetch(`${baseUrl}${endpoint}`, {
