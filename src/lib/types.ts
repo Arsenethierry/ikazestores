@@ -99,23 +99,6 @@ export interface PhysicalStoreTypes extends Models.Document {
     storeLogoId?: string;
     currency: string
 };
-
-export interface VirtualStoreTypes extends Models.Document {
-    storeName: string,
-    owner: string,
-    description?: string,
-    storeBio?: string,
-    bannerUrls?: string[] & File[] | undefined;
-    bannerIds?: string[];
-    storeType: 'physicalStore' | 'virtualStore',
-    country: string,
-    storeLogoUrl: string & File | undefined,
-    storeLogoId?: string
-    subDomain: string;
-    virtualProductsIds?: string[],
-    locale?: string;
-    operatingCountries: string[]
-};
 export interface OriginalProductTypes extends Models.Document {
     name: string,
     description: string,
@@ -175,6 +158,23 @@ export interface VirtualProductTypes extends Models.Document {
     categoryNames?: string[];
     currency: string;
 }
+
+export interface VirtualStoreTypes extends Models.Document {
+    storeName: string,
+    owner: string,
+    description?: string,
+    storeBio?: string,
+    bannerUrls?: string[] & File[] | undefined;
+    bannerIds?: string[];
+    storeType: 'physicalStore' | 'virtualStore',
+    country: string,
+    storeLogoUrl: string & File | undefined,
+    storeLogoId?: string
+    subDomain: string;
+    virtualProductsIds?: string[],
+    locale?: string;
+    operatingCountries: string[]
+};
 export interface ColorImagesTypes extends Models.Document {
     colorName: string,
     imageId: string,
@@ -246,6 +246,11 @@ export interface CollectionTypes extends Models.Document {
     featured: boolean;
     type: 'simple' | 'grouped';
     groups: string[],
+    heroTitle?: string;
+    heroSubtitle?: string;
+    heroDescription?: string;
+    heroButtonText?: string;
+    heroImageUrl?: string
 }
 
 export interface CollectionGroupsTypes extends Models.Document {

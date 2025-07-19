@@ -1,13 +1,15 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Image from "next/image";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useGetCollectionsByStoreId } from "@/hooks/queries/use-products-collections";
+import { CollectionTypes } from "@/lib/types";
+import Link from "next/link";
 
 interface CarouselItem {
     id: string;
@@ -30,70 +32,15 @@ interface AdItem {
     badgeText?: string;
     badgeColor?: string;
 }
-
 interface HeroSectionProps {
     autoPlay?: boolean;
     autoPlayInterval?: number;
     className?: string;
-    fetchItems?: () => Promise<CarouselItem[]>;
-    queryKey?: string[];
     onSlideChange?: (index: number) => void;
     onItemClick?: (item: CarouselItem) => void;
     onAdClick?: (item: AdItem) => void;
+    storeId: string;
 }
-
-const fetchCarouselItems = async (): Promise<CarouselItem[]> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    return [
-        {
-            id: '1',
-            title: 'Summer Sale 2024',
-            subtitle: 'Up to 70% Off Everything',
-            description: 'Discover amazing deals on electronics, fashion, home goods and more. Limited time offer - shop now before it\'s gone!',
-            buttonText: 'Shop Now',
-            imageSrc: 'https://images.pexels.com/photos/1005638/pexels-photo-1005638.jpeg?auto=compress&cs=tinysrgb&w=800',
-            imageAlt: 'Summer sale banner',
-            priority: true
-        },
-        {
-            id: '2',
-            title: 'New Arrivals',
-            subtitle: 'Latest Fashion Trends',
-            description: 'Step into the season with our curated collection of the hottest fashion trends. From casual wear to formal attire.',
-            buttonText: 'Explore Collection',
-            imageSrc: 'https://images.pexels.com/photos/1884581/pexels-photo-1884581.jpeg?auto=compress&cs=tinysrgb&w=800',
-            imageAlt: 'Fashion collection'
-        },
-        {
-            id: '3',
-            title: 'Tech Essentials',
-            subtitle: 'Upgrade Your Digital Life',
-            description: 'From smartphones to laptops, smart home devices to accessories - find everything you need for a connected lifestyle.',
-            buttonText: 'Shop Tech',
-            imageSrc: 'https://images.pexels.com/photos/1334597/pexels-photo-1334597.jpeg?auto=compress&cs=tinysrgb&w=800',
-            imageAlt: 'Technology products'
-        },
-        {
-            id: '4',
-            title: 'Home & Living',
-            subtitle: 'Transform Your Space',
-            description: 'Create your dream home with our extensive collection of furniture, decor, and home essentials.',
-            buttonText: 'Shop Home',
-            imageSrc: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
-            imageAlt: 'Home decor'
-        },
-        {
-            id: '5',
-            title: 'Sports & Fitness',
-            subtitle: 'Achieve Your Goals',
-            description: 'Get active with our premium sports equipment and fitness gear. From yoga mats to gym equipment.',
-            buttonText: 'Get Active',
-            imageSrc: 'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=800',
-            imageAlt: 'Sports equipment'
-        }
-    ];
-};
 
 const adItems: AdItem[] = [
     {
@@ -172,7 +119,7 @@ const CarouselSlide = memo<{
     item: CarouselItem;
     isActive: boolean;
     onItemClick?: (item: CarouselItem) => void;
-}>(({ item, isActive, onItemClick }) => (
+}>(({ item, isActive }) => (
     <div
         className={cn(
             "absolute inset-0 transition-opacity duration-700 ease-in-out",
@@ -201,13 +148,13 @@ const CarouselSlide = memo<{
                     <p className="text-base lg:text-lg mb-8 opacity-90">
                         {item.description}
                     </p>
-                    <Button
-                        onClick={() => onItemClick?.(item)}
-                        size="lg"
-                        className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3 text-lg"
+                    <Link
+                        href={`/collections/${item.id}`}
+
+                        className={buttonVariants()}
                     >
                         {item.buttonText}
-                    </Button>
+                    </Link>
                 </div>
             </div>
         </div>
@@ -280,14 +227,13 @@ AdCard.displayName = 'AdCard';
 const MainCarousel = memo<{
     items: CarouselItem[];
     currentIndex: number;
-    onItemClick?: (item: CarouselItem) => void;
     onNext: () => void;
     onPrev: () => void;
     onGoToSlide: (index: number) => void;
     autoPlay: boolean;
     autoPlayInterval: number;
     isHovered: boolean;
-}>(({ items, currentIndex, onItemClick, onNext, onPrev, onGoToSlide, autoPlay, autoPlayInterval, isHovered }) => {
+}>(({ items, currentIndex, onNext, onPrev, onGoToSlide, autoPlay, autoPlayInterval, isHovered }) => {
     useEffect(() => {
         if (!autoPlay || isHovered || items.length <= 1) return;
         const interval = setInterval(onNext, autoPlayInterval);
@@ -301,7 +247,6 @@ const MainCarousel = memo<{
                     key={item.id}
                     item={item}
                     isActive={index === currentIndex}
-                    onItemClick={onItemClick}
                 />
             ))}
 
@@ -356,31 +301,38 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     autoPlay = true,
     autoPlayInterval = 5000,
     className = '',
-    fetchItems = fetchCarouselItems,
-    onItemClick,
     onAdClick,
     onSlideChange,
-    queryKey = ['hero-carousel-items']
+    storeId
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
 
     const {
-        data: fetchedItems,
+        data: collections,
         isLoading,
         error,
         refetch
-    } = useQuery<CarouselItem[], Error>({
-        queryKey,
-        queryFn: fetchItems,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        retry: 3
+    } = useGetCollectionsByStoreId({
+        storeId,
+        featured: true,
+        limit: 5
     });
 
-    const items = useMemo(() => fetchedItems || [], [fetchedItems]);
+    const items = useMemo(() => {
+        if (!collections?.documents) return [];
+
+        return collections.documents.map((collection: CollectionTypes, index: number) => ({
+            id: collection.$id,
+            title: collection.heroTitle || collection.collectionName,
+            subtitle: collection.heroSubtitle || collection.description,
+            description: collection?.heroDescription || collection?.description || '',
+            buttonText: collection.heroButtonText || 'Shop Now',
+            imageSrc: collection.heroImageUrl || collection.bannerImageUrl,
+            imageAlt: collection.collectionName,
+            priority: index === 0
+        })) as CarouselItem[];
+    }, [collections]);
 
     const goToNext = useCallback(() => {
         const newIndex = currentIndex === items.length - 1 ? 0 : currentIndex + 1;
@@ -403,9 +355,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         onAdClick?.(item);
     }, [onAdClick]);
 
-    const handleItemClick = useCallback((item: CarouselItem) => {
-        onItemClick?.(item);
-    }, [onItemClick]);
+    useEffect(() => {
+        if (items.length > 0 && currentIndex >= items.length) {
+            setCurrentIndex(0);
+        }
+    }, [items.length, currentIndex]);
 
     if (isLoading) {
         return (
@@ -449,11 +403,20 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         return (
             <section className={cn("w-full py-8", className)}>
                 <div className="container mx-auto px-4">
-                    <Alert className="h-[500px] flex flex-col items-center justify-center">
-                        <AlertDescription>
-                            <p className="text-muted-foreground">No hero items available</p>
-                        </AlertDescription>
-                    </Alert>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[500px]">
+                        <div className="lg:col-span-2">
+                            <Alert className="h-full flex flex-col items-center justify-center">
+                                <AlertDescription>
+                                    <p className="text-muted-foreground">No featured collections available</p>
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                            {adItems.map((item) => (
+                                <AdCard key={item.id} item={item} onAdClick={handleAdClick} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </section>
         );
@@ -474,7 +437,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                         <MainCarousel
                             items={items}
                             currentIndex={currentIndex}
-                            onItemClick={handleItemClick}
                             onNext={goToNext}
                             onPrev={goToPrev}
                             onGoToSlide={goToSlide}

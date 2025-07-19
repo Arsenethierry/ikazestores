@@ -23,7 +23,7 @@ export default async function StoreAdminPage({
 
     const currentStore = await getVirtualStoreById(storeId)
 
-    if (!isStoreOwner(user, currentStore)) {
+    if (currentStore && !isStoreOwner(user, currentStore)) {
         redirect("/admin");
     }
     return (

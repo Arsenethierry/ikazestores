@@ -103,7 +103,7 @@ export default async function MarketplaceNavbar() {
                 <div className='flex gap-6 items-center'>
                     <AllCategories />
                     <Suspense fallback={<Skeleton className="h-2 w-7" />}>
-                        <ProductsCollectionsList currentStoreId={undefined} />
+                        <ProductsCollectionsList currentStoreId={null} />
                     </Suspense>
                     <NavigationMenu>
                         <NavigationMenuList>

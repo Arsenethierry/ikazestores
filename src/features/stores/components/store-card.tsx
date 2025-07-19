@@ -1,5 +1,4 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { CurrentUserType, VirtualStoreTypes } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -7,6 +6,8 @@ import { StoreQuickActions } from './store-action-button';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { Badge } from '@/components/ui/badge';
 import { isStoreOwner } from '@/lib/user-permission';
+import { VirtualStoreTypes } from '@/lib/types/store-types';
+import { CurrentUserType } from '@/lib/types';
 
 export const StoreCard = ({ store, currentUser }: { store: VirtualStoreTypes, currentUser: CurrentUserType }) => {
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?

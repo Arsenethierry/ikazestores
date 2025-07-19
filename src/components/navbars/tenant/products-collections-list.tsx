@@ -2,7 +2,7 @@ import { getAllCollectionsByStoreId } from '@/features/collections/actions/colle
 import Link from 'next/link';
 import React from 'react';
 
-export const ProductsCollectionsList = async ({ currentStoreId = undefined }: { currentStoreId: string | undefined }) => {
+export const ProductsCollectionsList = async ({ currentStoreId = null }: { currentStoreId: string | null }) => {
     const collections = await getAllCollectionsByStoreId({ storeId: currentStoreId, limit: 5, featured: true });
 
     if (collections.total === 0 || !collections) return;

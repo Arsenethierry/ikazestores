@@ -318,25 +318,6 @@ export const getSidebarLinks = (storeId: string | null) => ({
             ],
         },
         {
-            title: "Collections",
-            url: "#",
-            icon: FolderTree,
-            items: [
-                {
-                    title: "All Collections",
-                    url: `/admin/stores/${storeId}/collections`,
-                },
-                {
-                    title: "Create Collection",
-                    url: `/admin/stores/${storeId}/collections/create`,
-                },
-                {
-                    title: "Seasonal Collections",
-                    url: `/admin/stores/${storeId}/collections/seasonal`,
-                },
-            ],
-        },
-        {
             title: "Store Management",
             url: "#",
             icon: Settings2,

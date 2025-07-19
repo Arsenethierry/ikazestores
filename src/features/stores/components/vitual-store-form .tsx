@@ -18,7 +18,7 @@ import ErrorAlert from "@/components/error-alert";
 import { Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { SingleImageUploader } from "@/components/file-uploader";
-import { CurrentUserType, VirtualStoreTypes } from "@/lib/types";
+import { CurrentUserType } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { useEffect } from "react";
@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import MultipleSelector, { type Option } from "@/components/ui/multiselect";
 import countriesData from '@/data/countries.json';
 import { createVirtualStoreFormSchema } from "@/lib/schemas/stores-schema";
+import { VirtualStoreTypes } from "@/lib/types/store-types";
 
 export function VirtualStoreForm({
     currentUser, initialValues = null

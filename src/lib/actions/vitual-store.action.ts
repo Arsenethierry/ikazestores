@@ -8,8 +8,9 @@ import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
 import { getUserLocale } from "./auth.action";
 import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "../schemas/stores-schema";
-import { VirtualStoreTypes } from "../types";
 import { TeamNamesPatterns } from "../constants";
+import { VirtualStore } from "../models/virtual-store";
+import { VirtualStoreTypes } from "../types/store-types";
 
 const action = createSafeActionClient({
     handleServerError: (error) => {
@@ -213,17 +214,24 @@ export const getVirtualStoreByDomain = async (domain: string) => {
 
 export const getVirtualStoreById = async (storeId: string) => {
     try {
-        const { databases } = await createSessionClient();
-        const store = await databases.getDocument<VirtualStoreTypes>(
-            DATABASE_ID,
-            VIRTUAL_STORE_ID,
-            storeId
-        )
+        if (!storeId || typeof storeId !== 'string') {
+            console.log("getVirtualStoreById error: Store ID is required and must be a string");
+            return null;
+        }
 
-        return store
+        const virtualStore = new VirtualStore();
+
+        const store = await virtualStore.findById(storeId);
+
+        if (!store) {
+            console.log("getVirtualStoreById error: Store not found");
+            return null;
+        }
+
+        return store;
     } catch (error) {
-        console.log("getVirtualStoreById error: ", error)
-        return null
+        console.log("getVirtualStoreById error: ", error);
+        return null;
     }
 }
 

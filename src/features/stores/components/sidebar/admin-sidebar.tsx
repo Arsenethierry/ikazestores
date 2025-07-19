@@ -25,7 +25,7 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
     const { data: user, isPending } = useCurrentUser();
     const { storeId } = useParams<{ storeId: string; }>();
 
-    const { data: storeData, isPending: storeDataPending } = useQuery({
+    const { data: storeRes, isPending: storeDataPending } = useQuery({
         queryKey: [`${adminType}-store`, storeId],
         queryFn: async () => {
             if (!storeId) return null
@@ -44,7 +44,7 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
     })
 
     if (isPending) return <SidebarSkeleton />;
-
+    const storeData = storeRes?.store
     const sidebarLinks = adminType === 'physicalStoreAdmin'
         ? getSidebarLinks(storeId).physicalStoreAdmin
         : adminType === 'systemAdmin'
@@ -62,7 +62,7 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
             return 'Loading...'
         }
 
-        if (storeData && storeData.storeName) {
+        if (storeData && storeData.store.storeName) {
             return storeData.storeName
         }
 

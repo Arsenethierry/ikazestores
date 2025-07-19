@@ -11,7 +11,7 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 
 async function CollectionsPage() {
-    const collections = await getAllCollectionsByStoreId({ storeId: undefined });
+    const collections = await getAllCollectionsByStoreId({ storeId: null });
 
     const {
         isSystemAdmin,

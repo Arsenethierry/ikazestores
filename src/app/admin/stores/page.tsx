@@ -6,7 +6,8 @@ import { PhyscalStoreCard } from '@/features/stores/components/physical-store-ca
 import { StoreCard } from '@/features/stores/components/store-card';
 import { getAllPshyicalStores, getAllPshyicalStoresByOwnerId } from '@/lib/actions/physical-store.action';
 import { getAllVirtualStores, getAllVirtualStoresByOwnerId } from '@/lib/actions/vitual-store.action';
-import { PhysicalStoreTypes, VirtualStoreTypes } from '@/lib/types';
+import { PhysicalStoreTypes } from '@/lib/types';
+import { VirtualStoreTypes } from '@/lib/types/store-types';
 import { getAuthState } from '@/lib/user-permission';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';

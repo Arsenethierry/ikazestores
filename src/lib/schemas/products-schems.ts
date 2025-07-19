@@ -170,18 +170,44 @@ export const UpdateSubCategoryActionSchema = UpdateSubCategoryForm.extend({
     subCategoryId: z.string()
 });
 
-export const CollectionSchema = z.object({
+const baseCollectionSchema = z.object({
     collectionName: z.string().min(2, {
-        message: "Collection name must be at least 2 characters."
+        message: "Collection name must be at least 2 characters.",
     }),
     description: z.string().max(500, {
-        message: "Collection name must not exceed 500 characters."
-    }).nullable(),
+        message: "Description must not exceed 500 characters.",
+    }).optional().nullable(),
     type: z.enum(["simple", "grouped"]),
     featured: z.boolean().default(false),
-    bannerImage: z.any().optional(),
+    bannerImage: z.union([z.string().url(), z.instanceof(File)]).optional(),
     storeId: z.string().nullable().optional(),
-    createdBy: z.string()
+    createdBy: z.string(),
+
+    heroTitle: z.string().max(60, "Title must be at most 60 characters").optional(),
+    heroSubtitle: z.string().max(80, "Subtitle must be at most 80 characters").optional(),
+    heroDescription: z.string().max(200, "Description must be at most 200 characters").optional(),
+    heroButtonText: z.string().max(30, "Button text must be at most 30 characters").optional(),
+    heroImage: z.union([z.string().url(), z.instanceof(File)]).optional(),
+});
+
+export const CollectionSchema = baseCollectionSchema.refine((data) => {
+    if (data.featured) {
+        return !!(
+            data.heroTitle?.trim() &&
+            data.heroSubtitle?.trim() &&
+            data.heroDescription?.trim() &&
+            data.heroButtonText?.trim() &&
+            data.heroImage
+        );
+    }
+    return true;
+}, {
+    message: "All hero carousel fields are required when collection is featured",
+    path: ["featured"],
+});
+
+export const UpdateCollectionForm = baseCollectionSchema.partial().extend({
+    collectionId: z.string(),
 });
 
 export const DeleteCollectionSchema = z.object({
@@ -189,16 +215,6 @@ export const DeleteCollectionSchema = z.object({
     bannerImageId: z.string().optional().nullable()
 })
 
-export const UpdateCollectionForm = z.object({
-    collectionName: z.string().min(2, {
-        message: "Collection name must be at least 2 characters."
-    }).optional(),
-    description: z.string().optional(),
-    type: z.enum(["simple", "grouped"]).optional(),
-    featured: z.boolean().optional(),
-    bannerImage: z.any().optional(),
-    collectionId: z.string().optional()
-});
 
 export const CollectionGroupSchema = z.object({
     id: z.string(),

@@ -1,39 +1,11 @@
-import { VirtualStoreTypes } from "@/lib/types";
-import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import { TagsNav } from "./tags-nav";
-import HeroSection from "@/features/stores/components/home-page/hero-section";
 import VSFooter from "@/features/stores/components/home-page/virtual-shop/footer";
 import { StoreProductsList } from "@/features/products/components/store-products-list";
-
-async function getStoreById<T>(endpoint: string): Promise<T | null> {
-    try {
-        const headersList = await headers();
-        const host = headersList.get('host') || 'localhost:3000';
-        const protocol = headersList.get('x-forwarded-proto') ||
-            (process.env.NODE_ENV === 'production' ? 'https' : 'http');
-
-        const baseUrl = `${protocol}://${host}`;
-        const response = await fetch(`${baseUrl}${endpoint}`, {
-            headers: {
-                'Cookie': headersList.get('cookie') || '',
-                'Content-Type': 'application/json',
-            },
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null;
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error(`Server fetch error for ${endpoint}:`, error);
-        throw error;
-    }
-};
+import { getQueryClient } from "@/lib/get-query-client";
+import { getVirtualStoreById } from "@/lib/actions/vitual-store.action";
+import { TenantHomeHeroSection } from "@/features/stores/components/home-page/tenant-homepage-hero-section";
+import { Suspense } from "react";
+import SpinningLoader from "@/components/spinning-loader";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 function StoreErrorBoundary({
     storeId
@@ -61,26 +33,22 @@ async function page({
     params: Promise<{ currentStoreId: string }>;
 }) {
     const { currentStoreId } = await params;
+    const queryClient = getQueryClient();
 
     try {
-        const store = await getStoreById<VirtualStoreTypes>(
-            `/api/virtual-stores/${currentStoreId}`
-        );
-
-        if (!store) {
-            notFound();
-        }
+        await queryClient.prefetchQuery({
+            queryKey: ['virtualStore', currentStoreId],
+            queryFn: () => getVirtualStoreById(currentStoreId),
+        });
 
         return (
-            <>
-                <HeroSection />
-                <TagsNav />
-                {/* Pass store data to child components */}
+            <HydrationBoundary state={dehydrate(queryClient)}>
+                <Suspense fallback={<SpinningLoader />}>
+                    <TenantHomeHeroSection currentStoreId={currentStoreId} />
+                </Suspense>
                 <StoreProductsList storeId={currentStoreId} />
-                {/* <ReviewsSection storeId={store.$id} /> */}
-                {/* <VerticalCarousel storeId={store.$id} /> */}
                 <VSFooter />
-            </>
+            </HydrationBoundary>
         )
     } catch (error) {
         console.error('Page error:', error);

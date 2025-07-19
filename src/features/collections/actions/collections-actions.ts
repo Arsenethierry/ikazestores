@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/actions/middlewares";
 import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PRODUCTS_BUCKET_ID, PRODUCTS_COLLECTION_GROUPS_ID, PRODUCTS_COLLECTIONS_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "@/lib/env-config";
+import { ProductCollection } from "@/lib/models/product-collection";
 import { AddProductToCollectionSchema, CollectionSchema, DeleteCollectionGroupSchema, DeleteCollectionSchema, RemoveProductFromCollection, SaveCollectionGroupsSchema, UpdateCollectionGroupSchema } from "@/lib/schemas/products-schems";
 import { CollectionGroupsTypes, CollectionTypes, VirtualProductTypes } from "@/lib/types";
 import { createSafeActionClient } from "next-safe-action";
@@ -25,7 +26,12 @@ export const createNewCollection = action
         storeId,
         type,
         bannerImage,
-        description
+        description,
+        heroTitle,
+        heroSubtitle,
+        heroDescription,
+        heroButtonText,
+        heroImage,
     }, ctx }) => {
         const { databases, storage } = ctx;
         const rollback = new AppwriteRollback(storage, databases);
@@ -44,21 +50,44 @@ export const createNewCollection = action
                 await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedFile.$id);
             };
 
+            let heroImageUrl = null;
+            if (featured && heroImage instanceof File) {
+                const uploadedHeroFile = await storage.createFile(
+                    PRODUCTS_BUCKET_ID,
+                    ID.unique(),
+                    heroImage
+                );
+                heroImageUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${PRODUCTS_BUCKET_ID}/files/${uploadedHeroFile.$id}/view?project=${APPWRITE_PROJECT_ID}`;
+                await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedHeroFile.$id);
+            };
+
+            const documentData = {
+                collectionName,
+                description,
+                type,
+                featured,
+                bannerImageUrl: bannerUrl,
+                bannerImageId: bannerId,
+                storeId,
+                createdBy,
+                groups: []
+            };
+
+            if (featured) {
+                Object.assign(documentData, {
+                    heroTitle: heroTitle || null,
+                    heroSubtitle: heroSubtitle || null,
+                    heroDescription: heroDescription || null,
+                    heroButtonText: heroButtonText || 'Shop Now',
+                    heroImageUrl: heroImageUrl,
+                });
+            }
+
             const newProductsCollections = await databases.createDocument(
                 DATABASE_ID,
                 PRODUCTS_COLLECTIONS_COLLECTION_ID,
                 ID.unique(),
-                {
-                    collectionName,
-                    description,
-                    type,
-                    featured,
-                    bannerImageUrl: bannerUrl,
-                    bannerImageId: bannerId,
-                    storeId,
-                    createdBy,
-                    groups: []
-                }
+                documentData
             );
             await rollback.trackDocument(PRODUCTS_COLLECTIONS_COLLECTION_ID, newProductsCollections.$id);
 
@@ -424,39 +453,19 @@ export const removeProductFromCollection = action
         }
     })
 
-export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId?: string, limit?: number, featured?: boolean }) => {
+export const getAllCollectionsByStoreId = async ({ storeId, limit = 10, featured = false }: { storeId: string | null, limit?: number, featured?: boolean }) => {
     try {
-        const { databases } = await createSessionClient();
-        const baseQueries = [Query.limit(limit)];
+        const productsCollections = new ProductCollection();
 
-        if (storeId) {
-            baseQueries.push(
-                Query.or([Query.equal("storeId", storeId), Query.isNull("storeId")])
-            );
-        } else {
-            baseQueries.push(Query.isNull("storeId"));
-        }
+        const results = await productsCollections.findByStoreId(storeId, {
+            featured,
+            limit,
+        })
 
-        const queries = [...baseQueries];
-
-        if (featured) {
-            queries.push(Query.equal("featured", true));
-        }
-
-        let collections = await databases.listDocuments<CollectionTypes>(
-            DATABASE_ID,
-            PRODUCTS_COLLECTIONS_COLLECTION_ID,
-            queries
-        );
-        if (collections.total === 0 && featured) {
-            collections = await databases.listDocuments<CollectionTypes>(
-                DATABASE_ID,
-                PRODUCTS_COLLECTIONS_COLLECTION_ID,
-                baseQueries
-            );
-        }
-
-        return collections;
+        return {
+            documents: results.collections,
+            total: results.total
+        };
     } catch (error) {
         console.warn(error)
         return {
