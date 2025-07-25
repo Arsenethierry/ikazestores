@@ -153,7 +153,7 @@ const VirtualProductCard = memo(({
                                     {/* Categories */}
                                     {product.categoryNames && product.categoryNames.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                            {product.categoryNames.slice(0, 2).map((category, index) => (
+                                            {product.categoryNames.slice(0, 2).map((category: string, index: number) => (
                                                 <Badge key={index} variant="outline" className="text-xs">
                                                     {category}
                                                 </Badge>
@@ -242,8 +242,8 @@ const VirtualProductCard = memo(({
                                 <div className="flex items-center gap-2">
                                     <AddToCartButton
                                         item={product}
-                                        // size="sm"
-                                        // disabled={!isInStock}
+                                    // size="sm"
+                                    // disabled={!isInStock}
                                     />
                                 </div>
                             </div>
@@ -382,7 +382,6 @@ const VirtualProductCard = memo(({
                 )}
             </div>
 
-            {/* Product Details */}
             <CardContent className="pt-4 px-3 space-y-3">
                 <Link href={productUrl} target="_blank">
                     <div className="space-y-2">
@@ -390,10 +389,9 @@ const VirtualProductCard = memo(({
                             {product.title}
                         </h3>
 
-                        {/* Categories */}
                         {product.categoryNames && product.categoryNames.length > 0 && (
                             <div className="flex flex-wrap gap-1">
-                                {product.categoryNames.slice(0, 2).map((category, index) => (
+                                {product.categoryNames.slice(0, 2).map((category: string, index: number) => (
                                     <Badge key={index} variant="outline" className="text-xs">
                                         {category}
                                     </Badge>
@@ -403,7 +401,6 @@ const VirtualProductCard = memo(({
                     </div>
                 </Link>
 
-                {/* Rating */}
                 <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
                         <StarIcon
@@ -471,8 +468,8 @@ const VirtualProductCard = memo(({
                     <div className="md:hidden">
                         <AddToCartButton
                             item={product}
-                            // size="sm"
-                            // disabled={!isInStock}
+                        // size="sm"
+                        // disabled={!isInStock}
                         />
                     </div>
                 </div>

@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Image from "next/image";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { useGetCollectionsByStoreId } from "@/hooks/queries/use-products-collections";
 import { CollectionTypes } from "@/lib/types";
 import Link from "next/link";
+import { useGetCollectionsByStoreId } from "@/hooks/queries-and-mutations/use-products-collections";
+import { ProductsCollections } from "@/lib/types/appwrite/appwrite";
 
 interface CarouselItem {
     id: string;
@@ -322,7 +323,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     const items = useMemo(() => {
         if (!collections?.documents) return [];
 
-        return collections.documents.map((collection: CollectionTypes, index: number) => ({
+        return collections.documents.map((collection: ProductsCollections, index: number) => ({
             id: collection.$id,
             title: collection.heroTitle || collection.collectionName,
             subtitle: collection.heroSubtitle || collection.description,

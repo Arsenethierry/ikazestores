@@ -25,15 +25,14 @@ import { getUserLocation } from "@/lib/geolocation";
 import { useEffect, useState } from "react";
 import countriesData from '@/data/countries.json';
 import { Option } from "@/components/ui/multiselect";
-import { useAction } from "next-safe-action/hooks";
-import { createPhysicalStoreAction, updatePhysicalStore } from "@/lib/actions/physical-store.action";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/hooks/use-confirm";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { createPhysicalStoreFormSchema } from "@/lib/schemas/stores-schema";
+import { createPhysicalStoreFormSchema, updatePhysicalStoreFormSchema } from "@/lib/schemas/stores-schema";
 import dynamic from "next/dynamic";
+import { useCreatePhysicalStore, useUpdatePhysicalStore } from "@/hooks/queries-and-mutations/use-physical-store";
 
 const MapLocationPicker = dynamic(() => import("./MapLocationPicker"), {
     ssr: false,
@@ -64,11 +63,6 @@ export function PhysicalStoreForm({
 
     const sortedCurrencies = uniqueCurrencies.sort((a, b) => a.value.localeCompare(b.value));
 
-    // const currencies: Option[] = currenciesData.map(currency => ({
-    //     value: currency.value,
-    //     label: currency.label
-    // }));
-
     const [selectedCountry, setSelectedCountry] = useState(initialValues?.country ?? "");
     const [selectedCurrency, setSelectedCurrency] = useState(initialValues?.currency ?? "");
     const [open, setOpen] = useState(false);
@@ -76,41 +70,8 @@ export function PhysicalStoreForm({
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
 
-    const {
-        execute: updateStore,
-        isPending: isUpdating,
-        result: updateStoreResponse
-    } = useAction(updatePhysicalStore, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data?.success)
-                router.push(`/admin/stores/${initialValues?.$id}`)
-            } else if (data?.error) {
-                toast.error(data?.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    });
-
-    const {
-        execute: createStore,
-        isPending: isCreatingStore,
-        result: createStoreResponse
-    } = useAction(createPhysicalStoreAction, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data?.success)
-                router.push(`/admin/stores/${data?.storeId}`)
-            } else if (data?.error) {
-                toast.error(data?.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    });
+    const updateStoreMutation = useUpdatePhysicalStore();
+    const createStoreMutation = useCreatePhysicalStore();
 
     const [CancelDialog, confirmCancelEdit] = useConfirm(
         "Are you sure you want to cancel?",
@@ -118,8 +79,8 @@ export function PhysicalStoreForm({
         "destructive"
     );
 
-    const form = useForm<z.infer<typeof createPhysicalStoreFormSchema>>({
-        resolver: zodResolver(createPhysicalStoreFormSchema),
+    const form = useForm<z.infer<typeof createPhysicalStoreFormSchema | typeof updatePhysicalStoreFormSchema>>({
+        resolver: zodResolver(isEditMode ? updatePhysicalStoreFormSchema : createPhysicalStoreFormSchema),
         defaultValues: {
             storeName: initialValues?.storeName ?? "",
             description: initialValues?.desccription ?? "",
@@ -129,7 +90,8 @@ export function PhysicalStoreForm({
             latitude: initialValues?.latitude ?? undefined,
             longitude: initialValues?.longitude ?? undefined,
             country: initialValues?.country ?? "",
-            currency: initialValues?.currency ?? ""
+            currency: initialValues?.currency ?? "",
+            storeId: initialValues?.$id ?? undefined
         },
         mode: "onChange",
     })
@@ -167,7 +129,7 @@ export function PhysicalStoreForm({
         }
     }
 
-    function onSubmit(values: z.infer<typeof createPhysicalStoreFormSchema>) {
+    function onSubmit(values: z.infer<typeof createPhysicalStoreFormSchema | typeof updatePhysicalStoreFormSchema>) {
         if (!currentUser) {
             toast.error("Something went wrong, try again");
             return;
@@ -199,12 +161,36 @@ export function PhysicalStoreForm({
                     ...updatedValues,
                     storeId: initialValues.$id,
                 }
-                updateStore(formData);
+                updateStoreMutation.mutate(formData, {
+                    onSuccess: (data) => {
+                        if (data?.success) {
+                            toast.success(data.success);
+                            router.push(`/admin/stores/${initialValues.$id}`);
+                        } else if (data?.error) {
+                            toast.error(data.error);
+                        }
+                    },
+                    onError: (error) => {
+                        toast.error(error.message || "Failed to update store");
+                    }
+                });
             } else {
                 toast.info("No changes detected");
             }
         } else {
-            createStore(values)
+            createStoreMutation.mutate(values as z.infer<typeof createPhysicalStoreFormSchema>, {
+                onSuccess: (data) => {
+                    if (data?.success) {
+                        toast.success(data.success);
+                        router.push(`/admin/stores/${data.storeId}`);
+                    } else if (data?.error) {
+                        toast.error(data.error);
+                    }
+                },
+                onError: (error) => {
+                    toast.error(error.message || "Failed to create store");
+                }
+            });
         }
     }
 
@@ -255,9 +241,8 @@ export function PhysicalStoreForm({
         }
     };
 
-    const isLoading = isCreatingStore || isUpdating;
-
-    const error = isEditMode ? updateStoreResponse.data?.error : createStoreResponse.data?.error;
+    const isLoading = createStoreMutation.isPending || updateStoreMutation.isPending;
+    const error = isEditMode ? updateStoreMutation.error?.message : createStoreMutation.error?.message;
 
     return (
         <Card className="border-t-0 rounded-t-none">

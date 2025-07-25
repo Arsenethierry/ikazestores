@@ -13,7 +13,7 @@ import { CurrencySelector } from '@/features/products/currency/currency-selector
 import { Skeleton } from '../ui/skeleton';
 import { ProductsCollectionsList } from './tenant/products-collections-list';
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger, NavigationMenuViewport } from '../ui/navigation-menu';
-import { RecentlyViewedProducts } from '@/features/products/use-recently-viewed-products';
+import { RecentlyViewedProducts } from '@/hooks/queries-and-mutations/use-recently-viewed-products';
 
 export default async function MarketplaceNavbar() {
     const {

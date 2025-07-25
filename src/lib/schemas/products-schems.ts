@@ -24,7 +24,11 @@ export const productFormSchema = z.object({
 
     brand: z.string().optional(),
     model: z.string().optional(),
-    currency: z.string()
+    currency: z.string(),
+    storeId: z.string(),
+    storeOriginCountry: z.string(),
+    storeLong: z.number().optional(),
+    storeLat: z.number().optional(),
 });
 
 export const ProductSchemaProps = productFormSchema.extend({
@@ -32,7 +36,6 @@ export const ProductSchemaProps = productFormSchema.extend({
     storeLat: z.number().optional(),
     storeLong: z.number().optional(),
     storeOriginCountry: z.string(),
-    minOrderQuantity: z.number().default(1)
 });
 
 export const UpdateProductSchemaProps = ProductSchemaProps.merge(
@@ -208,6 +211,7 @@ export const CollectionSchema = baseCollectionSchema.refine((data) => {
 
 export const UpdateCollectionForm = baseCollectionSchema.partial().extend({
     collectionId: z.string(),
+    oldBannerImageId: z.string().optional()
 });
 
 export const DeleteCollectionSchema = z.object({
@@ -279,8 +283,8 @@ export const GetProductsWithVirtualSchema = z.object({
     featured: z.boolean().optional(),
     search: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    priceMin: z.number().optional(),
-    priceMax: z.number().optional(),
+    minPrice: z.number().optional(),
+    maxPrice: z.number().optional(),
     limit: z.number().optional(),
     offset: z.number().optional(),
     sortBy: z.enum(['name', 'price', 'created', 'updated']).optional(),
@@ -290,3 +294,8 @@ export const GetProductsWithVirtualSchema = z.object({
     radiusKm: z.number().optional(),
     combinations: VariantCombinationSchema.optional()
 })
+
+export type CreateCollectionSchemaType = z.infer<typeof CollectionSchema>
+export type UpdateCollectionSchemaType = z.infer<typeof UpdateCollectionForm>
+export type CreateOriginalProductTypes = z.infer<typeof ProductSchemaProps>
+export type UpdateOriginalProductTypes = z.infer<typeof UpdateProductSchemaProps>

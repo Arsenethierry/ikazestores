@@ -5,7 +5,7 @@ import { ProductListSkeleton } from "@/features/products/components/products-lis
 import { StoreProductsList } from "@/features/products/components/store-products-list";
 import { StoreHero } from "@/features/stores/components/store-hero";
 import { StoreHeroSkeleton } from "@/features/stores/components/store-hero-sekeleton";
-import { getAllVirtualStores } from "@/lib/actions/vitual-store.action";
+import { getAllVirtualStores } from "@/lib/actions/virtual-store.action";
 import { getStoreSubdomainUrl } from "@/lib/domain-utils";
 import { getStoreInitials } from "@/lib/utils";
 import { Ellipsis, Navigation } from "lucide-react";
@@ -39,7 +39,9 @@ export default async function Home() {
               <div className="flex justify-between mb-1 border-t-2 rounded-t-md bg-secondary items-center">
                 <div className="flex gap-2">
                   <Avatar>
-                    <AvatarImage src={store?.storeLogoUrl} alt={store.storeName} />
+                    {store.storeLogoUrl && (
+                      <AvatarImage src={store?.storeLogoUrl} alt={store.storeName} />
+                    )}
                     <AvatarFallback>{getStoreInitials(store.storeName)}</AvatarFallback>
                   </Avatar>
                   <h1 className="text-xl font-bold capitalize truncate">{store.storeName}</h1>

@@ -1,8 +1,9 @@
 import React from 'react';
 import HeroSection from "@/features/stores/components/home-page/hero-section";
-import { getAllCollectionsByStoreId } from '@/features/collections/actions/collections-actions';
+import { getAllCollectionsByStoreId } from '@/lib/actions/collections-actions';
 import { getQueryClient } from '@/lib/get-query-client';
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+import { collectionKeys } from '@/hooks/queries-and-mutations/query-keys';
 
 export const TenantHomeHeroSection = async ({
     currentStoreId
@@ -12,7 +13,7 @@ export const TenantHomeHeroSection = async ({
     const queryClient = getQueryClient();
 
     await queryClient.prefetchQuery({
-        queryKey: ['products-collections', currentStoreId],
+        queryKey: collectionKeys.byStore(currentStoreId),
         queryFn: () => getAllCollectionsByStoreId({
             storeId: currentStoreId,
             featured: true,

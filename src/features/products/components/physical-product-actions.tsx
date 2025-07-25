@@ -10,14 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import { MoreHorizontal, TrashIcon } from "lucide-react";
-// import { useAction } from "next-safe-action/hooks";
-// import { deleteOriginalProduct } from "../actions/original-products-actions";
-// import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
-import { deleteOriginalProduct } from "../actions/original-products-actions";
-import { toast } from "sonner";
-import { useAction } from "next-safe-action/hooks";
 import { OriginalProductTypes } from "@/lib/types";
+import { useDeleteOriginalProducts } from "@/hooks/queries-and-mutations/use-original-products-queries";
 
 export const PhysicalProductMenuActions = ({ product }: { product: OriginalProductTypes }) => {
     const { data: user } = useCurrentUser();
@@ -28,21 +23,15 @@ export const PhysicalProductMenuActions = ({ product }: { product: OriginalProdu
         "destructive"
     );
 
-    const carnDelete = user && (user.$id === product?.createdBy || user?.$id === product?.store?.owner);
+    const canDelete = user && (user.$id === product?.createdBy || user?.$id === product?.store?.owner);
 
-    const { executeAsync } = useAction(deleteOriginalProduct, {
-        onSuccess: () => {
-            toast.success("Product deleted successfully")
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    })
+    const { mutate: deleteProduct, isPending } = useDeleteOriginalProducts();
 
     const handleDeleteProduct = async () => {
         const ok = await confirmDeleteProduct();
         if (!ok) return;
-        executeAsync({ productIds: product.$id })
+        
+        deleteProduct(product.$id);
     }
 
     return (
@@ -62,13 +51,14 @@ export const PhysicalProductMenuActions = ({ product }: { product: OriginalProdu
                     <DropdownMenuGroup>
                         <DropdownMenuItem>Share</DropdownMenuItem>
                         <DropdownMenuItem>Add to favorites</DropdownMenuItem>
-                        {carnDelete && (
+                        {canDelete && (
                             <DropdownMenuItem
                                 onClick={handleDeleteProduct}
-                                className={`${buttonVariants({ variant: "destructive", size: 'sm' })} w-full cursor-pointer`}
+                                disabled={isPending} // Disable while deletion is in progress
+                                className={`${buttonVariants({ variant: "destructive", size: 'sm' })} w-full cursor-pointer disabled:opacity-50`}
                             >
                                 <TrashIcon size={16} aria-hidden="true" />
-                                Delete
+                                {isPending ? "Deleting..." : "Delete"}
                             </DropdownMenuItem>
                         )}
                     </DropdownMenuGroup>

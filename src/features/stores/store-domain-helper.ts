@@ -1,5 +1,3 @@
-import { getVirtualStoreByDomain } from "@/lib/actions/vitual-store.action";
-
 interface SubdomainInfo {
     subdomain: string | null;
     isLocalhost: boolean;
@@ -30,14 +28,4 @@ export const parseSubdomain = (hostname: string): SubdomainInfo => {
         isLocalhost: false,
         mainDomain
     };
-}
-
-export const validateStore = async (subdomain: string) => {
-    try {
-        const stores = await getVirtualStoreByDomain(subdomain);
-        return stores.total > 0 ? stores.documents[0] : null;
-    } catch (error) {
-        console.error(`Error validating store for subdomain ${subdomain}:`, error);
-        return null;
-    }
 }

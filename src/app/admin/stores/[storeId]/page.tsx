@@ -1,12 +1,10 @@
 import { PhyscalStoreCard } from '@/features/stores/components/physical-store-card';
 import { StoreCard } from '@/features/stores/components/store-card';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
-import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
-import { PhysicalStoreTypes } from '@/lib/types';
-import { VirtualStoreTypes } from '@/lib/types/store-types';
+import { getVirtualStoreById } from '@/lib/actions/virtual-store.action';
+import { PhysicalStoreTypes, VirtualStoreTypes } from '@/lib/types';
 import { getAuthState, isStoreOwner } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
-import React from 'react';
 
 export default async function StoreAdminPage({
     params,
@@ -24,12 +22,12 @@ export default async function StoreAdminPage({
 
     const currentStore = isVirtualStoreOwner
         ? await getVirtualStoreById(storeId)
-        : isPhysicalStoreOwner 
-            ? await getPhysicalStoreById(storeId) 
+        : isPhysicalStoreOwner
+            ? await getPhysicalStoreById(storeId)
             : undefined;
 
     if (!currentStore || currentStore.total === 0) {
-        redirect("/admin/stores/new");
+        redirect("/admin/stores");
     }
 
     if (!isStoreOwner(user, currentStore)) {
@@ -47,6 +45,7 @@ export default async function StoreAdminPage({
                 <StoreCard
                     store={currentStore as VirtualStoreTypes}
                     currentUser={user}
+                    isAdminPage={true}
                 />
             )}
         </div>

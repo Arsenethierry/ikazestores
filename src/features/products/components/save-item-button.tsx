@@ -2,7 +2,7 @@
 
 import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import { useEffect, useState, useCallback, useTransition, useMemo } from "react";
-import { isItemSaved, removeSavedItem, saveItem } from "../actions/saved-items-action";
+import { isItemSaved, removeSavedItem, saveItem } from "../../../hooks/queries-and-mutations/saved-items-action";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Heart, Loader2, BookmarkPlus, BookmarkCheck } from "lucide-react";

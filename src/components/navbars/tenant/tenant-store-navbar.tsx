@@ -14,7 +14,7 @@ import { ProductsCollectionsList } from "./products-collections-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CurrentStoreLogo } from "./store-logo";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger, NavigationMenuViewport } from "@/components/ui/navigation-menu";
-import { RecentlyViewedProducts } from "@/features/products/use-recently-viewed-products";
+import { RecentlyViewedProducts } from "@/hooks/queries-and-mutations/use-recently-viewed-products";
 
 export const TenantStoreNavbar = async ({ currentStoreId }: { currentStoreId: string }) => {
   const {

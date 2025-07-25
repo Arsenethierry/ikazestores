@@ -1,5 +1,5 @@
 import { VirtualProductsSearchParams } from "@/lib/types";
-import { getPaginatedVirtualProducts, searchVirtualProducts } from "../../actions/virtual-products-actions";
+import { getPaginatedVirtualProducts, searchVirtualProducts } from "../../../../lib/actions/virtual-products-actions";
 import { NoItemsCard } from "@/components/no-items-card";
 import { VirtualProductCard } from "../product-cards/virtual-product-card";
 
@@ -16,7 +16,7 @@ export async function SearchResultsPage({
             limit: 10
         });
 
-        if (products.total > 0 && (
+        if (products.data.total > 0 && (
             searchParams.category ||
             searchParams.minPrice ||
             searchParams.maxPrice ||
@@ -33,7 +33,7 @@ export async function SearchResultsPage({
         products = await getPaginatedVirtualProducts({ searchParams });
     }
 
-    if (!products || products.total === 0) {
+    if (!products || products.data.total === 0) {
         return (
             <div className="w-full py-10">
                 <NoItemsCard
@@ -46,7 +46,7 @@ export async function SearchResultsPage({
 
     return (
         <>
-            {products.documents.map((product) => (
+            {products.data.documents.map((product) => (
                 <div key={product.$id} className="w-1/4 min-w-[240px] p-2">
                     <VirtualProductCard product={product} />
                 </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react"
@@ -12,76 +11,67 @@ import { NavUser } from "./sidebar-userbutton";
 import { SidebarSkeleton } from "./sidebar-skeleton";
 import { AdminDashboardType } from "@/lib/types";
 import { getSidebarLinks } from "./sidebar-links";
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { getVirtualStoreById } from "@/lib/actions/vitual-store.action";
-import { getPhysicalStoreById } from "@/lib/actions/physical-store.action";
+import { StoreSwitcher } from "./store-switcher";
 
 interface AdminSidebarProps extends React.ComponentProps<typeof Sidebar> {
-    adminType: AdminDashboardType
+    adminType: AdminDashboardType;
+    storeId?: string;
 }
 
-export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
-    const { data: user, isPending } = useCurrentUser();
-    const { storeId } = useParams<{ storeId: string; }>();
+export function AdminSidebar({ adminType, storeId, ...props }: AdminSidebarProps) {
+    const { data: user, isPending, refetch: refetchUser, isRefetching } = useCurrentUser();
 
-    const { data: storeRes, isPending: storeDataPending } = useQuery({
-        queryKey: [`${adminType}-store`, storeId],
-        queryFn: async () => {
-            if (!storeId) return null
+    const sidebarLinks = React.useMemo(() => {
+        if (!user) return [];
 
-            if (adminType === 'virtualStoreAdmin') {
-                return getVirtualStoreById(storeId)
-            } else if (adminType === 'physicalStoreAdmin') {
-                return getPhysicalStoreById(storeId)
-            }
+        const links = getSidebarLinks(storeId || null);
 
-            return null;
-        },
-        enabled: !!storeId && adminType !== 'systemAdmin',
-        staleTime: 5 * 60 * 1000,
-        retry: 1,
-    })
-
-    if (isPending) return <SidebarSkeleton />;
-    const storeData = storeRes?.store
-    const sidebarLinks = adminType === 'physicalStoreAdmin'
-        ? getSidebarLinks(storeId).physicalStoreAdmin
-        : adminType === 'systemAdmin'
-            ? getSidebarLinks(null).systemAdmin
-            : adminType === 'virtualStoreAdmin'
-                ? getSidebarLinks(storeId).virtualStoreAdmin
-                : [];
-
-    const getDisplayName = () => {
-        if (adminType === 'systemAdmin') {
-            return 'IKAZESTORES';
+        switch (adminType) {
+            case 'physicalStoreAdmin':
+                return links.physicalStoreAdmin;
+            case 'systemAdmin':
+                return links.systemAdmin;
+            case 'virtualStoreAdmin':
+                return links.virtualStoreAdmin;
+            default:
+                return [];
         }
+    }, [user, adminType, storeId]);
 
-        if (storeDataPending) {
-            return 'Loading...'
-        }
+    React.useEffect(() => {
+        if(!user) refetchUser()
+    }, []);
 
-        if (storeData && storeData.store.storeName) {
-            return storeData.storeName
-        }
-
-        return 'IKAZESTORES';
+    if (isPending || isRefetching) {
+        return <SidebarSkeleton />;
     }
+
+    if (!user || !adminType) {
+        return null;
+    }
+
+    const isStoreAdmin = adminType === 'physicalStoreAdmin' || adminType === 'virtualStoreAdmin';
 
     return (
         <Sidebar collapsible="icon" {...props}>
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            size="lg"
-                        >
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                <LayoutDashboard className="size-4" />
+                        {isStoreAdmin ? (
+                            <div className="p-2">
+                                <StoreSwitcher
+                                    adminType={adminType}
+                                    adminUserId={user.$id}
+                                />
                             </div>
-                            <p className="text-lg uppercase font-bold">{getDisplayName()}</p>
-                        </SidebarMenuButton>
+                        ) : (
+                            <SidebarMenuButton size="lg">
+                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                                    <LayoutDashboard className="size-4" />
+                                </div>
+                                <p className="text-lg uppercase font-bold">IkazeStores</p>
+                            </SidebarMenuButton>
+                        )}
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
@@ -92,10 +82,11 @@ export function AdminSidebar({ adminType, ...props }: AdminSidebarProps) {
                 />
             </SidebarContent>
             <SidebarFooter>
-                {isPending || !user
-                    ? <SpinningLoader />
-                    : <NavUser currentUser={user} />
-                }
+                {!user ? (
+                    <SpinningLoader />
+                ) : (
+                    <NavUser currentUser={user} />
+                )}
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

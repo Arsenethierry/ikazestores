@@ -1,6 +1,6 @@
 import { NoItemsCard } from '@/components/no-items-card';
 import SpinningLoader from '@/components/spinning-loader';
-import { getVirtualProductById } from '@/features/products/actions/virtual-products-actions';
+import { getVirtualProductById } from '@/lib/actions/virtual-products-actions';
 import { ProductDetails } from '@/features/products/components/product-details-page';
 import React, { Suspense } from 'react';
 
@@ -12,12 +12,12 @@ async function page({
     const { productId } = await params;
     const productData = await getVirtualProductById(productId);
 
-    if (!productData) return <NoItemsCard />;
+    if (!productData || !productData.data) return <NoItemsCard />;
     
     return (
         <div>
             <Suspense fallback={<SpinningLoader />}>
-                <ProductDetails product={productData} />
+                <ProductDetails product={productData.data} />
             </Suspense>
         </div>
     );

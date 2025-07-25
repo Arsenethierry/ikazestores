@@ -1,7 +1,7 @@
 import { NoItemsCard } from '@/components/no-items-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getCollectionById } from '@/features/collections/actions/collections-actions';
+import { getCollectionById } from '@/lib/actions/collections-actions';
 import { CollectionProducts } from '@/features/collections/components/collection-products';
 import { CollectionGroupsTypes } from '@/lib/types';
 import Image from 'next/image';
@@ -52,7 +52,7 @@ async function page({ params }: {
                             <div className="h-48 md:h-64 w-56 md:w-64 relative mb-6 rounded-md overflow-hidden">
                                 <Image
                                     src={group.groupImageUrl}
-                                    alt={group.groupName}
+                                    alt={group.groupName || ''}
                                     fill
                                     className="object-cover"
                                 />

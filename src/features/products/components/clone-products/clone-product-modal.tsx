@@ -7,17 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrentUserType, OriginalProductTypes } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-// import { useAction } from "next-safe-action/hooks";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { ResponsiveModal } from "@/components/responsive-modal";
-// import { addNewVirtualProduct } from "../../actions/virtual-products-actions";
-import { useCloneProduct, useProductCloneStatus } from "../../queries/use-virtual-products-queries";
 import { useRouter } from "next/navigation";
 import SpinningLoader from "@/components/spinning-loader";
+import { useCreateVirtualProduct, useGetProductCloneStatus } from "@/hooks/queries-and-mutations/use-virtual-products";
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -78,8 +76,8 @@ export const CloneProductModal = ({ currentUser, product, storeId }: CloneProduc
         form.setValue("combinationPrices", updatedCombinations);
     }, [commission, form, overriddenCombinations]);
 
-    const { mutateAsync, isSuccess, data, isPending } = useCloneProduct();
-    const { data: cloneStatus, isSuccess: cloneStatusSuccess, isPending: cloneStatusPending } = useProductCloneStatus(product.$id, storeId);
+    const { mutateAsync, isSuccess, data, isPending } = useCreateVirtualProduct();
+    const { data: cloneStatus, isSuccess: cloneStatusSuccess, isPending: cloneStatusPending } = useGetProductCloneStatus(product.$id, storeId);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!currentUser) {

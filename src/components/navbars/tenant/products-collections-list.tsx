@@ -1,4 +1,4 @@
-import { getAllCollectionsByStoreId } from '@/features/collections/actions/collections-actions';
+import { getAllCollectionsByStoreId } from '@/lib/actions/collections-actions';
 import Link from 'next/link';
 import React from 'react';
 

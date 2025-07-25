@@ -1,7 +1,6 @@
 import SpinningLoader from '@/components/spinning-loader';
 import { buttonVariants } from '@/components/ui/button';
-import { getStoreOriginalProducts } from '@/features/products/actions/original-products-actions';
-import { getVirtualStoreProducts } from '@/features/products/actions/virtual-products-actions';
+import { getVirtualStoreProducts } from '@/lib/actions/virtual-products-actions';
 import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
 import { productListColumns } from '@/features/products/components/products-list-table/columns';
@@ -10,6 +9,7 @@ import { OriginalProductTypes, VirtualProductTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-permission';
 import Link from 'next/link';
 import React, { Suspense } from 'react';
+import { getStoreOriginalProducts } from '@/lib/actions/original-products-actions';
 
 async function StoreProductsPage({
     params,
@@ -26,21 +26,20 @@ async function StoreProductsPage({
     const originalProducts = isPhysicalStoreOwner
         ? await getStoreOriginalProducts(storeId) : {
             documents: [],
-            total: 0
+            total: 0,
+            hasMore: false
         }
 
-    const virtualProducts = isVirtualStoreOwner
+    const virtualProductsResult = isVirtualStoreOwner
         ? await getVirtualStoreProducts({ virtualStoreId: storeId, limit: 20, withStoreData: true })
-        : {
-            documents: [],
-            total: 0
-        };
+        : null;
 
+        
     return (
         <div className="container mx-auto py-6">
             {isVirtualStoreOwner ? (
                 <VirtualStoreProductsView
-                    virtualProducts={virtualProducts}
+                    virtualProductsResult={virtualProductsResult}
                 />
             ) : isPhysicalStoreOwner ? (
                 <PhysicalStoreProductsView
@@ -56,10 +55,32 @@ async function StoreProductsPage({
     );
 
     function VirtualStoreProductsView({
-        virtualProducts
+        virtualProductsResult
     }: {
-        virtualProducts: { documents: VirtualProductTypes[]; total: number } | null
+        virtualProductsResult: { success: boolean; data?: VirtualProductTypes[]; error?: string } | null
     }) {
+        if (virtualProductsResult && !virtualProductsResult.success) {
+            return (
+                <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-red-900 mb-2">Error loading products</h3>
+                    <p className="text-red-600 mb-6">{virtualProductsResult.error}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className={buttonVariants()}
+                    >
+                        Try Again
+                    </button>
+                </div>
+            );
+        }
+
+        const virtualProducts = virtualProductsResult?.data || [];
+
         return (
             <>
                 <div className="flex items-center justify-between mb-6">
@@ -75,11 +96,11 @@ async function StoreProductsPage({
                     </Link>
                 </div>
 
-                {!virtualProducts || virtualProducts.documents.length === 0 ? (
+                {virtualProducts.length === 0 ? (
                     <EmptyVirtualProductsState storeId={storeId} />
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {virtualProducts.documents.map((product: VirtualProductTypes) => (
+                        {virtualProducts.map((product: VirtualProductTypes) => (
                             <div key={product.$id}>
                                 <Suspense fallback={<ProductSekeleton />}>
                                     <VirtualProductCard product={product} storeId={storeId} />
@@ -89,13 +110,13 @@ async function StoreProductsPage({
                     </div>
                 )}
 
-                {virtualProducts && virtualProducts.total > 20 && (
+                {virtualProducts.length >= 20 && (
                     <div className="mt-8 text-center">
                         <Link
                             href={`/admin/stores/${storeId}/products?view=all`}
                             className="text-blue-600 hover:text-blue-800"
                         >
-                            View all {virtualProducts.total} products →
+                            View all products →
                         </Link>
                     </div>
                 )}
@@ -108,7 +129,7 @@ async function StoreProductsPage({
         originalProducts
     }: {
         storeId: string;
-        originalProducts: { documents: OriginalProductTypes[]; total: number }
+        originalProducts: { documents: OriginalProductTypes[]; total: number; hasMore: boolean }
     }) {
         return (
             <>
@@ -173,32 +194,6 @@ async function StoreProductsPage({
             </div>
         );
     }
-    // return (
-    //     isVirtualStoreOwner ? (
-    //         <>
-    //             <Link href={`/admin/stores/${storeId}/products/clone-products`} className={`${buttonVariants()} mb-5`}>Add Products</Link>
-    //             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-    //                 {virtualProducts && virtualProducts.documents.map((product: VirtualProductTypes) => (
-    //                     <div key={product.$id}>
-    //                         <Suspense fallback={<ProductSekeleton />}>
-    //                             <VirtualProductCard product={product} storeId={storeId} />
-    //                         </Suspense>
-    //                     </div>
-    //                 ))}
-    //             </div>
-    //         </>
-    //     ) : isPhysicalStoreOwner ? (
-    //         <div className="container mx-auto py-10">
-    //             <Suspense fallback={<SpinningLoader />}>
-    //                 <ProductsDataTable
-    //                     columns={productListColumns}
-    //                     data={originalProducts.documents}
-    //                     currentStoreId={storeId}
-    //                 />
-    //             </Suspense>
-    //         </div>
-    //     ) : <></>
-    // );
 }
 
 export default StoreProductsPage;

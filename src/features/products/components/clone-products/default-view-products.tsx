@@ -1,8 +1,8 @@
-import { getOriginalProductsWithVirtualProducts } from '@/features/products/actions/original-products-actions';
 import { PhysicalProductCard } from '@/features/products/components/product-cards/physical-product-card';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
 import { CurrentUserType, OriginalProductTypes } from '@/lib/types';
 import React, { Suspense } from 'react';
+import { getOriginalProductsWithVirtualProducts } from '../../../../lib/actions/virtual-products-actions';
 
 async function CloneProductsPage({
     storeId,
@@ -18,25 +18,25 @@ async function CloneProductsPage({
     user: CurrentUserType
 }) {
     
-    const result = await getOriginalProductsWithVirtualProducts();
+    const result = await getOriginalProductsWithVirtualProducts({});
 
     if (result === undefined) {
         return <p>Loading...</p>;
     }
 
-    if (result.serverError) {
-        return <p>Error: {result.serverError}</p>;
+    if (result.error) {
+        return <p>Error: {result.error}</p>;
     }
 
     const products = result.data?.products;
 
-    if (!products || !products.documents) {
+    if (!products || !products) {
         return <p>No products found</p>;
     }
 
     return (
         <div className="flex flex-wrap gap-4">
-            {products.documents.map((product: OriginalProductTypes) => (
+            {products.map((product: OriginalProductTypes) => (
                 <div key={product.$id}>
                     <Suspense fallback={<ProductSekeleton />}>
                         <PhysicalProductCard

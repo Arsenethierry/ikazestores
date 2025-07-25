@@ -28,7 +28,7 @@ export const CollectionGroups = ({ groups }: CollectionGroupsProps) => {
                                 <div className="h-48 w-full relative mb-4 rounded-md overflow-hidden">
                                     <Image
                                         src={group.groupImageUrl}
-                                        alt={group.groupName}
+                                        alt={group.groupName ?? ''}
                                         fill
                                         className="object-cover"
                                     />

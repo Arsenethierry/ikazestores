@@ -6,9 +6,11 @@ export function getCategories(): Category[] {
     return catalogData.categories.map(cat => ({
         id: cat.id,
         name: cat.name,
+        storeId: null,
         subcategories: cat.subcategories?.map(sub => ({
             id: sub.id,
             name: sub.name,
+            categoryId: cat.id,
             productTypes: sub.productTypes || []
         }))
     }));
@@ -21,9 +23,12 @@ export function getCategoryById(categoryId: string): Category | null {
     return {
         id: category.id,
         name: category.name,
+        storeId: null,
         subcategories: category.subcategories?.map(sub => ({
             id: sub.id,
             name: sub.name,
+            categoryId,
+            storeId: null,
             productTypes: sub.productTypes || []
         }))
     };

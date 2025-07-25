@@ -29,7 +29,7 @@ export const AddToCartButton = ({ item }: { item: VirtualProductTypes }) => {
             $id: item.$id,
             title: item.title,
             sellingPrice: item.sellingPrice,
-            imageUrl: item.generalImageUrls[0],
+            imageUrl: item.generalImageUrls ? item.generalImageUrls[0] : '',
             quantity: 1,
         };
         await addToCart(cartData)

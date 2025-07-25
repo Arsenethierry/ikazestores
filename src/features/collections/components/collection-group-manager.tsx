@@ -8,17 +8,21 @@ import { toast } from "sonner";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { SingleImageUploader } from "@/components/file-uploader";
 import { Input } from "@/components/ui/input";
-import { deleteCollectionGroup, saveCollectionGroups, updateCollectionGroup } from "../actions/collections-actions";
 import { CollectionGroupsTypes } from "@/lib/types";
-import { useAction } from "next-safe-action/hooks";
 import { debounce } from "lodash";
 import Link from "next/link";
+import {
+    useDeleteCollectionGroup,
+    useSaveCollectionGroups,
+    useUpdateCollectionGroup
+} from "@/hooks/queries-and-mutations/use-products-collections";
 
 type CollectionGroup = {
     id: string;
     groupName: string;
     groupImage?: File | string | undefined;
     displayOrder: number;
+    isDeleting?: boolean;
 };
 
 export const CollectionGroupManager = ({
@@ -33,13 +37,17 @@ export const CollectionGroupManager = ({
 
     const formattedInitialGroups: CollectionGroup[] = initialGroups.map(group => ({
         id: group.$id,
-        groupName: group.groupName,
-        groupImage: group.groupImageUrl,
-        displayOrder: group.displayOrder
+        groupName: group.groupName ?? '',
+        groupImage: group.groupImageUrl ?? undefined,
+        displayOrder: group.displayOrder ?? 0
     }));
 
     const [groups, setGroups] = useState<CollectionGroup[]>(formattedInitialGroups);
     const [pendingChanges, setPendingChanges] = useState(false);
+
+    const saveGroupsMutation = useSaveCollectionGroups();
+    const deleteGroupMutation = useDeleteCollectionGroup();
+    const updateGroupMutation = useUpdateCollectionGroup();
 
     useEffect(() => {
         if (groups.length !== formattedInitialGroups.length) {
@@ -47,15 +55,15 @@ export const CollectionGroupManager = ({
             return;
         }
         const hasChanges = groups.some((group, index) => {
-            const initialGroups = formattedInitialGroups[index];
-            return !initialGroups ||
-                group.groupName !== initialGroups.groupName ||
-                group.displayOrder !== initialGroups.displayOrder ||
+            const initialGroup = formattedInitialGroups[index];
+            return !initialGroup ||
+                group.groupName !== initialGroup.groupName ||
+                group.displayOrder !== initialGroup.displayOrder ||
                 (group.groupImage instanceof File);
         });
 
-        setPendingChanges(hasChanges)
-    }, [groups, formattedInitialGroups])
+        setPendingChanges(hasChanges);
+    }, [groups, formattedInitialGroups]);
 
     const addGroup = () => {
         const newGroup: CollectionGroup = {
@@ -66,71 +74,55 @@ export const CollectionGroupManager = ({
         setGroups([...groups, newGroup]);
     };
 
-    const {
-        execute: executeDeleteGroup,
-        isPending: isDeletePending
-    } = useAction(deleteCollectionGroup, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data.success);
-            } else if (data?.error) {
-                toast.error(data.error);
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError || "Failed to delete group");
-        }
-    });
-
-    const {
-        execute: executeUpdateGroup,
-        isPending: isUpdatePending
-    } = useAction(updateCollectionGroup, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data.success);
-            } else if (data?.error) {
-                toast.error(data.error);
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError || "Failed to update group");
-        }
-    });
-
     const debouncedUpdateGroup = useMemo(
         () =>
             debounce((groupId: string, updatedData: Partial<CollectionGroup>) => {
                 const group = groups.find(g => g.id === groupId);
                 if (!group || groupId.startsWith('temp-')) return;
 
-                executeUpdateGroup({
+                updateGroupMutation.mutate({
                     groupId,
-                    collectionId,
                     groupName: updatedData.groupName || group.groupName,
                     groupImage: updatedData.groupImage || group.groupImage,
                     displayOrder:
                         updatedData.displayOrder !== undefined
                             ? updatedData.displayOrder
-                            : group.displayOrder,
+                            : group.displayOrder || 0,
                 });
             }, 1000),
-        [groups, executeUpdateGroup, collectionId]
+        [groups, updateGroupMutation]
     );
 
-    const removeGroup = (id: string, imageId: string | null) => {
+    const removeGroup = (id: string, imageId: string | null = null) => {
         if (id.startsWith('temp-')) {
             setGroups(groups.filter(group => group.id !== id));
             return;
         }
 
+        // Mark group as deleting for UI feedback
         setGroups(groups.map(group =>
             group.id === id ? { ...group, isDeleting: true } : group
         ));
 
-        executeDeleteGroup({ groupId: id, collectionId, imageId });
-
-        setGroups(prevGroups => prevGroups.filter(group => group.id !== id))
+        deleteGroupMutation.mutate(
+            {
+                collectionId,
+                groupId: id,
+                imageId: imageId || undefined
+            },
+            {
+                onSuccess: () => {
+                    // Remove from local state after successful deletion
+                    setGroups(prevGroups => prevGroups.filter(group => group.id !== id));
+                },
+                onError: () => {
+                    // Remove deleting state if deletion failed
+                    setGroups(groups.map(group =>
+                        group.id === id ? { ...group, isDeleting: false } : group
+                    ));
+                }
+            }
+        );
     };
 
     const updateGroupName = (id: string, groupName: string) => {
@@ -140,7 +132,7 @@ export const CollectionGroupManager = ({
             )
         );
         if (!id.startsWith('temp-')) {
-            debouncedUpdateGroup(id, { groupName })
+            debouncedUpdateGroup(id, { groupName });
         }
     };
 
@@ -154,18 +146,16 @@ export const CollectionGroupManager = ({
         if (!id.startsWith('temp-') && groupImage instanceof File) {
             const group = groups.find(g => g.id === id);
             if (group) {
-                executeUpdateGroup({
+                updateGroupMutation.mutate({
                     groupId: id,
-                    collectionId,
                     groupName: group.groupName,
                     groupImage,
-                    displayOrder: group.displayOrder
+                    displayOrder: group.displayOrder ?? 0
                 });
             }
         }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleDragEnd = (result: any) => {
         if (!result.destination) return;
 
@@ -179,31 +169,7 @@ export const CollectionGroupManager = ({
         }));
 
         setGroups(updatedItems);
-
-        // startTransition(() => {
-        //     saveGroup({
-        //         collectionId,
-        //         groups: updatedItems
-        //     });
-        // });
     };
-
-    const {
-        execute: saveGroup,
-        isPending: isSavePending
-    } = useAction(saveCollectionGroups, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data.success);
-                setPendingChanges(false);
-            } else if (data?.error) {
-                toast.error(data.error);
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError || "Failed to save groups");
-        }
-    });
 
     const handleSave = async () => {
         const invalidGroups = groups.filter(group => !group.groupName.trim());
@@ -211,13 +177,32 @@ export const CollectionGroupManager = ({
             toast.error("All groups must have names");
             return;
         }
-        saveGroup({
-            collectionId,
-            groups
-        })
+
+        const groupsToSave = groups.map(group => ({
+            id: group.id,
+            groupName: group.groupName,
+            displayOrder: group.displayOrder ?? 0,
+            groupImage: group.groupImage || ""
+        }));
+
+        saveGroupsMutation.mutate(
+            {
+                collectionId,
+                groups: groupsToSave
+            },
+            {
+                onSuccess: () => {
+                    setPendingChanges(false);
+                    // Update the groups state with the new IDs from server if needed
+                    // This would require the mutation to return the updated groups
+                }
+            }
+        );
     };
 
-    const isLoading = isSavePending || isDeletePending || isUpdatePending;
+    const isLoading = saveGroupsMutation.isPending ||
+        deleteGroupMutation.isPending ||
+        updateGroupMutation.isPending;
 
     return (
         <Card className="mt-6">
@@ -231,7 +216,11 @@ export const CollectionGroupManager = ({
                             onClick={handleSave}
                             disabled={isLoading}
                         >
-                            {isLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                            {saveGroupsMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                                <Save className="h-4 w-4 mr-1" />
+                            )}
                             Save Changes
                         </Button>
                     )}
@@ -239,6 +228,7 @@ export const CollectionGroupManager = ({
                         variant="outline"
                         size="sm"
                         onClick={addGroup}
+                        disabled={isLoading}
                     >
                         <Plus className="h-4 w-4 mr-1" /> Add Group
                     </Button>
@@ -264,7 +254,8 @@ export const CollectionGroupManager = ({
                                                 <div
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    className={`flex gap-4 items-center p-4 border rounded-md bg-card transition-opacity ${isDeletePending ? 'opacity-50' : ''}`}
+                                                    className={`flex gap-4 items-center p-4 border rounded-md bg-card transition-opacity ${group.isDeleting ? 'opacity-50' : ''
+                                                        }`}
                                                 >
                                                     <div
                                                         {...provided.dragHandleProps}
@@ -279,7 +270,7 @@ export const CollectionGroupManager = ({
                                                                 value={group.groupName}
                                                                 onChange={(e) => updateGroupName(group.id, e.target.value)}
                                                                 placeholder="e.g., Shoes, Jewelry"
-                                                                disabled={isLoading}
+                                                                disabled={isLoading || group.isDeleting}
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
@@ -295,9 +286,8 @@ export const CollectionGroupManager = ({
                                                         <div className="space-y-2">
                                                             <label className="text-sm font-medium">Display Order</label>
                                                             <p className="text-sm text-muted-foreground">
-                                                                {group.displayOrder + 1}
-                                                                {/* {group.isNew && " (New)"} */}
-                                                                {isUpdatePending && " (Updating...)"}
+                                                                {(group.displayOrder ?? 0) + 1}
+                                                                {updateGroupMutation.isPending && " (Updating...)"}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -313,11 +303,11 @@ export const CollectionGroupManager = ({
                                                         type="button"
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => removeGroup(group.id, null)}
-                                                        disabled={isLoading}
+                                                        onClick={() => removeGroup(group.id)}
+                                                        disabled={isLoading || group.isDeleting}
                                                         className="self-center"
                                                     >
-                                                        {isDeletePending ? (
+                                                        {group.isDeleting ? (
                                                             <Loader2 className="h-4 w-4 text-destructive animate-spin" />
                                                         ) : (
                                                             <Trash className="h-4 w-4 text-destructive" />
@@ -334,14 +324,24 @@ export const CollectionGroupManager = ({
                     </Droppable>
                 </DragDropContext>
 
-                {groups.length > 0 && (
+                {groups.length > 0 && pendingChanges && (
                     <div className="mt-6 flex justify-end">
-                        <Button onClick={handleSave} disabled={isLoading}>
-                            {isLoading ? "Saving..." : "Save Groups"}
+                        <Button
+                            onClick={handleSave}
+                            disabled={isLoading}
+                        >
+                            {saveGroupsMutation.isPending ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save Groups"
+                            )}
                         </Button>
                     </div>
                 )}
             </CardContent>
         </Card>
-    )
-}
+    );
+};

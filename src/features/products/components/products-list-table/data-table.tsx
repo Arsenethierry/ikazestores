@@ -18,12 +18,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useAction } from "next-safe-action/hooks";
-import { toast } from "sonner";
-import { deleteOriginalProduct } from "../../actions/original-products-actions";
 import { OriginalProductTypes } from "@/lib/types";
 import ErrorAlert from "@/components/error-alert";
 import SpinningLoader from "@/components/spinning-loader";
+import { useDeleteOriginalProducts } from "@/hooks/queries-and-mutations/use-original-products-queries";
 
 interface DataTableProps<TValue> {
     columns: ColumnDef<OriginalProductTypes, TValue>[];
@@ -41,6 +39,7 @@ export function ProductsDataTable<TValue>({
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState({});
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const [ConfirmationDialog, confirm] = useConfirm(
         "Delete Products",
@@ -48,19 +47,7 @@ export function ProductsDataTable<TValue>({
         "destructive"
     );
 
-    const { execute: executeDelete, status, result } = useAction(deleteOriginalProduct, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data.success);
-                setRowSelection({});
-            } else if (data?.error) {
-                toast.error(data.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError || "Failed to delete products");
-        },
-    });
+    const deleteProductsMutation = useDeleteOriginalProducts();
 
     const selectColumn: ColumnDef<OriginalProductTypes, TValue> = {
         id: "select",
@@ -105,14 +92,28 @@ export function ProductsDataTable<TValue>({
         const confirmed = await confirm();
         if (!confirmed) return;
 
+        setErrorMessage(null);
+
         const productIds = selectedRows.map((row) => row.original.$id);
-        executeDelete({ productIds });
+        
+        deleteProductsMutation.mutate(productIds, {
+            onSuccess: (result) => {
+                if ('error' in result) {
+                    setErrorMessage(result.error || null);
+                } else {
+                    setRowSelection({});
+                }
+            },
+            onError: (error) => {
+                setErrorMessage(error instanceof Error ? error.message : "Failed to delete products");
+            }
+        });
     };
 
     return (
         <div className="space-y-4">
             <ConfirmationDialog />
-            {result.data?.error && <ErrorAlert errorMessage={result.data.error ?? 'Something went wrong'} />}
+            {errorMessage && <ErrorAlert errorMessage={errorMessage} />}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <Input
@@ -132,11 +133,11 @@ export function ProductsDataTable<TValue>({
                                 variant="destructive"
                                 size="sm"
                                 onClick={handleBulkDelete}
-                                disabled={status === "executing"}
+                                disabled={deleteProductsMutation.isPending}
                             >
-                                {status === 'executing' ? (
+                                {deleteProductsMutation.isPending ? (
                                     <>
-                                        <SpinningLoader /> <span>deleting...</span>
+                                        <SpinningLoader /> <span>Deleting...</span>
                                     </>
                                 ) : 'Delete Selected'}
                             </Button>

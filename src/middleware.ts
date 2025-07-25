@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseSubdomain } from "./features/stores/store-domain-helper";
 import { MAIN_DOMAIN } from "./lib/env-config";
-import { getVirtualStoreByDomain } from "./lib/actions/vitual-store.action";
+import { getVirtualStoreByDomain } from "./lib/actions/virtual-store.action";
 import { UserRole } from "./lib/constants";
 import { getAuthState } from "./lib/user-permission";
 
@@ -91,12 +91,11 @@ export async function middleware(request: NextRequest) {
             return NextResponse.next();
         }
 
-        const stores = await getVirtualStoreByDomain(subdomain);
-
-        if (stores && stores.total > 0 && stores.documents[0]) {
+        const store = await getVirtualStoreByDomain(subdomain);
+        if (store) {
             // Set storeId as query param instead of path param
             const rewrittenUrl = new URL(
-                `/store/${stores.documents[0].$id}${request.nextUrl.pathname}?storeId=${stores.documents[0].$id}${searchParams.toString() ? '&' + searchParams.toString() : ''
+                `/store/${store.$id}${request.nextUrl.pathname}?storeId=${store.$id}${searchParams.toString() ? '&' + searchParams.toString() : ''
                 }`,
                 request.url
             );

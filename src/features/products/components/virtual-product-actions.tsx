@@ -10,11 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import { MoreHorizontal, TrashIcon } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
-import { removeProduct } from "../actions/virtual-products-actions";
 import { VirtualProductTypes } from "@/lib/types";
+import { useDeleteVirtualProduct } from "@/hooks/queries-and-mutations/use-virtual-products";
 
 export const VirtualProductMenuActions = ({ product, storeId }: { product: VirtualProductTypes, storeId: string }) => {
     const { data: user } = useCurrentUser();
@@ -25,22 +23,16 @@ export const VirtualProductMenuActions = ({ product, storeId }: { product: Virtu
         "destructive"
     );
 
-    const { executeAsync, isPending } = useAction(removeProduct, {
-        onSuccess: () => {
-            toast.success("Product deleted successfully")
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    })
+    const deleteMutation = useDeleteVirtualProduct();
 
     const handleRemoveProduct = async () => {
         const ok = await confirmRemoveProduct();
         if (!ok) return;
-        await executeAsync({ productId: product.$id, virtualStoreId: storeId })
-    }
+        
+        deleteMutation.mutate(product.$id);
+    };
 
-    const carnDelete = user && (user.$id === product?.createdBy || user?.$id === product?.store?.owner);
+    const canDelete = user && (user.$id === product?.createdBy || user?.$id === product?.store?.owner);
 
     return (
         <>
@@ -59,10 +51,10 @@ export const VirtualProductMenuActions = ({ product, storeId }: { product: Virtu
                     <DropdownMenuGroup>
                         <DropdownMenuItem>Share</DropdownMenuItem>
                         <DropdownMenuItem>Add to favorites</DropdownMenuItem>
-                        {carnDelete && (
+                        {canDelete && (
                             <DropdownMenuItem
                                 onClick={handleRemoveProduct}
-                                disabled={isPending}
+                                disabled={deleteMutation.isPending}
                                 className={`${buttonVariants({ variant: "destructive", size: 'sm' })} w-full cursor-pointer`}
                             >
                                 <TrashIcon size={16} aria-hidden="true" />

@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 // import { getAllProductTypes } from "@/features/products/actions/variants management/product-types-actions";
 import { ProductListWithFilters } from "@/features/products/components/filter/product-list-with-filters";
-import { getVirtualStoreById } from "@/lib/actions/vitual-store.action";
+import { getVirtualStoreById } from "@/lib/actions/virtual-store.action";
 import { AlertTriangle, Package, Store } from "lucide-react";
 // import { Metadata } from "next";
 // import { Metadata } from "next";

@@ -6,15 +6,20 @@ import { StoreQuickActions } from './store-action-button';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { Badge } from '@/components/ui/badge';
 import { isStoreOwner } from '@/lib/user-permission';
-import { VirtualStoreTypes } from '@/lib/types/store-types';
-import { CurrentUserType } from '@/lib/types';
+import { CurrentUserType, VirtualStoreTypes } from '@/lib/types';
 
-export const StoreCard = ({ store, currentUser }: { store: VirtualStoreTypes, currentUser: CurrentUserType }) => {
+export const StoreCard = ({ store, currentUser, isAdminPage = false }: { store: VirtualStoreTypes, currentUser: CurrentUserType, isAdminPage?: boolean }) => {    
     const primaryBannerUrl = Array.isArray(store.bannerUrls) ?
         store?.bannerUrls[0] :
         store?.bannerUrls;
 
-    const isOwner = isStoreOwner(currentUser, store)
+    const isOwner = isStoreOwner(currentUser, store);
+
+    const linkUrl = isAdminPage 
+        ? `/admin/stores/${store.$id}`
+        : (store?.subDomain ? getStoreSubdomainUrl({ subdomain: store.subDomain }) : `/admin/stores/${store.$id}`);
+
+    const linkTarget = isAdminPage ? '_parent' : (store?.subDomain ? '_blank' : '_parent');
 
     return (
         <Card className="relative overflow-hidden hover:shadow-lg transition-shadow max-w-[350px]">
@@ -26,7 +31,7 @@ export const StoreCard = ({ store, currentUser }: { store: VirtualStoreTypes, cu
                     </span>
                 </div>
             )}
-            <Link href={store?.subDomain ? getStoreSubdomainUrl({ subdomain: store.subDomain }) : `/admin/stores/${store.$id}`} target={store?.subDomain ? '_blank' : '_parent'}>
+            <Link href={linkUrl} target={linkTarget}>
                 <CardHeader className="p-0">
                     {primaryBannerUrl ? (
                         <div className="relative h-48 w-full">

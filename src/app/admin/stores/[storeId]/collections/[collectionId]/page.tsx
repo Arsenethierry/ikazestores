@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from 'next/image';
 import { DeleteCollectionButton } from '@/features/collections/components/delete-collection-button';
 import { Suspense } from 'react';
-import { getCollectionById } from '@/features/collections/actions/collections-actions';
+import { getCollectionById } from '@/lib/actions/collections-actions';
 import { ProductSekeleton } from '@/features/products/components/products-list-sekeleton';
 import { CollectionProducts } from '@/features/collections/components/collection-products';
 

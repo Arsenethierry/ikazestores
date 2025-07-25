@@ -2,7 +2,6 @@ import { AccessDeniedCard } from "@/components/access-denied-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProductForm } from "@/features/products/components/product-form";
 import { getPhysicalStoreById } from "@/lib/actions/physical-store.action";
 import { getAuthState } from "@/lib/user-permission";
 import { AlertTriangle, ArrowLeft, Package2, Tags, Layers } from "lucide-react";
@@ -10,6 +9,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { getCategories, getProductTypes, getVariantTemplates } from "@/features/variants management/ecommerce-catalog";
+import { ProductForm } from "@/features/products/components/original-product-form/product-form";
 
 interface ProductCreatePageProps {
     params: Promise<{ storeId: string }>;

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
@@ -14,18 +13,17 @@ import { CollectionSchema, UpdateCollectionForm } from "@/lib/schemas/products-s
 import { CollectionTypes, CurrentUserType } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, Loader } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { createNewCollection } from "../actions/collections-actions";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { convertFileToUrl } from "@/lib/utils";
+import { useCreateCollection, useUpdateCollection } from "@/hooks/queries-and-mutations/use-products-collections";
 
 export const CollectionForm = ({
     currentUser,
@@ -38,54 +36,13 @@ export const CollectionForm = ({
 }) => {
     const [showPreview, setShowPreview] = useState(false);
 
+    const createCollectionMutation = useCreateCollection();
+    const updateCollectionMutation = useUpdateCollection();
+
     const isEditMode = !!initialValues;
     const router = useRouter();
 
     const formSchema = isEditMode ? UpdateCollectionForm : CollectionSchema;
-
-    // const {
-    //     execute: updateCollectionAction,
-    //     isPending: isUpdating,
-    //     result: updateCollectionResponse
-    // } = useAction(updateCollection, {
-    //     onSuccess: ({ data }) => {
-    //         if (data?.success) {
-    //             toast.success(data?.success)
-    //             if (storeId) {
-    //                 router.push(`/admin/stores/${storeId}/collections`)
-    //             } else {
-    //                 router.push(`/admin/collections`)
-    //             }
-    //         } else if (data?.error) {
-    //             toast.error(data?.error)
-    //         }
-    //     },
-    //     onError: ({ error }) => {
-    //         toast.error(error.serverError)
-    //     }
-    // });
-
-    const {
-        execute: createCollectionAction,
-        isPending: isCreatingCollection,
-        result: createCollectionRes
-    } = useAction(createNewCollection, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data?.success)
-                if (storeId) {
-                    router.push(`/admin/stores/${storeId}/collections`)
-                } else {
-                    router.push(`/admin/collections`)
-                }
-            } else if (data?.error) {
-                toast.error(data?.error)
-            }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    });
 
     const [CancelDialog, confirmCancelEdit] = useConfirm(
         "Are you sure you want to cancel?",
@@ -158,13 +115,12 @@ export const CollectionForm = ({
                     ...updatedValues,
                     collectionId: initialValues.$id
                 };
-                console.log(formData);
-                // updateCollectionAction(formData);
+                updateCollectionMutation.mutate(formData);
             } else {
                 toast.info("No changes detected");
             }
         } else {
-            createCollectionAction(values as z.infer<typeof CollectionSchema>)
+            createCollectionMutation.mutate(values as z.infer<typeof CollectionSchema>)
         }
     };
 
@@ -174,11 +130,9 @@ export const CollectionForm = ({
         router.back()
     }
 
-    // const isLoading = isCreatingCollection || isUpdating;
-    const isLoading = isCreatingCollection;
+    const isLoading = createCollectionMutation.isPending || updateCollectionMutation.isPending;
 
-    // const error = isEditMode ? updateCollectionResponse.data?.error : createCollectionRes.data?.error;
-    const error = createCollectionRes.data?.error;
+    const error = createCollectionMutation.error?.message || updateCollectionMutation.error?.message;
 
     const HeroCarouselPreview = ({ formData }: { formData: any }) => {
         console.log("formData: ", formData)

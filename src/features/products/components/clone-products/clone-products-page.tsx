@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useInfiniteOriginalProducts, useNearbyProducts } from "../../queries/use-virtual-products-queries";
-import { CurrentUserType, ProductFilters } from "@/lib/types";
+import { CurrentUserType, OriginalProductTypes, ProductFilters } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, MapPin, Package } from "lucide-react";
 import { ProductsFilters } from "./products-filters";
 import { Button } from "@/components/ui/button";
 import { PhysicalProductCard } from "../product-cards/physical-product-card";
 import SpinningLoader from "@/components/spinning-loader";
+import { useInfiniteOriginalProducts, useNearbyProducts } from "@/hooks/queries-and-mutations/use-original-products-queries";
 
 const CloneProductsPage: React.FC<{ storeId: string, user: CurrentUserType }> = ({ storeId, user }) => {
     const [filters, setFilters] = useState<ProductFilters>({
@@ -95,7 +95,7 @@ const CloneProductsPage: React.FC<{ storeId: string, user: CurrentUserType }> = 
                     ) : (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {allProducts.map((product) => (
+                                {allProducts.map((product: OriginalProductTypes) => (
                                     <PhysicalProductCard
                                         key={product.$id}
                                         product={product}
@@ -151,7 +151,7 @@ const CloneProductsPage: React.FC<{ storeId: string, user: CurrentUserType }> = 
                         ) : (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {nearbyProducts && nearbyProducts.map((product) => (
+                                    {nearbyProducts && nearbyProducts.map((product: OriginalProductTypes) => (
                                         <PhysicalProductCard
                                             key={product.$id}
                                             product={product}

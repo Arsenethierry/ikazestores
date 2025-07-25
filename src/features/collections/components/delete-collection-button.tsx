@@ -1,10 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useDeleteCollection } from "@/hooks/queries-and-mutations/use-products-collections";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useAction } from "next-safe-action/hooks";
-import { deleteCollection } from "../actions/collections-actions";
-import { toast } from "sonner";
 import { CollectionTypes } from "@/lib/types";
 import { Loader, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -26,34 +24,21 @@ export const DeleteCollectionButton = ({
         "destructive"
     );
 
-    const {
-        execute,
-        isPending
-    } = useAction(deleteCollection, {
-        onSuccess: ({ data }) => {
-            if (data?.success) {
-                toast.success(data?.success);
+    const { mutate: deleteCollection, isPending } = useDeleteCollection();
+
+    const handleDeleteCollection = async () => {
+        const ok = await confirmDelete();
+        if (!ok) return;
+        
+        deleteCollection(collection.$id, {
+            onSuccess: () => {
                 if (isSystemAdmin) {
                     router.push(`/admin/collections`)
                 } else {
                     router.push(`/admin/stores/${storeId}/collections`)
                 }
-            } else if (data?.error) {
-                toast.error(data?.error)
             }
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError)
-        }
-    })
-
-    const handleDeleteCollection = async () => {
-        const ok = await confirmDelete();
-        if (!ok) return;
-        execute({
-            bannerImageId: collection?.bannerImageId,
-            collectionId: collection.$id
-        })
+        });
     }
 
     return (

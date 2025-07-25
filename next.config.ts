@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         pathname: '/v1/storage/**',
       },
       {
+        hostname: 'fra.cloud.appwrite.io',
+        protocol: 'https',
+      },
+      {
         protocol: 'https',
         hostname: 'images.pexels.com',
         port: '',
@@ -37,6 +41,10 @@ const nextConfig: NextConfig = {
       {
         hostname: "placeimg.com",
         protocol: "https",
+      },
+      {
+        hostname: "images.unsplash.com",
+        protocol: "https"
       }
     ],
   },

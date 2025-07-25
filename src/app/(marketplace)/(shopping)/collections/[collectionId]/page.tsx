@@ -2,7 +2,7 @@ import { NoItemsCard } from '@/components/no-items-card';
 import { CollectionGroupPaginationComponent } from '@/features/collections/collection-group-pagination';
 import SpinningLoader from '@/components/spinning-loader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getCollectionById } from '@/features/collections/actions/collections-actions';
+import { getCollectionById } from '@/lib/actions/collections-actions';
 import { CollectionGroups } from '@/features/collections/components/collection-groups';
 import { CollectionProducts } from '@/features/collections/components/collection-products';
 import { CollectionGroupsTypes } from '@/lib/types';

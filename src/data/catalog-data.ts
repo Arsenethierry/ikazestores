@@ -3,10 +3,12 @@ export const catalogData = {
         {
             "id": "fashion-apparel",
             "name": "Fashion & Apparel",
+            "iconUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "mens-clothing",
                     "name": "Men's Clothing",
+                    "iconUrl": "https://images.unsplash.com/photo-1516257984-b1b4d707412e?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "shirts-tops",
                         "pants-bottoms",
@@ -20,6 +22,7 @@ export const catalogData = {
                 {
                     "id": "womens-clothing",
                     "name": "Women's Clothing",
+                    "iconUrl": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "tops-blouses",
                         "dresses",
@@ -34,6 +37,7 @@ export const catalogData = {
                 {
                     "id": "shoes",
                     "name": "Shoes",
+                    "iconUrl": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "athletic-shoes",
                         "casual-shoes",
@@ -47,6 +51,7 @@ export const catalogData = {
                 {
                     "id": "accessories",
                     "name": "Accessories",
+                    "iconUrl": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "bags-handbags",
                         "jewelry",
@@ -63,10 +68,12 @@ export const catalogData = {
         {
             "id": "electronics-technology",
             "name": "Electronics & Technology",
+            "iconUrl": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "smartphones-mobile",
                     "name": "Smartphones & Mobile",
+                    "iconUrl": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "smartphones",
                         "phone-cases-covers",
@@ -79,6 +86,7 @@ export const catalogData = {
                 {
                     "id": "computers-laptops",
                     "name": "Computers & Laptops",
+                    "iconUrl": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "desktop-computers",
                         "laptops",
@@ -92,6 +100,7 @@ export const catalogData = {
                 {
                     "id": "audio-video",
                     "name": "Audio & Video",
+                    "iconUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "headphones-earbuds",
                         "speakers",
@@ -104,6 +113,7 @@ export const catalogData = {
                 {
                     "id": "smart-home-iot",
                     "name": "Smart Home & IoT",
+                    "iconUrl": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "smart-speakers",
                         "security-cameras",
@@ -118,10 +128,12 @@ export const catalogData = {
         {
             "id": "home-garden",
             "name": "Home & Garden",
+            "iconUrl": "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "furniture",
                     "name": "Furniture",
+                    "iconUrl": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "living-room",
                         "bedroom",
@@ -134,6 +146,7 @@ export const catalogData = {
                 {
                     "id": "home-decor",
                     "name": "Home Decor",
+                    "iconUrl": "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "wall-art-prints",
                         "candles-fragrances",
@@ -146,6 +159,7 @@ export const catalogData = {
                 {
                     "id": "kitchen-dining",
                     "name": "Kitchen & Dining",
+                    "iconUrl": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "cookware-bakeware",
                         "kitchen-appliances",
@@ -158,6 +172,7 @@ export const catalogData = {
                 {
                     "id": "garden-outdoor",
                     "name": "Garden & Outdoor",
+                    "iconUrl": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "plants-seeds",
                         "garden-tools",
@@ -172,10 +187,12 @@ export const catalogData = {
         {
             "id": "health-beauty",
             "name": "Health & Beauty",
+            "iconUrl": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "skincare",
                     "name": "Skincare",
+                    "iconUrl": "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "cleansers",
                         "moisturizers",
@@ -188,6 +205,7 @@ export const catalogData = {
                 {
                     "id": "makeup",
                     "name": "Makeup",
+                    "iconUrl": "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "face-makeup",
                         "eye-makeup",
@@ -200,6 +218,7 @@ export const catalogData = {
                 {
                     "id": "hair-care",
                     "name": "Hair Care",
+                    "iconUrl": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "shampoo-conditioner",
                         "styling-products",
@@ -212,6 +231,7 @@ export const catalogData = {
                 {
                     "id": "personal-care",
                     "name": "Personal Care",
+                    "iconUrl": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "oral-care",
                         "body-care",
@@ -226,10 +246,12 @@ export const catalogData = {
         {
             "id": "sports-outdoors",
             "name": "Sports & Outdoors",
+            "iconUrl": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "exercise-fitness",
                     "name": "Exercise & Fitness",
+                    "iconUrl": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "cardio-equipment",
                         "strength-training",
@@ -242,6 +264,7 @@ export const catalogData = {
                 {
                     "id": "outdoor-recreation",
                     "name": "Outdoor Recreation",
+                    "iconUrl": "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "camping-hiking",
                         "water-sports",
@@ -254,6 +277,7 @@ export const catalogData = {
                 {
                     "id": "team-sports",
                     "name": "Team Sports",
+                    "iconUrl": "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "football",
                         "basketball",
@@ -268,10 +292,12 @@ export const catalogData = {
         {
             "id": "books-movies-music",
             "name": "Books, Movies & Music",
+            "iconUrl": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "books",
                     "name": "Books",
+                    "iconUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "fiction",
                         "non-fiction",
@@ -284,6 +310,7 @@ export const catalogData = {
                 {
                     "id": "movies-tv",
                     "name": "Movies & TV",
+                    "iconUrl": "https://images.unsplash.com/photo-1489599096828-45b069c5b90c?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "dvds-blurays",
                         "digital-movies",
@@ -294,6 +321,7 @@ export const catalogData = {
                 {
                     "id": "music",
                     "name": "Music",
+                    "iconUrl": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "cds-vinyl",
                         "digital-music",
@@ -306,10 +334,12 @@ export const catalogData = {
         {
             "id": "automotive",
             "name": "Automotive",
+            "iconUrl": "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "car-parts-accessories",
                     "name": "Car Parts & Accessories",
+                    "iconUrl": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "interior-accessories",
                         "exterior-accessories",
@@ -322,6 +352,7 @@ export const catalogData = {
                 {
                     "id": "motorcycles-atvs",
                     "name": "Motorcycles & ATVs",
+                    "iconUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "motorcycle-parts",
                         "protective-gear",
@@ -333,10 +364,12 @@ export const catalogData = {
         {
             "id": "baby-kids",
             "name": "Baby & Kids",
+            "iconUrl": "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "baby-care",
                     "name": "Baby Care",
+                    "iconUrl": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "feeding",
                         "diapering",
@@ -349,6 +382,7 @@ export const catalogData = {
                 {
                     "id": "kids-clothing",
                     "name": "Kids' Clothing",
+                    "iconUrl": "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "boys-clothing",
                         "girls-clothing",
@@ -360,6 +394,7 @@ export const catalogData = {
                 {
                     "id": "toys-games",
                     "name": "Toys & Games",
+                    "iconUrl": "https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "educational-toys",
                         "action-figures",
@@ -374,10 +409,12 @@ export const catalogData = {
         {
             "id": "food-beverages",
             "name": "Food & Beverages",
+            "iconUrl": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400&h=400&fit=crop&crop=center",
             "subcategories": [
                 {
                     "id": "grocery",
                     "name": "Grocery",
+                    "iconUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "fresh-produce",
                         "pantry-staples",
@@ -390,6 +427,7 @@ export const catalogData = {
                 {
                     "id": "specialty-foods",
                     "name": "Specialty Foods",
+                    "iconUrl": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop&crop=center",
                     "productTypes": [
                         "gourmet-foods",
                         "international-cuisine",

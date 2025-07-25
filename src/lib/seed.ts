@@ -1,91 +1,114 @@
-// app/actions/seed-database.js
-'use server'
-
-import { ID } from "node-appwrite";
+import { catalogData } from "@/data/catalog-data";
 import { createAdminClient } from "./appwrite";
-import { DATABASE_ID, ORIGINAL_PRODUCT_ID } from "./env-config";
+import { CATEGORIES_COLLECTION_ID, DATABASE_ID, SUB_CATEGORIES_ID } from "./env-config";
 
-export async function seedProducts({ userId, storeId }: { storeId: string, userId: string }) {
-    const { databases } = await createAdminClient()
+function createSlug(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+        .replace(/\s+/g, '-')     // Replace spaces with hyphens
+        .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
+        .trim();
+};
 
-    // Configuration from environment variables
-    const PRODUCTS_API = 'https://api.escuelajs.co/api/v1/products';
-    const PRODUCTS_TO_FETCH = 20;
-    const categories = ["67bd92b5002c66c5d4f0", "67bd927300076cdc2440", "67bd924e0018aa3d5607"];
+const CREATED_BY = "685fcbd60004a06594e4";
 
-    try {
-        // Fetch products from the API
-        const response = await fetch(PRODUCTS_API);
+async function seedCategories() {
+    const { databases } = await createAdminClient();
 
-        if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
+    console.log('Starting category seeding...');
+    const createdCategories: Record<string, string> = {};
+
+    for (let i = 0; i < catalogData.categories.length; i++) {
+        const category = catalogData.categories[i];
+
+        try {
+            const categoryDocument = await databases.createDocument(
+                DATABASE_ID,
+                CATEGORIES_COLLECTION_ID,
+                `${category.id}`,
+                {
+                    categoryName: category.name,
+                    slug: createSlug(category.name),
+                    createdBy: CREATED_BY,
+                    storeId: null,
+                    isActive: true,
+                    sortOrder: i + 1,
+                    iconUrl: category.iconUrl,
+                    iconFileId: null
+                }
+            );
+
+            createdCategories[category.id] = categoryDocument.$id;
+
+            console.log(`✅ Created category: ${category.name} (${categoryDocument.$id})`);
+        } catch (error) {
+            console.error(`❌ Failed to create category ${category.name}:`, error);
+        }
+    }
+
+    return createdCategories;
+};
+
+async function seedSubcategories(categoryMapping: Record<string, string>) {
+    const { databases } = await createAdminClient();
+
+    console.log('Starting subcategory seeding...');
+
+    for (const category of catalogData.categories) {
+        const parentCategoryId = categoryMapping[category.id];
+
+        if (!parentCategoryId) {
+            console.error(`❌ Parent category ID not found for: ${category.name}`);
+            continue;
         }
 
-        const allProducts = await response.json();
-        const products = allProducts.slice(0, PRODUCTS_TO_FETCH);
-
-        console.log(`Fetched ${products.length} products. Starting database population...`);
-
-        const successfullyAdded = [];
-        const errors = [];
-
-        // Add each product to the database
-        for (const product of products) {
+        for (const subcategory of category.subcategories) {
             try {
-                // Transform the product data to match your collection structure
-                const productData = {
-                    title: product.title,
-                    price: product.price,
-                    description: product.description,
-                    categoryId: product.category.id,
-                    categoryName: product.category.name,
-                    categorySlug: product.category.slug,
-                    categoryImage: product.category.image,
-                    images: product.images,
-                };
-
-                // Create the document in Appwrite
-                const result = await databases.createDocument(
+                const subcategoryDocument = await databases.createDocument(
                     DATABASE_ID,
-                    ORIGINAL_PRODUCT_ID,
-                    ID.unique(),
+                    SUB_CATEGORIES_ID,
+                    `${subcategory.id}`,
                     {
-                        title: productData.title,
-                        description: productData.description,
-                        price: productData.price,
-                        createdBy: userId,
-                        imageUrls: productData.images,
-                        store: storeId,
-                        category: categories[Math.floor(Math.random() * categories.length)],
-                        seeded: true,
+                        subCategoryName: subcategory.name,
+                        slug: createSlug(subcategory.name),
+                        categoryId: parentCategoryId,
+                        parentCategoryId: parentCategoryId,
+                        createdBy: CREATED_BY,
+                        isActive: true,
+                        productTypes: subcategory.productTypes.map(type => type),
+                        iconUrl: subcategory.iconUrl,
+                        iconFileId: null
                     }
                 );
 
-                successfullyAdded.push(result.$id);
-                console.log(`Added product: ${product.title} (ID: ${result.$id})`);
-            } catch (docError) {
-                console.error(`Error adding product "${product.title}":`, docError);
-                errors.push({
-                    product: product.title,
-                    error: docError instanceof Error ? docError.message : docError
-                });
+                console.log(`✅ Created subcategory: ${subcategory.name} under ${category.name} (${subcategoryDocument.$id})`);
+            } catch (error) {
+                console.error(`❌ Failed to create subcategory ${subcategory.name}:`, error);
             }
         }
+    }
+};
 
-        // Return a summary of the operation
+export async function seedProductCatalog() {
+    try {
+        console.log('🌱 Starting product catalog seeding...');
+        const categoryMapping = await seedCategories();
+        await seedSubcategories(categoryMapping);
+        console.log('🎉 Product catalog seeding completed successfully!');
+
         return {
             success: true,
-            added: successfullyAdded.length,
-            failed: errors.length,
-            productIds: successfullyAdded,
-            errors: errors.length > 0 ? errors : undefined
+            message: 'Product catalog seeded successfully',
+            categoriesCreated: Object.keys(categoryMapping).length,
+            subcategoriesCreated: catalogData.categories.reduce((total, cat) => total + cat.subcategories.length, 0)
         };
-
     } catch (error) {
-        console.error('Failed to seed database:', error);
+        console.error('💥 Seeding failed:', error);
         return {
             success: false,
-            error: error instanceof Error ? error.message : error
+            message: 'Seeding failed',
+            error: error instanceof Error ? error.message : 'Unknown error'
         };
     }
 }

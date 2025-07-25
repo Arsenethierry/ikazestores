@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CurrentUserType } from '@/lib/types';
-import { VirtualStoreForm } from './vitual-store-form ';
+import { VirtualStoreForm } from './virtual-store-form ';
 import { PhysicalStoreForm } from './physical-store-form';
 
 export const CreateStoresTabs = ({

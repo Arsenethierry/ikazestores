@@ -1,11 +1,12 @@
 import VSFooter from "@/features/stores/components/home-page/virtual-shop/footer";
 import { StoreProductsList } from "@/features/products/components/store-products-list";
 import { getQueryClient } from "@/lib/get-query-client";
-import { getVirtualStoreById } from "@/lib/actions/vitual-store.action";
+import { getVirtualStoreById } from "@/lib/actions/virtual-store.action";
 import { TenantHomeHeroSection } from "@/features/stores/components/home-page/tenant-homepage-hero-section";
 import { Suspense } from "react";
 import SpinningLoader from "@/components/spinning-loader";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { virtualStoreKeys } from "@/hooks/queries-and-mutations/query-keys";
 
 function StoreErrorBoundary({
     storeId
@@ -37,7 +38,7 @@ async function page({
 
     try {
         await queryClient.prefetchQuery({
-            queryKey: ['virtualStore', currentStoreId],
+            queryKey: virtualStoreKeys.detail(currentStoreId),
             queryFn: () => getVirtualStoreById(currentStoreId),
         });
 

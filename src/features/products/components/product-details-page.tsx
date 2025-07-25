@@ -3,7 +3,7 @@ import { ProductImagesZoomComponent } from './product-images-zoom-component';
 import DOMPurify from "isomorphic-dompurify";
 import { Suspense } from 'react';
 import SpinningLoader from '@/components/spinning-loader';
-import { ProductViewer } from '../use-recently-viewed-products';
+import { ProductViewer } from '../../../hooks/queries-and-mutations/use-recently-viewed-products';
 
 export const ProductDetails = ({ product }: { product: VirtualProductTypes, }) => {
     const productDesc = DOMPurify.sanitize(product.description, { USE_PROFILES: { html: true } });
@@ -12,14 +12,16 @@ export const ProductDetails = ({ product }: { product: VirtualProductTypes, }) =
         <div className='container mx-auto px-4 py-8'>
             <ProductViewer product={product} />
             <div className='flex flex-col md:flex-row gap-8 relative min-h-screen'>
-                <div className='md:w-1/2 lg:w-2/5'>
-                    <Suspense fallback={<SpinningLoader />}>
-                        <ProductImagesZoomComponent
-                            productImages={product.generalImageUrls}
-                            productTitle={product.title}
-                        />
-                    </Suspense>
-                </div>
+                {product.generalImageUrls && (
+                    <div className='md:w-1/2 lg:w-2/5'>
+                        <Suspense fallback={<SpinningLoader />}>
+                            <ProductImagesZoomComponent
+                                productImages={product.generalImageUrls}
+                                productTitle={product.title}
+                            />
+                        </Suspense>
+                    </div>
+                )}
                 <div className="product-info md:w-1/2 lg:w-3/5">
                     <h1 className="text-2xl font-bold mb-2">{product.title}</h1>
                     <div className="space-y-4" dangerouslySetInnerHTML={{ __html: productDesc }}></div>

@@ -1,6 +1,11 @@
 import { Models } from "node-appwrite";
 import { UserAccountType, UserRole } from "./constants";
 import { ProductCombination } from "./schemas/product-variants-schema";
+import { PhysicalProducts, ProductsCollectionGroups, ProductsCollections, VirtualProducts, VirtualStore } from "./types/appwrite/appwrite";
+import z from "zod";
+import { createPhysicalStoreFormSchema, createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "./schemas/stores-schema";
+import { PhysicalStore } from "@/lib/types/appwrite/appwrite"
+import { VirtualProductSchema } from "./schemas/products-schems";
 
 export type SignInParams = {
     email: string;
@@ -82,48 +87,7 @@ export interface AuthState {
     hasStorePermission: (storeId: string, permission: 'read' | 'write' | 'delete') => boolean;
     canAccessResource: (resource: string, permission: 'read' | 'write' | 'delete') => boolean;
 }
-
-export interface PhysicalStoreTypes extends Models.Document {
-    storeName: string,
-    owner: string,
-    description?: string,
-    bio?: string,
-    storeType: 'physicalStore' | 'virtualStore',
-    products?: Models.Document[],
-    latitude?: number,
-    longitude?: number,
-    address?: string,
-    country: string,
-    storeLogoUrl: string & File | undefined,
-    createFrom?: string,
-    storeLogoId?: string;
-    currency: string
-};
-export interface OriginalProductTypes extends Models.Document {
-    name: string,
-    description: string,
-    shortDescription?: string;
-    sku: string;
-    basePrice: number;
-    status: 'active' | 'archived' | 'draft',
-    featured: boolean;
-    categoryId: string;
-    subcategoryId: string;
-    productTypeId: string;
-    tags: string[],
-    weight: number,
-    dimensions: string;
-    hasVariants: boolean;
-    variantIds: string[];
-    combinationIds: string[],
-    images: string[],
-    storeLat: number;
-    storeLong: number;
-    storeOriginCountry: string;
-    createdBy: string;
-    currency: string;
-}
-
+export type OriginalProductTypes = PhysicalProducts
 export interface OriginalProductWithVirtualProducts extends OriginalProductTypes {
     combinations?: ProductCombinationTypes[];
     virtualProducts: VirtualProductTypes[];
@@ -144,37 +108,9 @@ export interface ProductCombinationTypes extends Models.Document {
     dimensions?: string;
     images?: string[]
 }
-export interface VirtualProductTypes extends Models.Document {
-    purchasePrice: number;
-    sellingPrice: number;
-    createdBy: string;
-    title: string;
-    description: string;
-    generalImageUrls: string[];
-    originalProductId: string;
-    virtualStore: VirtualStoreTypes;
-    virtualStoreId: string;
-    archived: boolean;
-    categoryNames?: string[];
-    currency: string;
-}
+export type VirtualProductTypes = VirtualProducts
 
-export interface VirtualStoreTypes extends Models.Document {
-    storeName: string,
-    owner: string,
-    description?: string,
-    storeBio?: string,
-    bannerUrls?: string[] & File[] | undefined;
-    bannerIds?: string[];
-    storeType: 'physicalStore' | 'virtualStore',
-    country: string,
-    storeLogoUrl: string & File | undefined,
-    storeLogoId?: string
-    subDomain: string;
-    virtualProductsIds?: string[],
-    locale?: string;
-    operatingCountries: string[]
-};
+export interface VirtualStoreTypes extends VirtualStore { };
 export interface ColorImagesTypes extends Models.Document {
     colorName: string,
     imageId: string,
@@ -235,33 +171,8 @@ export type VirtualProductsSearchParams = {
     query?: string;
 }
 
-export interface CollectionTypes extends Models.Document {
-    collectionName: string;
-    bannerImageUrl?: string;
-    bannerImageId?: string;
-    productIds?: string[];
-    description?: string;
-    storeId?: string;
-    createdBy: string;
-    featured: boolean;
-    type: 'simple' | 'grouped';
-    groups: string[],
-    heroTitle?: string;
-    heroSubtitle?: string;
-    heroDescription?: string;
-    heroButtonText?: string;
-    heroImageUrl?: string
-}
-
-export interface CollectionGroupsTypes extends Models.Document {
-    groupImageUrl: string;
-    groupImageId: string;
-    groupName: string;
-    displayOrder: number;
-    collectionId: number;
-    productsIds?: string[]
-}
-
+export type CollectionTypes = ProductsCollections
+export type CollectionGroupsTypes = ProductsCollectionGroups
 export interface SavedItemType extends Models.Document {
     userId: string;
     productId: string;
@@ -283,12 +194,12 @@ export interface ProductFilters {
     categoryId?: string;
     subcategoryId?: string;
     productTypeId?: string;
-    status?: string;
+    status?: "active" | "inactive" | "draft" | 'all';
     featured?: boolean;
     search?: string;
     tags?: string[];
-    priceMin?: number;
-    priceMax?: number;
+    minPrice?: number;
+    maxPrice?: number;
     sortBy?: 'name' | 'price' | 'created' | 'updated';
     sortOrder?: 'asc' | 'desc';
     userLat?: number;
@@ -296,3 +207,9 @@ export interface ProductFilters {
     radiusKm?: number;
     combinations?: ProductCombination[]
 }
+
+export type CreateVirtualStoreTypes = z.infer<typeof createVirtualStoreFormSchema>
+export type UpdateVirtualStoreTypes = z.infer<typeof updateVirtualStoreFormSchema>
+export type CreatePhysicalStoreTypes = z.infer<typeof createPhysicalStoreFormSchema>
+export type PhysicalStoreTypes = PhysicalStore
+export type CreateVirtualProductTypes = z.infer<typeof VirtualProductSchema>

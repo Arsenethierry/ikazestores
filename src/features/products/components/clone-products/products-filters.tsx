@@ -40,8 +40,8 @@ export const ProductsFilters: FC<FiltersProps> = ({ filters, onFiltersChange, is
             productTypeId: undefined,
             status: undefined,
             featured: undefined,
-            priceMin: undefined,
-            priceMax: undefined,
+            minPrice: undefined,
+            maxPrice: undefined,
             sortBy: undefined,
             sortOrder: undefined,
         });
@@ -156,22 +156,22 @@ export const ProductsFilters: FC<FiltersProps> = ({ filters, onFiltersChange, is
                         </div>
 
                         <div>
-                            <Label htmlFor="priceMin">Min Price</Label>
+                            <Label htmlFor="minPrice">Min Price</Label>
                             <Input
                                 type="number"
                                 placeholder="0"
-                                value={filters.priceMin || ''}
-                                onChange={(e) => handleFilterChange('priceMin', e.target.value ? Number(e.target.value) : undefined)}
+                                value={filters.minPrice || ''}
+                                onChange={(e) => handleFilterChange('minPrice', e.target.value ? Number(e.target.value) : undefined)}
                             />
                         </div>
 
                         <div>
-                            <Label htmlFor="priceMax">Max Price</Label>
+                            <Label htmlFor="maxPrice">Max Price</Label>
                             <Input
                                 type="number"
                                 placeholder="999999"
-                                value={filters.priceMax || ''}
-                                onChange={(e) => handleFilterChange('priceMax', e.target.value ? Number(e.target.value) : undefined)}
+                                value={filters.maxPrice || ''}
+                                onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
                             />
                         </div>
 

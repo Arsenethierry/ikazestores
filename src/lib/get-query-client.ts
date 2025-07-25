@@ -1,4 +1,3 @@
-// app/get-query-client.ts
 import {
     isServer,
     QueryClient,
@@ -12,7 +11,6 @@ function makeQueryClient() {
                 staleTime: 60 * 1000,
             },
             dehydrate: {
-                // include pending queries in dehydration
                 shouldDehydrateQuery: (query) =>
                     defaultShouldDehydrateQuery(query) ||
                     query.state.status === 'pending',

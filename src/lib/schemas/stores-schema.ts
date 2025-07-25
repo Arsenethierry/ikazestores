@@ -12,16 +12,20 @@ export const createPhysicalStoreFormSchema = z.object({
     currency: z.string()
 });
 
-export const UpdatePhysicalStoreFormSchema = z.object({
+export const updatePhysicalStoreFormSchema = z.object({
     storeId: z.string().min(1),
     storeName: z.string().min(1).max(255).optional(),
-    desccription: z.string().max(500).optional(),
+    description: z.string().max(255).optional(),
     storeBio: z.string().max(255).optional(),
-    storeLogo: z.custom<File[]>().optional(),
+    address: z.string().min(5).optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    country: z.string().optional(),
+    currency: z.string().optional(),
+    storeLogo: z.union([z.custom<File>(), z.string()]).optional(),
     storeLogoUrl: z.string().optional(),
     storeLogoId: z.string().optional(),
-    oldFileId: z.string().optional().nullable(),
-    currency: z.string().optional()
+    oldFileId: z.string().optional().nullable()
 });
 
 export const createVirtualStoreFormSchema = z.object({
@@ -46,8 +50,12 @@ export const updateVirtualStoreFormSchema = z.object({
     storeBanner: z.custom<File[]>().optional(),
     bannerUrls: z.array(z.string()).optional(),
     bannerIds: z.array(z.string()).optional(),
-    storeLogo: z.custom<File[]>().optional(),
+    storeLogo: z.union([z.custom<File>(), z.string()]).optional(),
     storeLogoUrl: z.string().optional(),
     storeLogoId: z.string().optional(),
     oldFileId: z.string().optional().nullable(),
+    operatingCountries: z.array(z.object({
+        value: z.string(),
+        label: z.string()
+    })).min(1, { message: "Select at least one operating country" }).optional()
 });

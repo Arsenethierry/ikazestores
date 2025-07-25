@@ -1,8 +1,8 @@
 import { AccessDeniedCard } from '@/components/access-denied-card';
 import { PhysicalStoreForm } from '@/features/stores/components/physical-store-form';
-import { VirtualStoreForm } from '@/features/stores/components/vitual-store-form ';
+import { VirtualStoreForm } from '@/features/stores/components/virtual-store-form ';
 import { getPhysicalStoreById } from '@/lib/actions/physical-store.action';
-import { getVirtualStoreById } from '@/lib/actions/vitual-store.action';
+import { getVirtualStoreById } from '@/lib/actions/virtual-store.action';
 import { getAuthState, isStoreOwner } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';

@@ -1,13 +1,13 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { getVirtualProductById } from '@/features/products/actions/virtual-products-actions';
+import { getVirtualProductById } from '@/lib/actions/virtual-products-actions';
 import Image from 'next/image';
 import { OrderTypes } from '@/lib/types';
 import { NoItemsCard } from '@/components/no-items-card';
 
 export const OrderItemRow = async ({ item }: { item: OrderTypes }) => {
-    const product = await getVirtualProductById(item.productId);
-
+    const productRes = await getVirtualProductById(item.productId);
+    const product = productRes.data
     if(!product) return <NoItemsCard />
 
     return (

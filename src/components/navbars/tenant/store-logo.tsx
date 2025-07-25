@@ -1,4 +1,4 @@
-import { getVirtualStoreById } from "@/lib/actions/vitual-store.action"
+import { getVirtualStoreById } from "@/lib/actions/virtual-store.action"
 import { cn, generateColorFromName, getStoreLogoInitials, splitStoreName } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";

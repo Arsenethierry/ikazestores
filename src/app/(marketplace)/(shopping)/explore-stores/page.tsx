@@ -1,5 +1,5 @@
 import { StoreCard } from '@/features/stores/components/store-card';
-import { getAllVirtualStores } from '@/lib/actions/vitual-store.action';
+import { getAllVirtualStores } from '@/lib/actions/virtual-store.action';
 import { getAuthState } from '@/lib/user-permission';
 import React from 'react';
 

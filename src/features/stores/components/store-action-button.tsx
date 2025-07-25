@@ -12,11 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/hooks/use-confirm";
 import { Bolt, Ellipsis, Trash } from "lucide-react";
-import { useDeleteVirtualStore } from "../mutations/use-virtual-store-mutations";
-import { useDeletePhysicalStore } from "../mutations/use-physical-store-mutations";
+import { useDeleteVirtualStore } from "../../../hooks/queries-and-mutations/use-virtual-store";
+import { useDeletePhysicalStore } from "../../../hooks/queries-and-mutations/use-physical-store";
 import { useRouter } from "next/navigation";
+import { PhysicalStoreTypes, VirtualStoreTypes } from "@/lib/types";
+import { getStoreSubdomainUrl } from "@/lib/domain-utils";
+import Link from 'next/link';
 
-export const StoreQuickActions = ({ store }: { store: any }) => {
+export const StoreQuickActions = ({ store }: { store: VirtualStoreTypes | PhysicalStoreTypes }) => {
     const router = useRouter();
 
     const { mutate: deleteVirtualStore } = useDeleteVirtualStore();
@@ -34,14 +37,10 @@ export const StoreQuickActions = ({ store }: { store: any }) => {
 
         if (!ok) return;
         if (store.storeType === 'virtualStore') {
-            deleteVirtualStore([store.$id, store.bannerIds, store.storeLogoId])
+            deleteVirtualStore(store.$id)
         } else if (store.storeType === 'physicalStore') {
-            deletePhysicalStore([store.$id, store.bannerIds])
+            deletePhysicalStore({ storeId: store.$id, bannerIds: store.bannerIds })
         }
-    }
-
-    const handleNavigateStore = () => {
-        router.push(``)
     }
 
     return (
@@ -68,10 +67,12 @@ export const StoreQuickActions = ({ store }: { store: any }) => {
                         Edit
                     </DropdownMenuItem>
                     {store.storeType === 'virtualStore' && (
-                        <DropdownMenuItem onClick={handleNavigateStore}>
-                            <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
-                            Go to store
-                        </DropdownMenuItem>
+                        <Link href={getStoreSubdomainUrl({ subdomain: store.subDomain })} target="_blank" className="cursor-pointer">
+                            <DropdownMenuItem>
+                                <Bolt size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
+                                Go to store
+                            </DropdownMenuItem>
+                        </Link>
                     )}
                     <DropdownMenuItem
                         onClick={handleDeleteStore}

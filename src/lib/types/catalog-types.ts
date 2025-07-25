@@ -1,6 +1,7 @@
 export interface Category {
     id: string;
     name: string;
+    storeId?: string | null;
     subcategories?: Subcategory[];
 }
 
@@ -8,6 +9,8 @@ export interface Subcategory {
     id: string;
     name: string;
     productTypes: string[];
+    categoryId: string;
+    storeId?: string | null,
 }
 
 export interface ProductType {

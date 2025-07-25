@@ -1,12 +1,9 @@
 "use client";
 
 import { GroupProductSelector } from "@/features/collections/components/group-select-products-list";
-import { getAllVirtualProducts, getVirtualStoreProducts } from "@/features/products/actions/virtual-products-actions";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import React, { useEffect, useState } from "react";
 import { useQueryState } from "nuqs";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { addProductsToCollection, getCollectionProducts } from "@/features/collections/actions/collections-actions";
 import { toast } from "sonner";
 import { Info, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -15,6 +12,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CollectionProductsPagination } from "./collection-products-pagination";
 import { usePathname } from "next/navigation";
 import { ClientVirtualProductCard } from "@/features/products/components/product-cards/client-virtual-product-card";
+import {
+    useGetAllVirtualProducts,
+    useGetVirtualStoreProducts
+} from "@/hooks/queries-and-mutations/use-virtual-products";
+import { 
+    useGetCollectionProducts,
+    useAddProductsToCollection,
+    useRemoveProductFromCollection
+} from "@/hooks/queries-and-mutations/use-products-collections";
+import { VirtualProductTypes } from "@/lib/types";
 
 interface PageProps {
     virtualStoreId: string | null;
@@ -25,7 +32,14 @@ interface PageProps {
     collectionName: string;
 }
 
-export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupId, alreadySelectedProducts, collectionType, collectionName }: PageProps) => {
+export const CollectionProducts = ({
+    virtualStoreId,
+    collectionId,
+    currentGroupId,
+    alreadySelectedProducts,
+    collectionType,
+    collectionName
+}: PageProps) => {
 
     const [search, setSearch] = useQueryState("search");
     const [page, setPage] = useQueryState("page", { defaultValue: "1" });
@@ -39,45 +53,30 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
     const path = usePathname();
     const isAdminPortal = path.includes('/admin');
 
-    const { data: allProductsData, isLoading: isAllProductsLoading } = useQuery({
-        queryKey: ["virtualStoreProducts", virtualStoreId ?? "all", Number(page), Number(pageSize), search ?? ""],
-        queryFn: async () => {
-            if (virtualStoreId) {
-                const result = await getVirtualStoreProducts({
-                    virtualStoreId,
-                    limit: Number(pageSize),
-                    page: Number(page),
-                    search: search || undefined,
-                    withStoreData: true
-                });
-                return result
-            } else {
-                const results = await getAllVirtualProducts({
-                    limit: Number(pageSize),
-                    page: Number(page),
-                    search: search || undefined
-                });
-                return results
-            }
-        },
-        enabled: isAdminPortal && virtualStoreId !== undefined || true,
-        staleTime: 1000 * 60 * 5
+    // React Query hooks
+    const addProductsMutation = useAddProductsToCollection();
+    const removeProductMutation = useRemoveProductFromCollection();
+
+    const { data: allProductsData, isLoading: isAllProductsLoading } = useGetAllVirtualProducts({
+        search: search || undefined,
+        page: Number(page),
+        limit: Number(pageSize)
     });
 
-    const { data: collectionProductsData, isLoading: isCollectionProductsLoading } = useQuery({
-        queryKey: ["collectionProducts", collectionId, currentGroupId, Number(page), Number(pageSize), search ?? ""],
-        queryFn: async () => {
-            const result = await getCollectionProducts({
-                collectionId,
-                groupId: currentGroupId || null,
-                page: Number(page),
-                limit: Number(pageSize)
-            });
-            return result;
-        },
-        enabled: !isAdminPortal,
-        staleTime: 1000 * 60 * 5
+    const { data: storeProductsData, isLoading: isStoreProductsLoading } = useGetVirtualStoreProducts({
+        virtualStoreId: virtualStoreId!,
+        limit: Number(pageSize),
+        page: Number(page),
+        search: search || undefined,
+        withStoreData: true
     });
+
+    const { data: collectionProductsData, isLoading: isCollectionProductsLoading } = useGetCollectionProducts(
+        collectionId,
+        currentGroupId || null,
+        Number(page),
+        Number(pageSize)
+    );
 
     useEffect(() => {
         if (alreadySelectedProducts) {
@@ -86,36 +85,11 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
         }
     }, [alreadySelectedProducts]);
 
-    const mutation = useMutation({
-        mutationFn: async () => {
-            const result = await addProductsToCollection({
-                collectionId,
-                productsIds: selectedProductsIds,
-                groupId: collectionType === 'grouped' ? currentGroupId : null
-            });
-
-            return result;
-        },
-        onSuccess(data) {
-            if (data?.data?.success) {
-                toast.success(data.data.success)
-                setExistingProductIds([...selectedProductsIds]);
-                setSelectedProductsIds([])
-                setRemovedProductIds([]);
-            } else if (data?.data?.error) {
-                toast.error(data.data.error);
-            }
-        },
-        onError: (error) => {
-            toast.error(error?.message)
-        }
-    });
-
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setSearch(searchInput || null);
-        setPage("1")
-        setPageSize(pageSize)
+        setPage("1");
+        setPageSize(pageSize);
     };
 
     const handleSelectionChange = (selectedIds: string[]) => {
@@ -125,28 +99,101 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
         const removed = existingProductIds.filter(id => !selectedIds.includes(id));
 
         setAddedProductIds(added);
-        setRemovedProductIds(removed)
+        setRemovedProductIds(removed);
     };
 
-    const handleSaveProducts = () => {
-        if (selectedProductsIds.length === 0) {
+    const handleSaveProducts = async () => {
+        if (selectedProductsIds.length === 0 && existingProductIds.length === 0) {
             toast.error("Please select at least one product to add to the collection");
             return;
         }
+        
         if (addedProductIds.length === 0 && removedProductIds.length === 0) {
             toast.error('No changes. No products were added or removed');
             return;
         }
 
-        mutation.mutate()
+        try {
+            // Handle removals first
+            if (removedProductIds.length > 0) {
+                for (const productId of removedProductIds) {
+                    await new Promise((resolve, reject) => {
+                        removeProductMutation.mutate(
+                            {
+                                collectionId,
+                                productId,
+                                groupId: collectionType === 'grouped' ? currentGroupId : undefined
+                            },
+                            {
+                                onSuccess: resolve,
+                                onError: reject
+                            }
+                        );
+                    });
+                }
+            }
+
+            // Handle additions
+            if (addedProductIds.length > 0) {
+                await new Promise((resolve, reject) => {
+                    addProductsMutation.mutate(
+                        {
+                            collectionId,
+                            productsIds: addedProductIds,
+                            groupId: collectionType === 'grouped' ? currentGroupId : undefined
+                        },
+                        {
+                            onSuccess: (data) => {
+                                // Update local state after successful addition
+                                setExistingProductIds(selectedProductsIds);
+                                setAddedProductIds([]);
+                                setRemovedProductIds([]);
+                                resolve(data);
+                            },
+                            onError: reject
+                        }
+                    );
+                });
+            } else if (removedProductIds.length > 0) {
+                // If only removals, update state
+                setExistingProductIds(selectedProductsIds);
+                setAddedProductIds([]);
+                setRemovedProductIds([]);
+            }
+
+            toast.success("Collection updated successfully");
+        } catch (error) {
+            console.error("Error updating collection:", error);
+            toast.error("Failed to update collection");
+        }
     };
 
     const cardTitle = isAdminPortal
         ? (collectionType === 'grouped' ? 'Manage Products in Collection Group' : `Manage Products in Collection: ${collectionName}`)
         : `Products in Collection: ${collectionName}`;
-        
-    const isLoading = isAdminPortal ? isAllProductsLoading : isCollectionProductsLoading;
-    const productsData = isAdminPortal ? allProductsData : collectionProductsData;
+
+    let isLoading: boolean;
+    let productsData: VirtualProductTypes[] | undefined;
+    let totalPages = 1;
+
+    if (isAdminPortal) {
+        if (virtualStoreId) {
+            isLoading = isStoreProductsLoading;
+            productsData = storeProductsData;
+            // Assuming storeProductsData has pagination info
+            totalPages = Math.ceil((storeProductsData?.length || 0) / Number(pageSize));
+        } else {
+            isLoading = isAllProductsLoading;
+            productsData = allProductsData?.documents;
+            totalPages = Math.ceil((allProductsData?.total || 0) / Number(pageSize));
+        }
+    } else {
+        isLoading = isCollectionProductsLoading;
+        productsData = collectionProductsData?.documents;
+        totalPages = Math.ceil((collectionProductsData?.total || 0) / Number(pageSize));
+    }
+
+    const isSaving = addProductsMutation.isPending || removeProductMutation.isPending;
 
     return (
         <Card>
@@ -165,6 +212,7 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
                                     className="pl-8"
                                     value={searchInput}
                                     onChange={(e) => setSearchInput(e.target.value)}
+                                    disabled={isSaving}
                                 />
                             </form>
                         </div>
@@ -192,17 +240,17 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                ) : productsData && productsData.documents.length > 0 ? (
+                ) : productsData && productsData.length > 0 ? (
                     <div className="grid gap-x-4 gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                         {isAdminPortal ? (
                             <GroupProductSelector
-                                products={productsData.documents}
+                                products={productsData}
                                 onSelectionChange={handleSelectionChange}
                                 initialSelectedIds={selectedProductsIds}
                                 existingProductIds={existingProductIds}
                             />
                         ) : (
-                            productsData.documents.map((product) => (
+                            productsData.map((product) => (
                                 <ClientVirtualProductCard
                                     product={product}
                                     key={product.$id}
@@ -220,32 +268,42 @@ export const CollectionProducts = ({ virtualStoreId, collectionId, currentGroupI
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 {productsData && (
                     <CollectionProductsPagination
-                        totalPages={productsData.totalPages || 1}
+                        totalPages={totalPages}
                         currentPage={Number(page) || 1}
                     />
                 )}
 
                 {isAdminPortal && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                            {selectedProductsIds.length} products selected
-                        </span>
+                    <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end text-sm text-muted-foreground">
+                            <span>{selectedProductsIds.length} products selected</span>
+                            {addedProductIds.length > 0 && (
+                                <span className="text-green-600">+{addedProductIds.length} to add</span>
+                            )}
+                            {removedProductIds.length > 0 && (
+                                <span className="text-red-600">-{removedProductIds.length} to remove</span>
+                            )}
+                        </div>
                         <Button
                             onClick={handleSaveProducts}
-                            disabled={selectedProductsIds.length === 0 || mutation.isPending}
+                            disabled={
+                                (selectedProductsIds.length === 0 && existingProductIds.length === 0) || 
+                                (addedProductIds.length === 0 && removedProductIds.length === 0) ||
+                                isSaving
+                            }
                         >
-                            {mutation.isPending ? (
+                            {isSaving ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Saving...
                                 </>
                             ) : (
-                                "Add to Collection"
+                                "Save Changes"
                             )}
                         </Button>
                     </div>
                 )}
             </CardFooter>
         </Card>
-    )
-}
+    );
+};

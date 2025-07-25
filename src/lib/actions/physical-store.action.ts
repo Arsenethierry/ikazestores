@@ -1,165 +1,91 @@
 "use server";
 
-import { ID, Permission, Query, Role } from "node-appwrite";
-import { createAdminClient, createSessionClient } from "../appwrite";
-import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, DATABASE_ID, PHYSICAL_STORE_ID, STORE_BUCKET_ID } from "../env-config";
-import { AppwriteRollback } from "./rollback";
-import { updateUserLabels } from "./user-labels";
-import { UserRole } from "../constants";
 import { createSafeActionClient } from "next-safe-action";
-import { authMiddleware } from "./middlewares";
-import { getUserLocale } from "./auth.action";
-import { PhysicalStoreTypes } from "../types";
-import { createPhysicalStoreFormSchema, UpdatePhysicalStoreFormSchema } from "../schemas/stores-schema";
+import { CreatePhysicalStoreTypes, UpdateVirtualStoreTypes } from "../types";
+import { createPhysicalStoreFormSchema, updatePhysicalStoreFormSchema } from "../schemas/stores-schema";
+import { PhysicalStoreFilters, PhysicalStoreModel } from "../models/physical-store-model";
+import { revalidatePath } from "next/cache";
 
-const action = createSafeActionClient({
-    handleServerError: (error) => {
-        return error.message
-    }
-})
+const physicalStore = new PhysicalStoreModel();
 
-export const createPhysicalStoreAction = action
-    .use(authMiddleware)
-    .schema(createPhysicalStoreFormSchema)
-    .action(async ({ parsedInput, ctx }) => {
-        const {
-            storeLogo,
-            storeName,
-            address,
-            description,
-            latitude,
-            longitude,
-            storeBio,
-            country,
-            currency
-        } = parsedInput
-        const { storage, user, teams } = ctx;
-        const { databases } = await createAdminClient();
-        const rollback = new AppwriteRollback(storage, databases, teams);
-        try {
-            const storeId = ID.unique();
-            const storeLogoUploaded = await storage.createFile(
-                STORE_BUCKET_ID,
-                ID.unique(),
-                storeLogo!
-            );
-
-            await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
-
-            const newStoreTeam = await teams.create(
-                storeId,
-                storeName + "Team"
-            );
-
-            await rollback.trackTeam(newStoreTeam.$id);
-
-            const newPhysicalStore = await databases.createDocument(
-                DATABASE_ID,
-                PHYSICAL_STORE_ID,
-                storeId,
-                {
-                    storeName,
-                    description,
-                    bio: storeBio,
-                    owner: user.$id,
-                    currency,
-                    latitude,
-                    longitude,
-                    address,
-                    country,
-                    storeLogoId: storeLogoUploaded.$id,
-                    storeLogoUrl: `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`,
-                    createdFrom: (await getUserLocale())?.country
-                },
-                [
-                    Permission.delete(Role.team(newStoreTeam.$id, "owner")),
-                    Permission.delete(Role.label(UserRole.SYS_ADMIN)),
-                    Permission.update(Role.team(newStoreTeam.$id, "owner")),
-                    Permission.update(Role.team(newStoreTeam.$id, "admin")),
-                    Permission.read(Role.any())
-                ]
-            );
-
-            await rollback.trackDocument(PHYSICAL_STORE_ID, newPhysicalStore.$id);
-
-            await updateUserLabels(user.$id, [UserRole.PHYSICAL_STORE_OWNER]);
-
-            return { success: "Store created successfully.", storeId: newPhysicalStore.$id };
-        } catch (error) {
-            console.log("create physical store error: ", error);
-            return { error: error instanceof Error ? error.message : "Failed to create store" };
-        }
-    })
-
-
-export const getAllPshyicalStores = async () => {
+export async function createPhysicalStoreAction(formData: CreatePhysicalStoreTypes) {
     try {
-        const { databases } = await createSessionClient();
-        const allPhysicalStores = await databases.listDocuments(
-            DATABASE_ID,
-            PHYSICAL_STORE_ID
-        );
+        const validationResult = createPhysicalStoreFormSchema.safeParse(formData);
+        if (!validationResult.success) {
+            return {
+                error: "Validation failed",
+                details: validationResult.error.flatten().fieldErrors
+            }
+        };
 
-        return allPhysicalStores
+        const newStore = await physicalStore.createPhysicalStore(validationResult.data as CreatePhysicalStoreTypes);
+        return {
+            success: "Store created successfully",
+            storeId: newStore.$id
+        }
     } catch (error) {
-        console.log(error)
-        return null;
+        console.error("Create physical store action error:", error);
+        return {
+            error: error instanceof Error ? error.message : "Failed to create physical store"
+        };
+    }
+}
+
+export const updatePhysicalStoreAction = async (formData: UpdateVirtualStoreTypes) => {
+    try {
+        const validationResult = updatePhysicalStoreFormSchema.safeParse(formData);
+        if (!validationResult.success) {
+            return {
+                error: "Validation failed",
+                details: validationResult.error.flatten().fieldErrors
+            }
+        };
+        const updatedStoreRes = await physicalStore.updatePhysicalStore(validationResult.data as UpdateVirtualStoreTypes);
+        revalidatePath('/admin/stores/[storeId]')
+        return updatedStoreRes
+    } catch (error) {
+        console.log("updatePhysicalStore eror: ", error);
+        return { error: error instanceof Error ? error.message : "Failed to update store" };
     }
 }
 
 export const deletePhysicalStore = async (physicalStoreId: string, bannerIds?: string[]) => {
     try {
-        const { databases, storage } = await createSessionClient();
-        if (bannerIds) {
-            await Promise.all(
-                bannerIds.map(async bannerId => {
-                    await storage.deleteFile(
-                        STORE_BUCKET_ID,
-                        bannerId
-                    )
-                })
-            );
+        await physicalStore.deletePhysicalStore(physicalStoreId, bannerIds);
+        return {
+            success: "Store deleted successfully"
         }
-        await databases.deleteDocument(
-            DATABASE_ID,
-            PHYSICAL_STORE_ID,
-            physicalStoreId
-        );
     } catch (error) {
         console.log(`error deleting physical store: ${error}`)
-        throw error
+        return {
+            error: error instanceof Error ? error.message : "Failed to delete physical store"
+        }
     }
 }
 
 export const getPhysicalStoreById = async (storeId: string) => {
     try {
-        const { databases } = await createSessionClient();
+        if (!storeId || typeof storeId !== 'string') {
+            console.log("getPhysicalStoreById error: Store ID is required and must be a string");
+            return null;
+        }
 
-        const store = await databases.getDocument<PhysicalStoreTypes>(
-            DATABASE_ID,
-            PHYSICAL_STORE_ID,
-            storeId
-        );
+        const store = await physicalStore.findById(storeId, { cache: { ttl: 0 } });
+        if (!store) {
+            console.log("getVirtualStoreById error: Store not found");
+            return null;
+        }
 
         return store;
     } catch (error) {
-        console.log("getAllPshyicalStoresByOwnerId: ", error);
+        console.log("getPhysicalStoreById: ", error);
         return null;
     }
 }
 
 export const getAllPshyicalStoresByOwnerId = async (ownerId: string) => {
     try {
-        const { databases } = await createSessionClient();
-
-        const stores = await databases.listDocuments(
-            DATABASE_ID,
-            PHYSICAL_STORE_ID,
-            [
-                Query.equal("owner", ownerId)
-            ]
-        );
-
+        const stores = await physicalStore.findByOwner(ownerId, {});
         return stores;
     } catch (error) {
         console.log("getAllPshyicalStoresByOwnerId: ", error);
@@ -167,44 +93,55 @@ export const getAllPshyicalStoresByOwnerId = async (ownerId: string) => {
     }
 }
 
-export const updatePhysicalStore = action
-    .use(authMiddleware)
-    .schema(UpdatePhysicalStoreFormSchema)
-    .action(async ({ parsedInput: { storeId, storeLogo, oldFileId, ...values }, ctx }) => {
-        const { databases, storage } = ctx;
-        const rollback = new AppwriteRollback(storage, databases);
-
-        try {
-            const updatedFields = { ...values };
-
-            if (storeLogo instanceof File) {
-
-                if (oldFileId) {
-                    await storage.deleteFile(STORE_BUCKET_ID, oldFileId);
-                }
-
-                const storeLogoUploaded = await storage.createFile(STORE_BUCKET_ID, ID.unique(), storeLogo);
-
-                await rollback.trackFile(STORE_BUCKET_ID, storeLogoUploaded.$id);
-                updatedFields.storeLogoUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${STORE_BUCKET_ID}/files/${storeLogoUploaded.$id}/view?project=${APPWRITE_PROJECT_ID}`;
-                updatedFields.storeLogoId = storeLogoUploaded.$id;
-            }
-
-            if (Object.keys(updatedFields).length > 0) {
-                const updatedDocument = await databases.updateDocument(
-                    DATABASE_ID,
-                    PHYSICAL_STORE_ID,
-                    storeId,
-                    updatedFields
-                );
-
-                return { success: `Store with id: ${updatedDocument.$id} has been updated successfully` };
-            } else {
-                return { success: "No changes detected." };
-            }
-        } catch (error) {
-            console.log("updatePhysicalStore eror: ", error);
-            await rollback.rollback();
-            return { error: error instanceof Error ? error.message : "Failed to update store" };
+export const searchPhysicalByName = async (searchTerm: string, options: { limit?: number; offset?: number } = {}) => {
+    try {
+        const searchResults = await physicalStore.searchByName(searchTerm, options);
+        return searchResults
+    } catch (error) {
+        return {
+            documents: [],
+            total: 0,
         }
-    })
+    }
+}
+
+export const getNearbyPhysicalStoresAction = async (
+    latitude: number,
+    longitude: number,
+    radiusKm: number = 10,
+    options?: { limit?: number; offset?: number }
+) => {
+    try {
+        const storesRes = await physicalStore.findNearBy(
+            latitude,
+            longitude,
+            radiusKm,
+            options
+        );
+        return storesRes
+    } catch (error) {
+        return {
+            documents: [],
+            total: 0,
+        }
+    }
+}
+
+
+export const getPaginatedPhysicalStores = async (
+    filters: PhysicalStoreFilters,
+    options?: { limit?: number; offset?: number }
+) => {
+    try {
+        const stores = await physicalStore.findByFilters(filters, options);
+        return stores
+    } catch (error) {
+        return {
+            documents: [],
+            total: 0,
+            limit: 0,
+            offset: 0,
+            hasMore: false
+        }
+    }
+}

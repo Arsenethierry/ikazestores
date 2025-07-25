@@ -1,4 +1,4 @@
-import { getCollectionById } from '@/features/collections/actions/collections-actions';
+import { getCollectionById } from '@/lib/actions/collections-actions';
 import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React, { Suspense } from 'react';
@@ -52,7 +52,7 @@ async function CollectionGroupPage({
                         <div className="w-full h-48 md:h-64 relative mb-6 rounded-md overflow-hidden">
                             <Image
                                 src={currentGroup.groupImageUrl}
-                                alt={currentGroup.groupName}
+                                alt={currentGroup.groupName || ''}
                                 fill
                                 className="object-cover"
                             />
