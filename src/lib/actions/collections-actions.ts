@@ -1,15 +1,13 @@
 "use server";
 
-import { authMiddleware } from "@/lib/actions/middlewares";
-import { AppwriteRollback } from "@/lib/actions/rollback";
 import { createSessionClient } from "@/lib/appwrite";
 import {
     DATABASE_ID,
     PRODUCTS_COLLECTION_GROUPS_ID
 } from "@/lib/env-config";
 import { ProductCollection } from "@/lib/models/product-collection";
-import { AddProductToCollectionSchema, CollectionSchema, CreateCollectionSchemaType, DeleteCollectionGroupSchema, DeleteCollectionSchema, RemoveProductFromCollection, SaveCollectionGroupsSchema, UpdateCollectionGroupSchema, UpdateCollectionSchemaType } from "@/lib/schemas/products-schems";
-import { CollectionGroupsTypes, CollectionTypes, VirtualProductTypes } from "@/lib/types";
+import { AddProductToCollectionSchema, CollectionSchema, CreateCollectionSchemaType, DeleteCollectionGroupSchema, RemoveProductFromCollection, SaveCollectionGroupsSchema, UpdateCollectionGroupSchema, UpdateCollectionSchemaType } from "@/lib/schemas/products-schems";
+import { CollectionGroupsTypes } from "@/lib/types";
 import { Query } from "node-appwrite";
 import { getAuthState } from "../user-permission";
 import { revalidatePath } from "next/cache";
@@ -29,8 +27,8 @@ export async function createNewCollectionAction(formData: CreateCollectionSchema
 
         let bannerImageFileId: string | null = null;
         let bannerImageUrl: string | null = null;
-        let heroImageFileId: string | null = null;
-        let heroImageUrl: string | null = null;
+        const heroImageFileId: string | null = null;
+        const heroImageUrl: string | null = null;
 
         if (validatedData.bannerImage instanceof File) {
             const uploadedFile = await storageService.uploadFile(validatedData.bannerImage);

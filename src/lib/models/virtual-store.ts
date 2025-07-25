@@ -1,7 +1,6 @@
-import { ID, Models, Permission, Query, Role } from "node-appwrite";
+import { ID, Permission, Role } from "node-appwrite";
 import { BaseModel, CacheOptions, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
-import { BaseStorageService } from "../core/storage";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { AppwriteRollback } from "../actions/rollback";
 import { TeamNamesPatterns } from "../constants";

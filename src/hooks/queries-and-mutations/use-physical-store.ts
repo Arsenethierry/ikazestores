@@ -66,6 +66,7 @@ export function useGetNearbyPhysicalStores(
     options?: { limit?: number; offset?: number } & Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
 ) {
     const { limit, offset, ...queryOptions } = options || {};
+    console.debug(limit, offset)
 
     return useQuery({
         queryKey: physicalStoreKeys.nearby(latitude, longitude, radiusKm),
@@ -103,7 +104,11 @@ export function useUpdatePhysicalStore() {
         mutationFn: updatePhysicalStoreAction,
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: physicalStoreKeys.all });
-            queryClient.invalidateQueries({ queryKey: physicalStoreKeys.detail(data.data?.$id!) });
+            const storeId = data.data?.$id;
+
+            if (storeId) {
+                queryClient.invalidateQueries({ queryKey: physicalStoreKeys.detail(storeId) });
+            }
             if (variables.storeId && data.data) {
                 queryClient.setQueryData(
                     physicalStoreKeys.detail(variables.storeId),

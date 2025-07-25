@@ -7,7 +7,6 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 interface AdminLayoutProps {
     children: React.ReactNode;
-    params: { storeId?: string };
 }
 
 export default async function AdminLayout({

@@ -7,7 +7,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 interface AdminLayoutProps {
     children: React.ReactNode;
-    params: { storeId?: string };
+    params: Promise<{ storeId?: string }>;
 }
 
 export default async function AdminLayout({
@@ -19,7 +19,7 @@ export default async function AdminLayout({
         isVirtualStoreOwner,
         isPhysicalStoreOwner
     } = await getAuthState();
-    const { storeId } = params;
+    const { storeId } = await params;
 
     const queryClient = getQueryClient();
 

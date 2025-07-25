@@ -299,3 +299,4 @@ export type CreateCollectionSchemaType = z.infer<typeof CollectionSchema>
 export type UpdateCollectionSchemaType = z.infer<typeof UpdateCollectionForm>
 export type CreateOriginalProductTypes = z.infer<typeof ProductSchemaProps>
 export type UpdateOriginalProductTypes = z.infer<typeof UpdateProductSchemaProps>
+export type SaveCollectionGroupsTypes = z.infer<typeof SaveCollectionGroupsSchema>

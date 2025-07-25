@@ -88,7 +88,7 @@ export const ClientVirtualProductCard = ({
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                    {(isMyProduct && storeId) && <VirtualProductMenuActions storeId={storeId} product={product} />}
+                    {(isMyProduct && storeId) && <VirtualProductMenuActions product={product} />}
                 </div>
             </div>
             <Link href={`/products/${slugify(product.title)}/${product.$id}`}>

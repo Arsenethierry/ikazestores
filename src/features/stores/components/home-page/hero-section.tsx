@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Image from "next/image";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { CollectionTypes } from "@/lib/types";
 import Link from "next/link";
 import { useGetCollectionsByStoreId } from "@/hooks/queries-and-mutations/use-products-collections";
 import { ProductsCollections } from "@/lib/types/appwrite/appwrite";

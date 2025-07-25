@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { NextRequest, NextResponse } from "next/server";
 import { parseSubdomain } from "./features/stores/store-domain-helper";
 import { MAIN_DOMAIN } from "./lib/env-config";

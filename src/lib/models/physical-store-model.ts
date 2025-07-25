@@ -2,14 +2,12 @@ import { ID, Permission, Role } from "node-appwrite";
 import { BaseModel, QueryFilter } from "../core/database";
 import { DATABASE_ID, PHYSICAL_STORE_ID, STORE_BUCKET_ID } from "../env-config";
 import { CreatePhysicalStoreTypes, PhysicalStoreTypes, UpdateVirtualStoreTypes } from "../types";
-import { BaseStorageService } from "../core/storage";
 import { AppwriteRollback } from "../actions/rollback";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { getUserLocale } from "../actions/auth.action";
 import { UserRole } from "../constants";
 import { updateUserLabels } from "../actions/user-labels";
 import { getAuthState } from "../user-permission";
-import { AppwriteError, AppwriteErrorHandler } from "../errors/appwrite-errors";
 import { StoreStorageService } from "./storage-models";
 
 export interface PhysicalStoreFilters {
@@ -29,7 +27,7 @@ export class PhysicalStoreModel extends BaseModel<PhysicalStoreTypes> {
         this.storageService = new StoreStorageService();
     }
 
-    async findByOwner(ownerId: string, options: { cache?: boolean } = {}) {
+    async findByOwner(ownerId: string) {
         const filters: QueryFilter[] = [
             { field: "owner", operator: "equal", value: ownerId }
         ];
@@ -37,7 +35,7 @@ export class PhysicalStoreModel extends BaseModel<PhysicalStoreTypes> {
         return this.findMany({
             filters,
             orderBy: "$createdAt",
-            orderType: "desc"
+            orderType: "desc",
         });
     }
 

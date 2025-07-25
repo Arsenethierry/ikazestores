@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
 // import VariantTemplateForm from "../enhanced-variant-template-form";
 import { Edit } from "lucide-react";

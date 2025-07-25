@@ -139,7 +139,6 @@ export abstract class BaseStorageService {
 
     async uploadMultipleFiles(
         files: File[],
-        userId: string,
     ) {
         const uploadPromises = files.map((file) => {
             this.uploadFile(file)

@@ -137,7 +137,6 @@ async function StoreProductsContent({
     searchParams
 }: {
     storeId: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     searchParams: any;
 }) {
     try {

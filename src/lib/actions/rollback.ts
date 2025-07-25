@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { DATABASE_ID, STORE_BUCKET_ID } from "../env-config";
 
 export class AppwriteRollback {

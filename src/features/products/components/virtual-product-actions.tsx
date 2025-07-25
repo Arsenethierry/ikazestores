@@ -14,7 +14,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { VirtualProductTypes } from "@/lib/types";
 import { useDeleteVirtualProduct } from "@/hooks/queries-and-mutations/use-virtual-products";
 
-export const VirtualProductMenuActions = ({ product, storeId }: { product: VirtualProductTypes, storeId: string }) => {
+export const VirtualProductMenuActions = ({ product }: { product: VirtualProductTypes }) => {
     const { data: user } = useCurrentUser();
 
     const [RemoveProductDialog, confirmRemoveProduct] = useConfirm(

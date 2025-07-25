@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import colorsData from '@/data/products-colors.json';
 
 interface VariantValue {

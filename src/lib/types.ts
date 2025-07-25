@@ -110,7 +110,7 @@ export interface ProductCombinationTypes extends Models.Document {
 }
 export type VirtualProductTypes = VirtualProducts
 
-export interface VirtualStoreTypes extends VirtualStore { };
+export type VirtualStoreTypes = VirtualStore
 export interface ColorImagesTypes extends Models.Document {
     colorName: string,
     imageId: string,

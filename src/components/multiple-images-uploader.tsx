@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { convertFileToUrl } from "@/lib/utils";
 import { Upload, X } from "lucide-react";
 import Image from "next/image";

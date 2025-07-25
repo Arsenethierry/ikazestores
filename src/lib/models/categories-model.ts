@@ -1,7 +1,5 @@
-import { getCategoryById } from "@/features/variants management/ecommerce-catalog";
 import { BaseModel, CacheOptions, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { CATEGORIES_COLLECTION_ID } from "../env-config";
-import { Query } from "node-appwrite";
 import { ProductsCategories } from "../types/appwrite/appwrite";
 
 export interface CategoryFilters {

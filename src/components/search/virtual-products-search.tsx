@@ -245,7 +245,7 @@ export const ProductSearchField = (): JSX.Element => {
               {/* No Results */}
               {showNoResults && (
                 <div className="p-4 text-center text-gray-500">
-                  <p>No results found for "{searchValue}"</p>
+                  <p>No results found for &quot;{searchValue}&quot;</p>
                   <p className="text-sm mt-1">Try adjusting your search terms</p>
                 </div>
               )}

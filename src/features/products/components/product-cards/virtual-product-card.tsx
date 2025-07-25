@@ -164,7 +164,7 @@ const VirtualProductCard = memo(({
 
                                 {/* Store Menu Actions */}
                                 {isMyProduct && storeId && (
-                                    <VirtualProductMenuActions storeId={storeId} product={product} />
+                                    <VirtualProductMenuActions product={product} />
                                 )}
                             </div>
 
@@ -365,7 +365,7 @@ const VirtualProductCard = memo(({
 
                     {/* Store Owner Actions */}
                     {isMyProduct && storeId && (
-                        <VirtualProductMenuActions storeId={storeId} product={product} />
+                        <VirtualProductMenuActions product={product} />
                     )}
                 </div>
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,7 +9,7 @@ import { useGetVirtualStoreById, useGetVirtualStoresByOwnerId } from "@/hooks/qu
 import { MAIN_DOMAIN } from "@/lib/env-config";
 import { AdminDashboardType, PhysicalStoreTypes, VirtualStoreTypes } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, Store, Plus, Globe, MapPin, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Store, Globe, MapPin, Search } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -50,6 +49,7 @@ export const StoreSwitcher = ({
     });
 
     const currentStore = currentStoreId ? (adminType === 'virtualStoreAdmin' ? virtualStore : physicalStore) : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const stores = adminType === 'virtualStoreAdmin'
         ? virtualStores?.documents || []
         : physicalStores?.documents || [];
@@ -60,17 +60,19 @@ export const StoreSwitcher = ({
 
     const isStoresListLoading = adminType === 'virtualStoreAdmin' ? virtualStoresLoading : physicalStoresLoading;
 
-    const filteredStores = useMemo(() => {
-        if (!searchValue.trim()) return stores;
+    const stableStores = useMemo(() => stores, [stores]);
 
-        return stores.filter(store =>
+    const filteredStores = useMemo(() => {
+        if (!searchValue.trim()) return stableStores;
+
+        return stableStores.filter(store =>
             store.storeName.toLowerCase().includes(searchValue.toLowerCase()) ||
             (adminType === 'physicalStoreAdmin' &&
                 (store as PhysicalStoreTypes).address?.toLowerCase().includes(searchValue.toLowerCase())) ||
             (adminType === 'physicalStoreAdmin' &&
                 (store as PhysicalStoreTypes).country?.toLowerCase().includes(searchValue.toLowerCase()))
         );
-    }, [stores, searchValue, adminType]);
+    }, [stableStores, searchValue, adminType]);
 
     const getStoreDisplayInfo = (store: VirtualStoreTypes | PhysicalStoreTypes) => {
         if (adminType === 'virtualStoreAdmin') {
@@ -96,12 +98,6 @@ export const StoreSwitcher = ({
         setOpen(false);
         setSearchValue("");
         router.push(`/admin/stores/${storeId}`);
-    };
-
-    const onCreateStore = () => {
-        setOpen(false);
-        setSearchValue("");
-        router.push('/admin/stores/new');
     };
 
     if (adminType === 'systemAdmin') {

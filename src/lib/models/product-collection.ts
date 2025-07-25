@@ -1,4 +1,4 @@
-import { Query } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { createSessionClient } from "../appwrite";
 import { BaseModel } from "../core/database";
 import { DATABASE_ID, PRODUCTS_COLLECTION_GROUPS_ID, PRODUCTS_COLLECTIONS_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "../env-config";
@@ -204,28 +204,69 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         }
     }
 
-    async saveCollectionGroups(
-        collectionId: string,
-        groups: any[],
-    ) {
-        const { databases } = await createSessionClient();
-        const collection = await this.findById(collectionId, { cache: { ttl: 0 } });
-        if (!collection) {
-            throw new Error("Collection not found");
-        }
+    async saveCollectionGroups(collectionId: string, groups: any[]) {
+        try {
+            const { databases } = await createSessionClient();
+            const processedGroupIds = [];
 
-        const processedGroupIds = [];
+            for (const group of groups) {
+                const groupId = group.id;
+                let imageUrl = group.groupImage;
+                let imageId = null;
 
-        for (const group of groups) {
-            const groupId = group.id;
-            let imageUrl = group.groupImage;
-            let imageId = null;
+                const isNewGroup = groupId.startsWith('temp-');
 
-            const isNewGroup = groupId.startsWith('temp-');
+                if (group.groupImage instanceof File) {
+                    const uploadedFile = await this.storageService.uploadFile(group.groupImage);
+                    imageId = uploadedFile.$id;
+                    imageUrl = await this.storageService.getFileUrl(uploadedFile.$id)
+                }
 
-            if (group.groupImage instanceof File) {
-
+                if (isNewGroup) {
+                    const newGroup = await databases.createDocument(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTION_GROUPS_ID,
+                        ID.unique(),
+                        {
+                            groupImageUrl: imageUrl,
+                            groupImageId: imageId,
+                            groupName: group.groupName,
+                            displayOrder: group.displayOrder,
+                            collectionId: collectionId,
+                        }
+                    );
+                    processedGroupIds.push(newGroup.$id);
+                } else {
+                    await databases.updateDocument(
+                        DATABASE_ID,
+                        PRODUCTS_COLLECTION_GROUPS_ID,
+                        groupId,
+                        {
+                            groupName: group.groupName,
+                            displayOrder: group.displayOrder,
+                            ...(group.groupImage instanceof File ? {
+                                groupImageUrl: imageUrl,
+                                groupImageId: imageId
+                            } : {})
+                        }
+                    );
+                    processedGroupIds.push(groupId);
+                }
             }
+
+            await databases.updateDocument(
+                DATABASE_ID,
+                PRODUCTS_COLLECTIONS_COLLECTION_ID,
+                collectionId,
+                {
+                    groups: processedGroupIds
+                }
+            );
+
+            return { success: true };
+        } catch (error) {
+            console.log("saveCollectionGroups error: ", error);
+            throw error;
         }
     }
 

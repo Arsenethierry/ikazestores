@@ -140,7 +140,7 @@ export async function searchOriginalProducts(
         const { limit = 10, page = 1, ...filters } = options;
         const offset = (page - 1) * limit;
 
-        let queryFilters: any[] = [];
+        const queryFilters: any[] = [];
 
         if (filters.storeId) {
             queryFilters.push({ field: "storeId", operator: "equal", value: filters.storeId });
@@ -218,7 +218,7 @@ export async function getFeaturedOriginalProducts(options: {
         const { limit = 10, page = 1, storeId } = options;
         const offset = (page - 1) * limit;
 
-        let filters: any[] = [];
+        const filters: any[] = [];
         if (storeId) {
             filters.push({ field: "storeId", operator: "equal", value: storeId });
         }
@@ -260,7 +260,7 @@ export async function getOriginalProductsByCategory(
         const { limit = 10, page = 1, storeId } = options;
         const offset = (page - 1) * limit;
 
-        let filters: any[] = [];
+        const filters: any[] = [];
         if (storeId) {
             filters.push({ field: "storeId", operator: "equal", value: storeId });
         }
@@ -305,7 +305,7 @@ export async function getOriginalProductsByPriceRange(
         const { limit = 10, page = 1, storeId } = options;
         const offset = (page - 1) * limit;
 
-        let filters: any[] = [];
+        const filters: any[] = [];
         if (storeId) {
             filters.push({ field: "storeId", operator: "equal", value: storeId });
         }
@@ -349,7 +349,7 @@ export async function getOriginalProductsByTag(
         const { limit = 10, page = 1, storeId } = options;
         const offset = (page - 1) * limit;
 
-        let filters: any[] = [];
+        const filters: any[] = [];
         if (storeId) {
             filters.push({ field: "storeId", operator: "equal", value: storeId });
         }
@@ -393,7 +393,7 @@ export async function getOriginalProductsByOwner(
         const { limit = 10, page = 1, status } = options;
         const offset = (page - 1) * limit;
 
-        let filters: any[] = [];
+        const filters: any[] = [];
         if (status) {
             filters.push({ field: "status", operator: "equal", value: status });
         }
@@ -437,7 +437,7 @@ export async function getOriginalProductsByStatus(
         const { limit = 10, page = 1, storeId } = options;
         const offset = (page - 1) * limit;
 
-        let filters: any[] = [];
+        const filters: any[] = [];
         if (storeId) {
             filters.push({ field: "storeId", operator: "equal", value: storeId });
         }

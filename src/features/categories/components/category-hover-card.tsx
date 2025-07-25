@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getCategoriesWithInheritance } from "../actions/categories-actions";
 import Link from "next/link";
 import { ChevronRight, Globe, Store } from "lucide-react";

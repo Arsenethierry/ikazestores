@@ -2,13 +2,13 @@
 
 import { Query } from "node-appwrite";
 import { createSessionClient } from "../appwrite";
-import { DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_PRODUCT_ID, VIRTUAL_STORE_ID } from "../env-config";
+import { DATABASE_ID, VIRTUAL_PRODUCT_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { createVirtualStoreFormSchema } from "../schemas/stores-schema";
 import { VirtualStore } from "../models/virtual-store";
 import { CreateVirtualStoreTypes, UpdateVirtualStoreTypes, VirtualStoreTypes } from "../types";
 import { getAuthState } from "../user-permission";
 import { revalidatePath } from "next/cache";
-import { PaginationResult, QueryOptions } from "../core/database";
+import { PaginationResult } from "../core/database";
 
 const virtualStore = new VirtualStore();
 

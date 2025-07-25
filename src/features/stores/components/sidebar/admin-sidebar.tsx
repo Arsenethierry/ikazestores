@@ -39,8 +39,8 @@ export function AdminSidebar({ adminType, storeId, ...props }: AdminSidebarProps
     }, [user, adminType, storeId]);
 
     React.useEffect(() => {
-        if(!user) refetchUser()
-    }, []);
+        if (!user) refetchUser()
+    }, [user, refetchUser]);
 
     if (isPending || isRefetching) {
         return <SidebarSkeleton />;

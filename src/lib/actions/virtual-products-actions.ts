@@ -1,9 +1,9 @@
 "use server";
 
 import { createSessionClient } from "@/lib/appwrite";
-import { DATABASE_ID, ORIGINAL_PRODUCT_ID, VARIANT_COMBINATIONS_COLLECTION_ID, VIRTUAL_COMBINATION_PRICES_COLLECTION_ID, VIRTUAL_PRODUCT_ID, VIRTUAL_STORE_ID } from "@/lib/env-config";
+import { DATABASE_ID, ORIGINAL_PRODUCT_ID, VARIANT_COMBINATIONS_COLLECTION_ID, } from "@/lib/env-config";
 import { VirtualProductsModel } from "@/lib/models/virtual-products-model";
-import { CreateVirtualProductTypes, OriginalProductTypes, OriginalProductWithVirtualProducts, ProductCombinationTypes, SortBy, VirtualProductsSearchParams, VirtualProductTypes, VirtualStoreTypes } from "@/lib/types";
+import { CreateVirtualProductTypes, OriginalProductTypes, OriginalProductWithVirtualProducts, ProductCombinationTypes, VirtualProductsSearchParams, VirtualProductTypes } from "@/lib/types";
 import { calculateDistanceBtnCoordinates } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { Query } from "node-appwrite";

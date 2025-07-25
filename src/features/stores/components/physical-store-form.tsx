@@ -141,7 +141,6 @@ export function PhysicalStoreForm({
         }
 
         if (isEditMode && initialValues) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatedValues: Record<string, any> = {};
 
             if (dirtyFields.storeName) updatedValues.storeName = values.storeName;

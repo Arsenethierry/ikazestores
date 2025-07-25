@@ -1,6 +1,5 @@
 "use server";
 
-import { createSafeActionClient } from "next-safe-action";
 import { CreatePhysicalStoreTypes, UpdateVirtualStoreTypes } from "../types";
 import { createPhysicalStoreFormSchema, updatePhysicalStoreFormSchema } from "../schemas/stores-schema";
 import { PhysicalStoreFilters, PhysicalStoreModel } from "../models/physical-store-model";
@@ -85,7 +84,7 @@ export const getPhysicalStoreById = async (storeId: string) => {
 
 export const getAllPshyicalStoresByOwnerId = async (ownerId: string) => {
     try {
-        const stores = await physicalStore.findByOwner(ownerId, {});
+        const stores = await physicalStore.findByOwner(ownerId);
         return stores;
     } catch (error) {
         console.log("getAllPshyicalStoresByOwnerId: ", error);
@@ -98,6 +97,7 @@ export const searchPhysicalByName = async (searchTerm: string, options: { limit?
         const searchResults = await physicalStore.searchByName(searchTerm, options);
         return searchResults
     } catch (error) {
+        console.log(error)
         return {
             documents: [],
             total: 0,
@@ -120,6 +120,7 @@ export const getNearbyPhysicalStoresAction = async (
         );
         return storesRes
     } catch (error) {
+        console.log(error)
         return {
             documents: [],
             total: 0,
@@ -136,6 +137,7 @@ export const getPaginatedPhysicalStores = async (
         const stores = await physicalStore.findByFilters(filters, options);
         return stores
     } catch (error) {
+        console.log(error)
         return {
             documents: [],
             total: 0,
