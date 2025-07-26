@@ -44,6 +44,12 @@ export enum Type {
     GROUPED = "grouped"
 }
 
+export enum Status {
+    ACTIVE = "active",
+    DRAFT = "draft",
+    ARCHIVED = "archived"
+}
+
 export type UsersData = Models.Document & {
     fullName: string;
     email: string;
@@ -134,13 +140,12 @@ export type ProductCombinations = Models.Document & {
     productId: string;
     variantStrings: string[] | null;
     sku: string;
-    price: number;
     stockQuantity: number | null;
     isActive: boolean;
     weight: number | null;
     dimensions: string | null;
     images: string[] | null;
-    virtualCombinationPrices: VirtualCombinationPrices;
+    basePrice: number;
 }
 
 export type VariantOptions = Models.Document & {
@@ -173,13 +178,12 @@ export type VirtualProducts = Models.Document & {
 export type VirtualCombinationPrices = Models.Document & {
     virtualProductId: string;
     combinationId: string;
-    combination: ProductCombinations;
     basePrice: number;
     commission: number;
     finalPrice: number;
 }
 
-export type ProductsCategories = Models.Document & {
+export type ProductCategories = Models.Document & {
     categoryName: string;
     iconUrl: string | null;
     storeId: string | null;
@@ -190,7 +194,7 @@ export type ProductsCategories = Models.Document & {
     iconFileId: string | null;
 }
 
-export type ProductsCollections = Models.Document & {
+export type ProductCollections = Models.Document & {
     collectionName: string;
     createdBy: string;
     storeId: string | null;
@@ -208,7 +212,7 @@ export type ProductsCollections = Models.Document & {
     heroImageUrl: string | null;
 }
 
-export type ProductsCollectionGroups = Models.Document & {
+export type ProductCollectionGroups = Models.Document & {
     groupImageUrl: string | null;
     groupImageId: string | null;
     groupName: string | null;
@@ -231,4 +235,42 @@ export type Subcategories = Models.Document & {
     iconFileId: string | null;
     parentCategoryId: string;
     productTypes: string[] | null;
+}
+
+export type Products = Models.Document & {
+    physicalStoreId: string;
+    name: string;
+    description: string;
+    shortDescription: string | null;
+    sku: string;
+    basePrice: number;
+    currency: string;
+    status: Status;
+    featured: boolean;
+    categoryId: string;
+    subcategoryId: string;
+    productTypeId: string;
+    tags: string[] | null;
+    images: string[] | null;
+    hasVariants: boolean;
+    isDropshippingEnabled: boolean;
+    createdBy: string;
+    storeLatitude: number;
+    storeLongitude: number;
+    storeCountry: string;
+}
+
+export type AffiliateProductImports = Models.Document & {
+    virtualStoreId: string;
+    productId: string;
+    isActive: boolean;
+    importedAt: string;
+    lastSyncedAt: string | null;
+}
+
+export type AffiliateCombinationPricing = Models.Document & {
+    affiliateImportId: string;
+    combinationId: string;
+    customCommission: number | null;
+    isActive: boolean;
 }

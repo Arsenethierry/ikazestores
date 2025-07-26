@@ -41,14 +41,12 @@ const VirtualProductCard = memo(({
     const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
 
-    // Lazy loading with intersection observer
     const { ref: cardRef, inView } = useInView({
         threshold: 0.1,
         triggerOnce: true,
         rootMargin: '50px'
     });
 
-    // Product calculations
     const originalPrice = product?.price ?? product?.sellingPrice;
     const sellingPrice = (product?.price ?? product?.sellingPrice) - 5; // Your discount logic
     const productCurrency = product?.currency || 'USD';
@@ -56,13 +54,12 @@ const VirtualProductCard = memo(({
     const discountPercentage = originalPrice && sellingPrice ?
         Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
 
-    // Mock data - replace with real data from your system
     const rating = 4.2;
     const reviewCount = 135;
     const isInStock = true;
     const isFreeShipping = sellingPrice > 50;
     const isNewArrival = new Date(product.$createdAt).getTime() > Date.now() - (7 * 24 * 60 * 60 * 1000);
-    const viewCount = 1240; // This would come from analytics
+    const viewCount = 1240;
 
     const handleQuickView = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
