@@ -221,7 +221,6 @@ export class ProductModel extends BaseModel<Products> {
                 images: imageUrls,
                 hasVariants: data.hasVariants || false,
                 isDropshippingEnabled: data.isDropshippingEnabled || false,
-                minimumCommissionRate: data.minimumCommissionRate || 0,
                 createdBy: user.$id,
                 storeLatitude: data.storeLatitude || 0,
                 storeLongitude: data.storeLongitude || 0,
@@ -270,7 +269,7 @@ export class ProductModel extends BaseModel<Products> {
                                 label: option.label || "",
                                 colorCode: option.colorCode || "",
                                 additionalPrice: option.additionalPrice || 0,
-                                isDefault: option.isDefault || false
+                                // isDefault: option.isDefault || false
                             }
                         );
                         await rollback.trackDocument(PRODUCT_VARIANT_OPTIONS_COLLECTION_ID, optionId);
@@ -308,7 +307,7 @@ export class ProductModel extends BaseModel<Products> {
                             variantStrings: combination.variantStrings?.map(variantString => variantString) || [],
                             sku: combination.sku,
                             basePrice: combination.basePrice,
-                            stockQuantity: combination.quantity || 1,
+                            stockQuantity: combination.stockQuantity || 1,
                             isActive: true,
                             weight: combination.weight || 0,
                             dimensions: combination.dimensions || "",
@@ -318,7 +317,7 @@ export class ProductModel extends BaseModel<Products> {
                     );
                     await rollback.trackDocument(VARIANT_COMBINATIONS_COLLECTION_ID, combinationId);
 
-                    const combinationValues = Object.entries(combination.variantValues).map(async ([templateId, value]) => {
+                    const combinationValues = combination.variantValues && Object.entries(combination.variantValues).map(async ([templateId, value]) => {
                         const valueId = ID.unique();
                         await databases.createDocument(
                             DATABASE_ID,
@@ -333,7 +332,7 @@ export class ProductModel extends BaseModel<Products> {
                         await rollback.trackDocument(VARIANT_COMBINATION_VALUES_COLLECTION_ID, valueId);
                     });
 
-                    await Promise.all(combinationValues);
+                    combinationValues && await Promise.all(combinationValues);
                 });
 
                 await Promise.all(combinations);
@@ -493,6 +492,76 @@ export class ProductModel extends BaseModel<Products> {
                 return { error: error.message };
             }
             return { error: "Failed to delete product(s)" };
+        }
+    }
+
+    async toggleFeatured(productId: string): Promise<Products | { error: string }> {
+        try {
+            const { user } = await getAuthState();
+            if (!user) {
+                return { error: "Authentication required" };
+            }
+
+            const existingProduct = await this.findProductById(productId);
+            if (!existingProduct) {
+                return { error: "Access denied" };
+            }
+
+            const updatedProduct = await this.update(productId, {
+                featured: !existingProduct.featured
+            });
+
+            return updatedProduct;
+        } catch (error) {
+            console.error("toggleFeatured error: ", error);
+            if (error instanceof Error) {
+                return { error: error.message };
+            }
+            return { error: "Failed to toggle featured status" };
+        }
+    }
+
+    async getProductStats(storeId: string): Promise<{
+        totalProducts: number;
+        activeProducts: number;
+        draftProducts: number;
+        archivedProducts: number;
+        featuredProducts: number;
+        dropshippingEnabled: number;
+        totalValue: number;
+        averagePrice: number;
+    } | { error: string }> {
+        try {
+            const result = await this.findByPhysicalStore(storeId, {
+                limit: 10000
+            });
+
+            const products = result.documents;
+            const activeProducts = products.filter(p => p.status === 'active').length;
+            const draftProducts = products.filter(p => p.status === 'draft').length;
+            const archivedProducts = products.filter(p => p.status === 'archived').length;
+            const featuredProducts = products.filter(p => p.featured).length;
+            const dropshippingEnabled = products.filter(p => p.isDropshippingEnabled).length;
+
+            const totalValue = products.reduce((sum, product) => sum + product.basePrice, 0);
+            const averagePrice = products.length > 0 ? totalValue / products.length : 0;
+
+            return {
+                totalProducts: products.length,
+                activeProducts,
+                draftProducts,
+                archivedProducts,
+                featuredProducts,
+                dropshippingEnabled,
+                totalValue,
+                averagePrice
+            };
+        } catch (error) {
+            console.error("getProductStats error: ", error);
+            if (error instanceof Error) {
+                return { error: error.message };
+            }
+            return { error: "Failed to get product statistics" };
         }
     }
 }

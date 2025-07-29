@@ -14,11 +14,37 @@ export const VariantOptionSchema = z.object({
     value: z.string().min(1, "Option value is required"),
     label: z.string().optional(),
     additionalPrice: z.number().default(0),
-    hex: z.string().optional(), // For color variants
+    hex: z.string().optional(), 
     image: z.instanceof(File).optional(),
     sortOrder: z.number().default(0),
     isDefault: z.boolean().default(false),
     isActive: z.boolean().default(true)
+});
+
+export const ProductCombinationSchema = z.object({
+    id: z.string(),
+    sku: z.string(),
+    price: z.number(),
+    quantity: z.number().min(0, 'Stock quantity must be 0 or greater'),
+    isDefault: z.boolean(),
+    variantValues: z.record(z.string()),
+    variantStrings: z.array(z.string()).optional(),
+    weight: z.number().optional(),
+    dimensions: z.object({
+        length: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional()
+    }).optional(),
+    images: z.array(z.instanceof(File).optional()).optional()
+});
+
+export const ProductVariantSchema = z.object({
+    templateId: z.string(),
+    name: z.string(),
+    type: z.nativeEnum(VariantInputType),
+    values: z.array(VariantOptionSchema),
+    required: z.boolean().default(false),
+    sortOrder: z.number().optional().default(0)
 });
 
 export const VariantTemplateSchema = z.object({
@@ -62,24 +88,6 @@ export const ProductTypeByIdSchema = z.object({
 export const DeleteProductTypeSchema = z.object({
     productTypeId: z.string().min(1, "Product type ID is required"),
 });
-
-export const ProductVariantSchema = z.array(z.object({
-    templateId: z.string(),
-    name: z.string(),
-    type: z.enum(['boolean', 'text', 'color', 'select', 'boolean', 'multiselect']),
-    values: z.array(
-        z.object({
-            id: z.string(),
-            value: z.string(),
-            label: z.string(),
-            additionalPrice: z.number().default(0),
-            isDefault: z.boolean(),
-            images: z.array(z.string()).default([]),
-            colorCode: z.string().optional()
-        })
-    ),
-    required: z.boolean().default(false)
-})).optional()
 
 const SingleVariantCombinationSchema = z.object({
     id: z.string(),
@@ -134,4 +142,8 @@ export const BulkVariantGenerationSchema = z.object({
     skuPrefix: z.string().optional(),
 });
 
-export type ProductCombination = z.infer<typeof SingleVariantCombinationSchema>
+export type VariantOption = z.infer<typeof VariantOptionSchema>;
+export type ProductCombination = z.infer<typeof ProductCombinationSchema>;
+export type ProductVariant = z.infer<typeof ProductVariantSchema>;
+export type VariantTemplate = z.infer<typeof VariantTemplateSchema>;
+export type ProductType = z.infer<typeof ProductTypeSchema>;

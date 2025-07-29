@@ -1,28 +1,65 @@
 import { z } from "zod";
 import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "../constants";
 // import { VariantCombinationSchema } from "./product-variants-schema";
-import { ProductVariantSchema, VariantCombinationSchema } from "./product-variants-schema";
+import { VariantCombinationSchema } from "./product-variants-schema";
+
+export const FormVariantValueSchema = z.object({
+    id: z.string(),
+    value: z.string(),
+    label: z.string(),
+    additionalPrice: z.number().default(0),
+    isDefault: z.boolean().default(false),
+    images: z.array(z.string()).default([])
+});
+
+export const FormProductVariantSchema = z.object({
+    templateId: z.string(),
+    name: z.string(),
+    type: z.enum(['boolean', 'color', 'text', 'select', 'range', 'number', 'multiselect']),
+    values: z.array(FormVariantValueSchema),
+    required: z.boolean().default(false)
+});
 
 export const ProductCombinationSchema = z.object({
     variantStrings: z.array(z.string()).optional(),
-    sku: z.string(),
-    basePrice: z.number().min(0),
-    quantity: z.number().min(1).optional(),
+    sku: z.string().min(1, "SKU is required"),
+    basePrice: z.number().min(0, "Price must be positive"),
+    stockQuantity: z.number().min(1).optional(),
+    isActive: z.boolean().default(true),
     weight: z.number().min(0).optional(),
     dimensions: z.string().optional(),
     images: z.array(z.instanceof(File)).optional(),
-    variantValues: z.record(z.string(), z.any())
+    variantValues: z.record(z.string(), z.any()).optional()
+});
+
+export const VariantOptionSchema = z.object({
+    value: z.string(),
+    label: z.string(),
+    additionalPrice: z.number().optional().default(0),
+    colorCode: z.string().optional(),
+    metadata: z.object({
+        count: z.number()
+    }).optional().default({ count: 0 })
+});
+
+export const ProductVariantSchema = z.object({
+    templateId: z.string(),
+    name: z.string(),
+    type: z.enum(['boolean', 'color', 'text', 'select', 'range', 'number', 'multiselect']),
+    values: z.array(VariantOptionSchema),
+    required: z.boolean().default(false),
+    sortOrder: z.number().optional().default(0)
 });
 
 export const CreateProductSchema = z.object({
     physicalStoreId: z.string().min(1, "Physical store ID is required"),
     name: z.string().min(1, "Product name is required").max(2200, "Name too long"),
-    description: z.string().min(1, "Description is required"),
+    description: z.string().min(1, "Description is required").max(10000, "Description too long"),
     shortDescription: z.string().max(500, "Short description too long").optional(),
-    sku: z.string().min(1, "SKU is required").max(100, "SKU too long"),
+    sku: z.string().min(1, "SKU is required").max(50, "SKU too long"),
     basePrice: z.number().min(0, "Price must be positive"),
     currency: z.string().min(1, "Currency is required").max(20, "Currency code too long"),
-    status: z.enum(["active", "draft", "archived"]),
+    status: z.enum(["active", "draft", "archived"]).default("active"),
     featured: z.boolean().default(false),
     categoryId: z.string().min(1, "Category is required"),
     subcategoryId: z.string().min(1, "Subcategory is required"),
@@ -30,78 +67,78 @@ export const CreateProductSchema = z.object({
     tags: z.array(z.string()).optional(),
     images: z.array(z.instanceof(File)).optional(),
     hasVariants: z.boolean().default(false),
-    isDropshippingEnabled: z.boolean().default(false),
-    minimumCommissionRate: z.number().min(0).max(100).optional(),
-    storeLatitude: z.number().optional(),
-    storeLongitude: z.number().optional(),
+    isDropshippingEnabled: z.boolean().default(true),
+    storeLatitude: z.number(),
+    storeLongitude: z.number(),
     storeCountry: z.string().min(1, "Store country is required"),
-    variants: z.array(z.object({
-        templateId: z.string(),
-        name: z.string(),
-        type: z.enum(["text", "color", "range", "number", "select", "multiselect", "boolean"]),
-        values: z.array(z.object({
-            value: z.string(),
-            label: z.string().optional(),
-            colorCode: z.string().optional(),
-            additionalPrice: z.number().optional(),
-            isDefault: z.boolean().optional()
-        })),
-        required: z.boolean().optional(),
-        sortOrder: z.number().optional()
-    })).optional(),
+    variants: z.array(ProductVariantSchema).optional(),
     productCombinations: z.array(ProductCombinationSchema).optional()
 });
 
 export const UpdateProductSchema = CreateProductSchema.partial().omit({
-    physicalStoreId: true // Prevent changing the physical store after creation
+    physicalStoreId: true,
+    storeLatitude: true,
+    storeLongitude: true,
+    storeCountry: true
+});
+
+export const CreateAffiliateImportSchema = z.object({
+    virtualStoreId: z.string().min(1, "Virtual store ID is required"),
+    productId: z.string().min(1, "Product ID is required"),
+    commission: z.number().min(0, "Commission must be positive"),
+    customCombinationPricing: z.array(z.object({
+        combinationId: z.string(),
+        customCommission: z.number().min(0)
+    })).optional()
+});
+
+export const UpdateAffiliateImportSchema = z.object({
+    commission: z.number().min(0).optional(),
+    isActive: z.boolean().optional(),
+});
+
+export const VirtualStoreProductFiltersSchema = z.object({
+    search: z.string().optional(),
+    categoryId: z.string().optional(),
+    subcategoryId: z.string().optional(),
+    minFinalPrice: z.number().min(0).optional(),
+    maxFinalPrice: z.number().min(0).optional(),
+    minCommission: z.number().min(0).max(100).optional(),
+    maxCommission: z.number().min(0).max(100).optional(),
+    featured: z.boolean().optional(),
+    tags: z.array(z.string()).optional()
+});
+
+export const ProductFiltersSchema = z.object({
+    search: z.string().optional(),
+    categoryId: z.string().optional(),
+    subcategoryId: z.string().optional(),
+    physicalStoreId: z.string().optional(),
+    status: z.enum(["active", "draft", "archived", "all"]).optional(),
+    featured: z.boolean().optional(),
+    minPrice: z.number().min(0).optional(),
+    maxPrice: z.number().min(0).optional(),
+    tags: z.array(z.string()).optional(),
+    dropshippingOnly: z.boolean().optional(),
+    hasVariants: z.boolean().optional(),
+    location: z.object({
+        latitude: z.number(),
+        longitude: z.number(),
+        radius: z.number().min(0)
+    }).optional()
 });
 
 export type CreateProductSchema = z.infer<typeof CreateProductSchema>;
 export type UpdateProductSchema = z.infer<typeof UpdateProductSchema>;
 export type ProductCombinationSchema = z.infer<typeof ProductCombinationSchema>;
+export type ProductVariantSchema = z.infer<typeof ProductVariantSchema>;
+export type VariantOptionSchema = z.infer<typeof VariantOptionSchema>;
+export type CreateAffiliateImportSchema = z.infer<typeof CreateAffiliateImportSchema>;
+export type UpdateAffiliateImportSchema = z.infer<typeof UpdateAffiliateImportSchema>;
+export type VirtualStoreProductFilters = z.infer<typeof VirtualStoreProductFiltersSchema>;
+export type ProductFilters = z.infer<typeof ProductFiltersSchema>;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-export const productFormSchema = z.object({
-    name: z.string().min(1, 'Product name is required'),
-    description: z.string().min(10, 'Description must be at least 10 characters'),
-    shortDescription: z.string().optional(),
-    sku: z.string().min(1, 'SKU is required'),
-    basePrice: z.number().min(0, 'Price must be positive'),
-    categoryId: z.string().min(1, 'Category is required'),
-    subcategoryId: z.string().min(1, 'Subcategory is required'),
-    productTypeId: z.string().min(1, 'Product type is required'),
-    status: z.enum(['active', 'draft', 'archived']).default('active'),
-    featured: z.boolean().default(false),
-    hasVariants: z.boolean().default(false),
-    variants: ProductVariantSchema,
-    productCombinations: VariantCombinationSchema,
-
-    images: z.array(z.any()).min(1, 'At least one image is required'),
-
-    tags: z.array(z.string()).default([]),
-
-    brand: z.string().optional(),
-    model: z.string().optional(),
-    currency: z.string(),
-    storeId: z.string(),
-    storeOriginCountry: z.string(),
-    storeLong: z.number().optional(),
-    storeLat: z.number().optional(),
-});
-
-export const ProductSchemaProps = productFormSchema.extend({
-    storeId: z.string(),
-    storeLat: z.number().optional(),
-    storeLong: z.number().optional(),
-    storeOriginCountry: z.string(),
-});
-
-export const UpdateProductSchemaProps = ProductSchemaProps.merge(
-    z.object({
-        productId: z.string()
-    })
-)
 
 export const VirtualProductSchema = z.object({
     originalProductId: z.string(),
@@ -356,6 +393,4 @@ export const GetProductsWithVirtualSchema = z.object({
 
 export type CreateCollectionSchemaType = z.infer<typeof CollectionSchema>
 export type UpdateCollectionSchemaType = z.infer<typeof UpdateCollectionForm>
-export type CreateOriginalProductTypes = z.infer<typeof ProductSchemaProps>
-export type UpdateOriginalProductTypes = z.infer<typeof UpdateProductSchemaProps>
 export type SaveCollectionGroupsTypes = z.infer<typeof SaveCollectionGroupsSchema>

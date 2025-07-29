@@ -1,7 +1,7 @@
 import { Models } from "node-appwrite";
 import { UserAccountType, UserRole } from "./constants";
 import { ProductCombination } from "./schemas/product-variants-schema";
-import { PhysicalProducts, ProductsCollectionGroups, ProductsCollections, VirtualProducts, VirtualStore } from "./types/appwrite/appwrite";
+import { ProductCollectionGroups, ProductCollections, Products, VirtualProducts, VirtualStore } from "./types/appwrite/appwrite";
 import z from "zod";
 import { createPhysicalStoreFormSchema, createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "./schemas/stores-schema";
 import { PhysicalStore } from "@/lib/types/appwrite/appwrite"
@@ -87,7 +87,7 @@ export interface AuthState {
     hasStorePermission: (storeId: string, permission: 'read' | 'write' | 'delete') => boolean;
     canAccessResource: (resource: string, permission: 'read' | 'write' | 'delete') => boolean;
 }
-export type OriginalProductTypes = PhysicalProducts
+export type OriginalProductTypes = Products
 export interface OriginalProductWithVirtualProducts extends OriginalProductTypes {
     combinations?: ProductCombinationTypes[];
     virtualProducts: VirtualProductTypes[];
@@ -171,8 +171,8 @@ export type VirtualProductsSearchParams = {
     query?: string;
 }
 
-export type CollectionTypes = ProductsCollections
-export type CollectionGroupsTypes = ProductsCollectionGroups
+export type CollectionTypes = ProductCollections
+export type CollectionGroupsTypes = ProductCollectionGroups
 export interface SavedItemType extends Models.Document {
     userId: string;
     productId: string;

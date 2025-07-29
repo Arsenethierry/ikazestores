@@ -2,21 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { OriginalProductsModel } from "@/lib/models/original-products-model";
-import {
-    CreateOriginalProductTypes,
-    DeleteProductSchema,
-    ProductSchemaProps,
-    UpdateOriginalProductTypes,
-    UpdateProductSchemaProps
-} from "../schemas/products-schems";
+import { CreateProductSchema, DeleteProductSchema, UpdateProductSchema } from "../schemas/products-schems";
+import { ProductModel } from "../models/ProductModel";
+import { getAuthState } from "../user-permission";
+import { OriginalProductTypes } from "../types";
 
-const originalProductsModel = new OriginalProductsModel();
+const originalProductsModel = new ProductModel();
 
-export async function createOriginalProduct(data: CreateOriginalProductTypes) {
+export async function createOriginalProduct(data: CreateProductSchema) {
     try {
-        const validatedData = ProductSchemaProps.parse(data);
+        const validatedData = CreateProductSchema.parse(data);
 
-        const result = await originalProductsModel.createOriginalProduct(validatedData);
+        const result = await originalProductsModel.createProduct(validatedData);
 
         if ('error' in result) {
             return { error: result.error };
@@ -38,12 +35,12 @@ export async function createOriginalProduct(data: CreateOriginalProductTypes) {
 
 export async function updateOriginalProduct(
     productId: string,
-    data: UpdateOriginalProductTypes
+    data: UpdateProductSchema
 ) {
     try {
-        const validatedData = UpdateProductSchemaProps.parse(data);
+        const validatedData = UpdateProductSchema.parse(data);
 
-        const result = await originalProductsModel.updateOriginalProduct(productId, validatedData);
+        const result = await originalProductsModel.updateProduct(productId, validatedData);
 
         if ('error' in result) {
             return { error: result.error };
@@ -64,16 +61,153 @@ export async function updateOriginalProduct(
     }
 }
 
+export async function bulkUpdateProductStatus(
+    productIds: string[],
+    status: "active" | "draft" | "archived"
+) {
+    try {
+        const { isPhysicalStoreOwner, user, isSystemAdmin } = await getAuthState();
+
+        if (!isPhysicalStoreOwner || !user) {
+            return { error: "Access denied: Only store owners & admins can update product status" };
+        }
+
+        const products = await Promise.all(
+            productIds.map(id => originalProductsModel.findProductById(id))
+        );
+
+        const updatePromises = productIds.map(id =>
+            originalProductsModel.updateProduct(id, { status })
+        );
+
+        const results = await Promise.all(updatePromises);
+        const failures = results.filter(result => 'error' in result);
+
+        if (failures.length > 0) {
+            return { error: `Failed to update ${failures.length} product(s)` };
+        }
+
+        if (failures.length > 0) {
+            return { error: `Failed to update ${failures.length} product(s)` };
+        }
+
+        const storeIds = [...new Set(products.map(p => p?.physicalStoreId).filter(Boolean))];
+        storeIds.forEach(storeId => {
+            revalidatePath(`/admin/stores/${storeId}/products`);
+            revalidatePath(`/admin/stores/${storeId}`);
+        });
+
+        return { success: `Successfully updated ${productIds.length} product(s) to ${status}` };
+    } catch (error) {
+        console.error("bulkUpdateProductStatus error:", error);
+        return { error: "Failed to bulk update product status" };
+    }
+}
+
+export async function toggleProductFeatured(productId: string) {
+    try {
+        const { isPhysicalStoreOwner, user, isSystemAdmin, isSystemAgent } = await getAuthState();
+        if (!isPhysicalStoreOwner || !user) {
+            return { error: "Access denied: Only store owners can feature products" };
+        }
+
+        const existingProduct = await originalProductsModel.findProductById(productId);
+        if (!existingProduct) {
+            return { error: "Access denied" };
+        }
+
+        const result = await originalProductsModel.updateProduct(productId, {
+            featured: !existingProduct.featured
+        });
+
+        if ('error' in result) {
+            return { error: result.error };
+        }
+
+        revalidatePath(`/admin/stores/${existingProduct.physicalStoreId}/products`);
+        revalidatePath(`/admin/stores/${existingProduct.physicalStoreId}`);
+        revalidatePath('/marketplace');
+
+        return {
+            success: `Product ${existingProduct.featured ? 'unfeatured' : 'featured'} successfully`,
+            data: result as OriginalProductTypes
+        };
+    } catch (error) {
+        console.error("toggleProductFeatured error:", error);
+        return { error: "Failed to toggle product featured status" };
+    }
+}
+
+export async function getProductAnalytics(
+    storeId: string,
+    options: {
+        dateRange?: { from: Date; to: Date };
+        includeVariants?: boolean;
+    } = {}
+) {
+    try {
+        const { isPhysicalStoreOwner } = await getAuthState();
+        if (!isPhysicalStoreOwner) {
+            return { error: "Access denied: Cannot access this store's analytics" };
+        }
+
+        const allProducts = await originalProductsModel.findByPhysicalStore(storeId, {
+            limit: 1000
+        });
+
+        const products = allProducts.documents;
+        const activeProducts = products.filter(p => p.status === 'active').length;
+        const draftProducts = products.filter(p => p.status === 'draft').length;
+        const featuredProducts = products.filter(p => p.featured).length;
+        const dropshippingEnabled = products.filter(p => p.isDropshippingEnabled).length;
+
+        const totalValue = products.reduce((sum, product) => sum + product.basePrice, 0);
+        const averagePrice = products.length > 0 ? totalValue / products.length : 0;
+
+        const categoryCount: { [key: string]: number } = {};
+        products.forEach(product => {
+            categoryCount[product.categoryId] = (categoryCount[product.categoryId] || 0) + 1;
+        });
+
+        const topCategories = Object.entries(categoryCount)
+            .map(([categoryId, count]) => ({ categoryId, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        const recentProducts = products
+            .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+            .slice(0, 10);
+
+        return {
+            success: "Analytics retrieved successfully",
+            data: {
+                totalProducts: products.length,
+                activeProducts,
+                draftProducts,
+                featuredProducts,
+                dropshippingEnabled,
+                totalValue,
+                averagePrice,
+                topCategories,
+                recentProducts
+            }
+        };
+    } catch (error) {
+        console.error("getProductAnalytics error:", error);
+        return { error: "Failed to retrieve product analytics" };
+    }
+}
+
 export async function deleteOriginalProducts(productIds: string | string[]) {
     try {
-        // Validate the input data
+
         const validatedData = DeleteProductSchema.parse({ productIds });
 
         const idsArray = Array.isArray(validatedData.productIds)
             ? validatedData.productIds
             : [validatedData.productIds];
 
-        const result = await originalProductsModel.deleteOriginalProducts(idsArray);
+        const result = await originalProductsModel.deleteProducts(idsArray);
 
         if (result.error) {
             return { error: result.error };
@@ -92,7 +226,7 @@ export async function deleteOriginalProducts(productIds: string | string[]) {
 
 export async function getOriginalProductById(productId: string) {
     try {
-        const product = await originalProductsModel.findOriginalProductById(productId);
+        const product = await originalProductsModel.findProductById(productId);
 
         if (!product) {
             return { error: "Product not found" };
@@ -107,7 +241,7 @@ export async function getOriginalProductById(productId: string) {
 
 export async function getStoreOriginalProducts(storeId: string) {
     try {
-        const result = await originalProductsModel.getStoreProducts(storeId);
+        const result = await originalProductsModel.findByPhysicalStore(storeId);
 
         return {
             documents: result.documents,
@@ -131,7 +265,7 @@ export async function searchOriginalProducts(
         page?: number;
         storeId?: string;
         categoryId?: string;
-        status?: "active" | "inactive" | "draft" | 'all' ;
+        status?: "active" | "inactive" | "draft" | 'all';
         minPrice?: number;
         maxPrice?: number;
     } = {}
@@ -194,7 +328,7 @@ export async function getNearbyStoresOriginalProducts(
     northEast: { lat: number, lng: number }
 ) {
     try {
-        const result = await originalProductsModel.getNearbyStoreProducts(southWest, northEast);
+        const result = await originalProductsModel.findNearbyProducts(southWest, northEast);
 
         return {
             documents: result.documents,
@@ -381,52 +515,8 @@ export async function getOriginalProductsByTag(
     }
 }
 
-export async function getOriginalProductsByOwner(
-    ownerId: string,
-    options: {
-        limit?: number;
-        page?: number;
-        status?: "active" | "inactive" | "draft";
-    } = {}
-) {
-    try {
-        const { limit = 10, page = 1, status } = options;
-        const offset = (page - 1) * limit;
-
-        const filters: any[] = [];
-        if (status) {
-            filters.push({ field: "status", operator: "equal", value: status });
-        }
-
-        const result = await originalProductsModel.findByOwner(ownerId, {
-            limit,
-            offset,
-            filters,
-            orderBy: "$createdAt",
-            orderType: "desc"
-        });
-
-        return {
-            documents: result.documents,
-            total: result.total,
-            totalPages: Math.ceil(result.total / limit),
-            currentPage: page,
-            hasMore: result.hasMore
-        };
-    } catch (error) {
-        console.error("getOriginalProductsByOwner action error: ", error);
-        return {
-            documents: [],
-            total: 0,
-            totalPages: 0,
-            currentPage: 1,
-            hasMore: false
-        };
-    }
-}
-
 export async function getOriginalProductsByStatus(
-    status: "active" | "inactive" | "draft",
+    status: "active" | "draft" | "archived",
     options: {
         limit?: number;
         page?: number;

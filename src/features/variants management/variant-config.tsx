@@ -56,7 +56,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         const existingValues = currentVariant?.values || [];
 
         const newValue: VariantValue = {
-            id: `${currentVariant.id}-${Date.now()}`,
+            id: `${currentVariant.templateId}-${Date.now()}`,
             value: value.value || '',
             label: value.label || value.value,
             colorCode: value.colorCode,
@@ -113,6 +113,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                 <h5 className="text-sm font-medium">Pre-configured Colors</h5>
                                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
                                     {template.variantOptions.map((option: VariantOption) => {
+
                                         const isSelected = variant.values?.some((v: any) => v.value === option.value);
                                         return (
                                             <button
@@ -129,7 +130,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     if (!isSelected) {
                                                         addValueToVariant(variantIndex, {
                                                             value: option.value,
-                                                            label: option.colorCode,
+                                                            label: option.label,
                                                             colorCode: option.colorCode,
                                                             additionalPrice: option.additionalPrice
                                                         });
@@ -141,7 +142,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     className="w-8 h-8 rounded-full border border-gray-300 mx-auto"
                                                     style={{ backgroundColor: option.colorCode || option.value }}
                                                 />
-                                                <p className="text-xs mt-1 truncate">{option.colorCode}</p>
+                                                <p className="text-xs mt-1 truncate">{option.label}</p>
                                                 {option.additionalPrice && option.additionalPrice !== 0 && (
                                                     <span className="text-xs text-green-600">
                                                         +${option.additionalPrice}
@@ -275,7 +276,6 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                                     additionalPrice: price
                                                 });
 
-                                                // Clear inputs
                                                 setValue(`variants.${variantIndex}.newOptionValue`, '');
                                                 setValue(`variants.${variantIndex}.newOptionLabel`, '');
                                                 setValue(`variants.${variantIndex}.newOptionPrice`, '');
@@ -604,7 +604,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                     {variantFields.map((field: any, variantIndex: any) => {
                         const currentVariant = watchedVariants[variantIndex];
                         if (!currentVariant) return null;
-                        
+
                         const template = variantTemplates.find(t => t.id === currentVariant.templateId);
                         if (!template) return null;
 

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ProductCombination, ProductVariantSchema } from '@/lib/schemas/product-variants-schema';
+import { ProductCombination } from '@/lib/schemas/product-variants-schema';
 import { AlertCircle, DollarSign, Download, Hash, ImageDown, Package, Plus, RefreshCw, Ruler, Trash2, Upload, Weight } from 'lucide-react';
 import React, { useState } from 'react';
 import { Control, useFieldArray, useFormContext } from 'react-hook-form';
@@ -18,9 +18,18 @@ interface ProductCombinationsProps {
     control: Control<any>;
     basePrice: number;
     baseSku: string;
-    variants: z.infer<typeof ProductVariantSchema>;
+    variants?: Array<{
+        templateId: string;
+        name: string;
+        type: string;
+        values: Array<{
+            value: string;
+            label?: string;
+            additionalPrice?: number;
+        }>;
+    }>;
     onRegenerateAll: () => void;
-};
+}
 
 interface CustomCombinationInput {
     variantValues: Record<string, string>;
@@ -36,7 +45,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
     control,
     basePrice,
     baseSku,
-    variants,
+    variants = [],
     onRegenerateAll
 }) => {
     const { setValue, watch } = useFormContext();
@@ -89,12 +98,16 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
             toast.error("Dimensions cannot be negative");
             return;
         }
+        const currentDimensions = combinations[index].dimensions || {};
+
+        const updatedDimensions = {
+            ...currentDimensions,
+            [dimension]: value
+        };
+
         const updatedCombination = {
             ...combinations[index],
-            dimensions: {
-                ...combinations[index].dimensions,
-                [dimension]: value
-            }
+            dimensions: updatedDimensions
         };
         update(index, updatedCombination);
     };
@@ -127,20 +140,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
         }));
         setValue('productCombinations', updatedCombinations);
     }
-
-    // const addCustomCombination = () => {
-    //     const newCombination: ProductCombination = {
-    //         id: `custom-${Date.now()}`,
-    //         variantValues: {},
-    //         sku: `${baseSku}-CUSTOM-${Date.now()}`,
-    //         price: basePrice,
-    //         quantity: 0,
-    //         weight: 0,
-    //         isDefault: false,
-    //         variantStrings: ['Custom']
-    //     };
-    //     append(newCombination);
-    // };
 
     const addCustomCombination = () => {
         if (!customCombination.sku) {
@@ -204,7 +203,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
             try {
                 const imported = JSON.parse(e.target?.result as string);
                 if (Array.isArray(imported)) {
-                    const validCombinations = imported.filter(combo => {
+                    const validCombinations = imported.filter((combo: any) => {
                         return combo.sku && !combinations.some((c: ProductCombination) => c.sku === combo.sku);
                     });
                     setValue('productCombinations', [...combinations, ...validCombinations]);
@@ -333,7 +332,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                     <div>
                                         <Label>SKU</Label>
                                         <Input
-                                            value={customCombination.sku}
+                                            value={customCombination.sku || ''}
                                             onChange={(e) => setCustomCombination({
                                                 ...customCombination,
                                                 sku: e.target.value
@@ -341,8 +340,8 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                             placeholder="Enter unique SKU"
                                         />
                                     </div>
-                                    {variants && variants.map((variant) => (
-                                        <div key={variant.templateId}>
+                                    {variants && variants.map((variant, variantIndex) => (
+                                        <div key={`variant-${variant.templateId}-${variantIndex}`}>
                                             <Label>{variant.name}</Label>
                                             <Select
                                                 onValueChange={(value) => setCustomCombination({
@@ -357,8 +356,11 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                     <SelectValue placeholder={`Select ${variant.name}`} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {variant.values.map((value) => (
-                                                        <SelectItem key={value.value} value={value.value}>
+                                                    {variant.values.map((value, valueIndex) => (
+                                                        <SelectItem
+                                                            key={`variant-value-${variant.templateId}-${valueIndex}`}
+                                                            value={value.value}
+                                                        >
                                                             {value.label || value.value}
                                                         </SelectItem>
                                                     ))}
@@ -372,7 +374,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                             <Input
                                                 type="number"
                                                 step="0.01"
-                                                value={customCombination.price}
+                                                value={customCombination.price || 0}
                                                 onChange={(e) => setCustomCombination({
                                                     ...customCombination,
                                                     price: parseFloat(e.target.value) || 0
@@ -383,7 +385,7 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                             <Label>Quantity</Label>
                                             <Input
                                                 type="number"
-                                                value={customCombination.quantity}
+                                                value={customCombination.quantity || 0}
                                                 onChange={(e) => setCustomCombination({
                                                     ...customCombination,
                                                     quantity: parseInt(e.target.value) || 0
@@ -521,224 +523,95 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {combinations.map((combination: ProductCombination, index: number) => (
-                                    <TableRow key={combination.id}>
-                                        <TableCell>
-                                            <div className="space-y-1">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {combination.variantStrings?.map((str, strIndex) => (
-                                                        <Badge key={strIndex} variant="secondary" className="text-xs">
-                                                            {str}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                                {combination.isDefault && (
-                                                    <Badge variant="default" className="text-xs">
-                                                        Default
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input
-                                                value={combination.sku}
-                                                onChange={(e) => handleSkuChange(index, e.target.value)}
-                                                className="text-xs font-mono"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1">
-                                                <DollarSign className="h-3 w-3 text-muted-foreground" />
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={combination.price}
-                                                    onChange={(e) => handlePriceChange(index, parseFloat(e.target.value) || 0)}
-                                                    className="w-20"
-                                                />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input
-                                                type="number"
-                                                value={combination.quantity || 0}
-                                                onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                                                className="w-20"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1">
-                                                <Weight className="h-3 w-3 text-muted-foreground" />
-                                                <Input
-                                                    type="number"
-                                                    step="0.001"
-                                                    value={combination.weight || 0}
-                                                    onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)}
-                                                    className="w-20"
-                                                />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1">
-                                                <Ruler className="h-3 w-3 text-muted-foreground" />
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        type="number"
-                                                        step="0.1"
-                                                        value={combination.dimensions?.length || 0}
-                                                        onChange={(e) => handleDimensionChange(index, 'length', parseFloat(e.target.value) || 0)}
-                                                        className="w-16"
-                                                        placeholder="L"
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        step="0.1"
-                                                        value={combination.dimensions?.width || 0}
-                                                        onChange={(e) => handleDimensionChange(index, 'width', parseFloat(e.target.value) || 0)}
-                                                        className="w-16"
-                                                        placeholder="W"
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        step="0.1"
-                                                        value={combination.dimensions?.height || 0}
-                                                        onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
-                                                        className="w-16"
-                                                        placeholder="H"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1">
-                                                <ImageDown className="h-3 w-3 text-muted-foreground" />
-                                                <Input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={(e) => handleImageChange(index, Array.from(e.target.files || []))}
-                                                    className="text-xs"
-                                                />
-                                                <Badge variant="outline" className="text-xs">
-                                                    {combination.images?.length || 0}/3
-                                                </Badge>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                type="button"
-                                                variant={combination.isDefault ? "primary" : "outline"}
-                                                size="sm"
-                                                onClick={() => toggleDefault(index)}
-                                                className="text-xs"
-                                            >
-                                                {combination.isDefault ? "Default" : "Set Default"}
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() => remove(index)}
-                                                className="h-8 w-8 p-0"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                {combinations.map((combination: ProductCombination, index: number) => {
+                                    const dimensions = combination.dimensions || { length: 0, width: 0, height: 0 };
 
-                    <div className="md:hidden space-y-3">
-                        {combinations.map((combination: ProductCombination, index: number) => (
-                            <Card key={combination.id} className="border-l-4 border-l-blue-500">
-                                <CardContent className="p-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex flex-wrap gap-1">
-                                                {combination.variantStrings?.map((str, strIndex) => (
-                                                    <Badge key={strIndex} variant="secondary" className="text-xs">
-                                                        {str}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() => remove(index)}
-                                                className="h-8 w-8 p-0"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <Label className="text-xs text-muted-foreground">SKU</Label>
+                                    return (
+                                        <TableRow key={`combination-${combination.sku}-${index}`}>
+                                            <TableCell>
+                                                <div className="space-y-1">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {combination.variantStrings?.map((str, strIndex) => (
+                                                            <Badge key={`variant-string-${index}-${strIndex}`} variant="secondary" className="text-xs">
+                                                                {str}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
                                                 <Input
-                                                    value={combination.sku}
+                                                    value={combination.sku || ''}
                                                     onChange={(e) => handleSkuChange(index, e.target.value)}
                                                     className="text-xs font-mono"
                                                 />
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs text-muted-foreground">Price</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={combination.price}
-                                                    onChange={(e) => handlePriceChange(index, parseFloat(e.target.value) || 0)}
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs text-muted-foreground">Quantity</Label>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <DollarSign className="h-3 w-3 text-muted-foreground" />
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={combination.price || 0}
+                                                        onChange={(e) => handlePriceChange(index, parseFloat(e.target.value) || 0)}
+                                                        className="w-20"
+                                                    />
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
                                                 <Input
                                                     type="number"
                                                     value={combination.quantity || 0}
                                                     onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                                                    className="w-20"
                                                 />
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.001"
-                                                    value={combination.weight || 0}
-                                                    onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)}
-                                                />
-                                            </div>
-                                            <div className="col-span-2">
-                                                <Label className="text-xs text-muted-foreground">Dimensions (cm)</Label>
-                                                <div className="flex gap-2">
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <Weight className="h-3 w-3 text-muted-foreground" />
                                                     <Input
                                                         type="number"
-                                                        step="0.1"
-                                                        value={combination.dimensions?.length || 0}
-                                                        onChange={(e) => handleDimensionChange(index, 'length', parseFloat(e.target.value) || 0)}
-                                                        placeholder="Length"
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        step="0.1"
-                                                        value={combination.dimensions?.width || 0}
-                                                        onChange={(e) => handleDimensionChange(index, 'width', parseFloat(e.target.value) || 0)}
-                                                        placeholder="Width"
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        step="0.1"
-                                                        value={combination.dimensions?.height || 0}
-                                                        onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
-                                                        placeholder="Height"
+                                                        step="0.001"
+                                                        value={combination.weight || 0}
+                                                        onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)}
+                                                        className="w-20"
                                                     />
                                                 </div>
-                                            </div>
-                                            <div className="col-span-2">
-                                                <Label className="text-xs text-muted-foreground">Variant Images</Label>
-                                                <div className="flex items-center gap-2">
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <Ruler className="h-3 w-3 text-muted-foreground" />
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={dimensions?.length || 0}
+                                                            onChange={(e) => handleDimensionChange(index, 'length', parseFloat(e.target.value) || 0)}
+                                                            className="w-16"
+                                                            placeholder="L"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={dimensions?.width || 0}
+                                                            onChange={(e) => handleDimensionChange(index, 'width', parseFloat(e.target.value) || 0)}
+                                                            className="w-16"
+                                                            placeholder="W"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={dimensions?.height || 0}
+                                                            onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
+                                                            className="w-16"
+                                                            placeholder="H"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <ImageDown className="h-3 w-3 text-muted-foreground" />
                                                     <Input
                                                         type="file"
                                                         accept="image/*"
@@ -750,28 +623,160 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                         {combination.images?.length || 0}/3
                                                     </Badge>
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    type="button"
+                                                    variant={combination.isDefault ? "teritary" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => toggleDefault(index)}
+                                                    className="text-xs"
+                                                >
+                                                    {combination.isDefault ? "Default" : "Set Default"}
+                                                </Button>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => remove(index)}
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <div className="md:hidden space-y-3">
+                        {combinations.map((combination: ProductCombination, index: number) => {
+                            const dimensions = combination.dimensions || { length: 0, width: 0, height: 0 };
+
+                            return (
+                                <Card key={`mobile-combination-${combination.sku}-${index}`} className="border-l-4 border-l-blue-500">
+                                    <CardContent className="p-4">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {combination.variantStrings?.map((str, strIndex) => (
+                                                        <Badge key={`mobile-variant-string-${index}-${strIndex}`} variant="secondary" className="text-xs">
+                                                            {str}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => remove(index)}
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">SKU</Label>
+                                                    <Input
+                                                        value={combination.sku || ''}
+                                                        onChange={(e) => handleSkuChange(index, e.target.value)}
+                                                        className="text-xs font-mono"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Price</Label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={combination.price || 0}
+                                                        onChange={(e) => handlePriceChange(index, parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Quantity</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={combination.quantity || 0}
+                                                        onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.001"
+                                                        value={combination.weight || 0}
+                                                        onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <Label className="text-xs text-muted-foreground">Dimensions (cm)</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={dimensions?.length || 0}
+                                                            onChange={(e) => handleDimensionChange(index, 'length', parseFloat(e.target.value) || 0)}
+                                                            placeholder="Length"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={dimensions?.width || 0}
+                                                            onChange={(e) => handleDimensionChange(index, 'width', parseFloat(e.target.value) || 0)}
+                                                            placeholder="Width"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={dimensions?.height || 0}
+                                                            onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
+                                                            placeholder="Height"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <Label className="text-xs text-muted-foreground">Variant Images</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            multiple
+                                                            onChange={(e) => handleImageChange(index, Array.from(e.target.files || []))}
+                                                            className="text-xs"
+                                                        />
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {combination.images?.length || 0}/3
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <Button
+                                                    type="button"
+                                                    variant={combination.isDefault ? "teritary" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => toggleDefault(index)}
+                                                    className="text-xs"
+                                                >
+                                                    {combination.isDefault ? "Default" : "Set Default"}
+                                                </Button>
+                                                {combination.isDefault && (
+                                                    <Badge variant="default" className="text-xs">
+                                                        Default Combination
+                                                    </Badge>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <Button
-                                                type="button"
-                                                variant={combination.isDefault ? "primary" : "outline"}
-                                                size="sm"
-                                                onClick={() => toggleDefault(index)}
-                                                className="text-xs"
-                                            >
-                                                {combination.isDefault ? "Default" : "Set Default"}
-                                            </Button>
-                                            {combination.isDefault && (
-                                                <Badge variant="default" className="text-xs">
-                                                    Default Combination
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
                 </div>
             </CardContent>

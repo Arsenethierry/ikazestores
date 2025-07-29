@@ -48,7 +48,14 @@ export interface VariantTemplate {
     unit?: string;
     group?: string;
 }
-
+export interface ProductVariant {
+    templateId: string;
+    name: string;
+    type: 'boolean' | 'color' | 'text' | 'select' | 'range' | 'number' | 'multiselect';
+    values: VariantOption[]; // Use VariantOption directly instead of VariantValue
+    required: boolean;
+    sortOrder?: number;
+}
 export interface VariantType {
     id: string;
     values: VariantOption[];
@@ -79,20 +86,3 @@ export interface CatalogData {
     }>;
     variantDisplayGroups: Record<string, string[]>;
 };
-
-export interface VariantValue {
-    id: string;
-    value: string;
-    label: string;
-    additionalPrice: number;
-    isDefault: boolean;
-    images: string[];
-}
-
-export interface ProductVariant {
-    templateId: string;
-    name: string;
-    type: 'boolean' | 'color' | 'text' | 'select' | 'range' | 'number' | 'multiselect';
-    values: VariantValue[];
-    required: boolean;
-}

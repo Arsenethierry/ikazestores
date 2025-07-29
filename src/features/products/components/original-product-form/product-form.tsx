@@ -38,7 +38,7 @@ import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
 import { VariantConfig } from '@/features/variants management/variant-config';
-import { productFormSchema } from '@/lib/schemas/products-schems';
+import { CreateProductSchema } from '@/lib/schemas/products-schems';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -48,18 +48,23 @@ import {
     getProductTypesBySubcategory,
     getRecommendedVariantTemplates
 } from '@/features/variants management/ecommerce-catalog';
-import { ProductCombinations } from '../product-combinations';
 import { PhysicalStoreTypes } from '@/lib/types';
 import {
     Category,
     ProductType,
+    ProductVariant,
     Subcategory,
     VariantTemplate
 } from '@/lib/types/catalog-types';
 import { useRouter } from 'next/navigation';
 import { useCreateOriginalProduct } from '@/hooks/queries-and-mutations/use-original-products-queries';
+import { BasicInfoStep } from './steps/BasicInfoStep';
+import { CategoryStep } from './steps/CategoryStep';
+import { VariantsStep } from './steps/VariantsStep';
+import { ImagesStep } from './steps/ImagesStep';
+import { ReviewStep } from './steps/ReviewStep';
 
-type ProductFormData = z.infer<typeof productFormSchema>;
+type ProductFormData = z.infer<typeof CreateProductSchema>;
 
 interface ProductFormProps {
     storeData: PhysicalStoreTypes;
@@ -112,19 +117,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const createProductMutation = useCreateOriginalProduct();
 
     const form = useForm<ProductFormData>({
-        resolver: zodResolver(productFormSchema),
+        resolver: zodResolver(CreateProductSchema),
         mode: 'onChange',
         defaultValues: {
             name: '',
             description: '',
+            shortDescription: '',
             sku: '',
             basePrice: 0,
+            currency: storeData.currency,
             status: 'active',
             featured: false,
             hasVariants: false,
+            isDropshippingEnabled: true,
             images: [],
             tags: [],
-            currency: storeData.currency
+            physicalStoreId: storeData.$id,
+            storeLatitude: storeData.latitude,
+            storeLongitude: storeData.longitude,
+            storeCountry: storeData.country,
+            variants: [],
+            productCombinations: []
         }
     });
 
@@ -163,7 +176,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     useEffect(() => {
         if (watchedHasVariants && watchedVariants && watchedVariants.length > 0) {
             const hasVariantsWithValues = watchedVariants.some(variant =>
-                variant.values && variant.values.length > 0
+                variant && variant.values && variant.values.length > 0
             );
 
             if (hasVariantsWithValues) {
@@ -177,27 +190,56 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     }, [watchedVariants, watchedHasVariants]);
 
     const generateVariantCombinations = () => {
-        const variants = form.getValues('variants') || [];
-        const basePrice = form.getValues('basePrice') || 0;
-        const baseSku = form.getValues('sku') || '';
+        const variants = form.getValues("variants") || [];
+        const basePrice = form.getValues("basePrice") || 0;
+        const baseSku = form.getValues("sku") || '';
 
         if (variants.length === 0) {
             replaceCombinations([]);
             return;
         }
 
-        const combinations = generateCombinationsWithStrings(
-            variants,
-            basePrice,
-            baseSku
+        const validVariants = variants.filter((variant): variant is NonNullable<typeof variant> =>
+            variant != null &&
+            variant.values != null &&
+            variant.values.length > 0 &&
+            variant.templateId != null &&
+            variant.name != null &&
+            variant.type != null
         );
-        if (combinations.length > 5) {
-            toast.error("Maximum 5 variant combinations allowed to prevent server overload.");
-            replaceCombinations(combinations.slice(0, 5));
-        } else {
-            replaceCombinations(combinations);
+
+        if (validVariants.length === 0) {
+            replaceCombinations([]);
+            return;
         }
-    };
+
+        try {
+
+            const combinations = generateCombinationsWithStrings(validVariants, basePrice, baseSku);
+
+            const formCombinations = combinations.map(combo => ({
+                variantStrings: combo.variantStrings,
+                sku: combo.sku,
+                basePrice: combo.price,
+                stockQuantity: combo.quantity || 1,
+                isActive: true,
+                weight: combo.weight,
+                dimensions: combo.dimensions ? JSON.stringify(combo.dimensions) : undefined,
+                images: combo.images as File[] | undefined,
+                variantValues: combo.variantValues
+            }));
+
+            if (formCombinations.length > 10) {
+                toast.error("Maximum 10 variant combinations allowed.");
+                replaceCombinations(formCombinations.slice(0, 10));
+            } else {
+                replaceCombinations(formCombinations);
+            }
+        } catch (error) {
+            toast.error("Failed to generate variant combinations. Please check your variant configuration.");
+            replaceCombinations([]);
+        }
+    }
 
     const handleCategoryChange = (categoryId: string) => {
         setSelectedCategory(categoryId);
@@ -287,599 +329,93 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
-    // Form submission handler
     const onSubmit = async (values: ProductFormData) => {
+
         const isValid = await validateStep(currentStep);
 
         if (!isValid) return;
 
         const formData = {
             ...values,
-            storeId: storeData.$id,
-            storeLat: storeData.latitude,
-            storeLong: storeData.longitude,
-            storeOriginCountry: storeData.country,
+            physicalStoreId: storeData.$id,
+            storeLatitude: storeData.latitude,
+            storeLongitude: storeData.longitude,
+            storeCountry: storeData.country,
+            currency: storeData.currency,
+            isDropshippingEnabled: values.isDropshippingEnabled ?? true,
         };
 
         createProductMutation.mutate(formData, {
             onSuccess: (result) => {
+                console.log("result: ", result)
                 if ('data' in result && result.data) {
                     toast.success("Product created successfully!");
                     router.push(`/admin/stores/${storeData.$id}/products`);
                 }
-                // Error handling is already done in the mutation hook
             },
             onError: (error) => {
-                // Error handling is already done in the mutation hook
                 console.error('Product creation failed:', error);
             }
         });
     };
 
-    const renderBasicInfoStep = () => (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Product Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <CustomFormField
-                            fieldType={FormFieldType.INPUT}
-                            control={form.control}
-                            name="name"
-                            label="Product Name"
-                            placeholder="Enter product name"
-                        />
-                        <div className="flex gap-2">
-                            <CustomFormField
-                                fieldType={FormFieldType.INPUT}
-                                control={form.control}
-                                name="sku"
-                                label="SKU"
-                                placeholder="Product SKU"
-                            />
-                            <Button type="button" variant="outline" onClick={generateSKU} className="mt-8">
-                                Generate
-                            </Button>
-                        </div>
-                    </div>
-
-                    <CustomFormField
-                        fieldType={FormFieldType.TEXTAREA}
-                        control={form.control}
-                        name="description"
-                        label="Description"
-                        placeholder="Detailed product description"
-                    />
-
-                    <CustomFormField
-                        fieldType={FormFieldType.TEXTAREA}
-                        control={form.control}
-                        name="shortDescription"
-                        label="Short Description (Optional)"
-                        placeholder="Brief product summary"
-                    />
-
-                    <CustomFormField
-                        fieldType={FormFieldType.NUMBER_INPUT}
-                        control={form.control}
-                        name="basePrice"
-                        label="Base Price"
-                        placeholder="0.00"
-                    />
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Physical Properties & Status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="weight"
-                            label="Weight (kg)"
-                            placeholder="0.0"
-                        />
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="dimensions.length"
-                            label="Length (cm)"
-                            placeholder="0"
-                        />
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="dimensions.width"
-                            label="Width (cm)"
-                            placeholder="0"
-                        />
-                        <CustomFormField
-                            fieldType={FormFieldType.NUMBER_INPUT}
-                            control={form.control}
-                            name="dimensions.height"
-                            label="Height (cm)"
-                            placeholder="0"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Status</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="draft">Draft</SelectItem>
-                                            <SelectItem value="archived">Archived</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <div className="flex items-center space-x-4 pt-8">
-                            <FormField
-                                control={form.control}
-                                name="featured"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                        <FormControl>
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                            <FormLabel>Featured Product</FormLabel>
-                                        </div>
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-
-    const renderCategoryStep = () => (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Product Classification</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Select the appropriate category to get intelligent variant suggestions
-                    </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="categoryId"
-                            render={() => (
-                                <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    <Select onValueChange={handleCategoryChange} value={selectedCategory}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {categories.map((category: Category) => (
-                                                <SelectItem key={category.id} value={category.id}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="subcategoryId"
-                            render={() => (
-                                <FormItem>
-                                    <FormLabel>Subcategory</FormLabel>
-                                    <Select
-                                        onValueChange={handleSubcategoryChange}
-                                        value={selectedSubcategory}
-                                        disabled={!selectedCategory}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select subcategory" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {subcategories.map((subcategory: Subcategory) => (
-                                                <SelectItem key={subcategory.id} value={subcategory.id}>
-                                                    {subcategory.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="productTypeId"
-                            render={() => (
-                                <FormItem>
-                                    <FormLabel>Product Type</FormLabel>
-                                    <Select
-                                        onValueChange={handleProductTypeChange}
-                                        value={selectedProductType}
-                                        disabled={!selectedSubcategory}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select product type" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {productTypes.map((productType: ProductType) => (
-                                                <SelectItem key={productType.id} value={productType.id}>
-                                                    {productType.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    {selectedProductType && availableVariants.length > 0 && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Zap className="h-4 w-4 text-blue-600" />
-                                <h4 className="text-sm font-medium text-blue-900">
-                                    Smart Variant Suggestions Ready
-                                </h4>
-                            </div>
-                            <p className="text-xs text-blue-700 mb-3">
-                                {availableVariants.length} relevant variants available for {productTypes.find(pt => pt.id === selectedProductType)?.name}. Configure them in the next step.
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                                {availableVariants.slice(0, 6).map(variant => (
-                                    <Badge key={variant.id} variant="secondary" className="text-xs">
-                                        {variant.name}
-                                        {variant.isRequired && <span className="text-red-500 ml-1">*</span>}
-                                    </Badge>
-                                ))}
-                                {availableVariants.length > 6 && (
-                                    <Badge variant="outline" className="text-xs">
-                                        +{availableVariants.length - 6} more
-                                    </Badge>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Product Tags</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                        <Input
-                            value={currentTag}
-                            onChange={(e) => setCurrentTag(e.target.value)}
-                            placeholder="Add a tag"
-                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                        />
-                        <Button type="button" onClick={addTag}>Add</Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        {form.watch('tags')?.map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                                {tag}
-                                <button
-                                    type="button"
-                                    onClick={() => removeTag(tag)}
-                                    className="ml-1 text-xs hover:text-red-500"
-                                >
-                                    x
-                                </button>
-                            </Badge>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-
-    const renderVariantsStep = () => (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Product Variants Configuration</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Configure product variants like size, color, storage, etc. Each combination will generate simple filter strings like &quot;size-l&quot;, &quot;color-white&quot;.
-                    </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="hasVariants"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                    <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                    <FormLabel>This product has variants</FormLabel>
-                                    <p className="text-sm text-muted-foreground">
-                                        Enable to add variants like size, color, storage, etc.
-                                    </p>
-                                </div>
-                            </FormItem>
-                        )}
-                    />
-
-                    {form.watch('hasVariants') && (
-                        <VariantConfig
-                            control={form.control}
-                            variantTemplates={availableVariants}
-                        />
-                    )}
-                </CardContent>
-            </Card>
-
-            {form.watch("hasVariants") && (
-                <>
-                    <ProductCombinations
-                        control={form.control}
-                        basePrice={form.watch("basePrice") || 0}
-                        baseSku={form.watch("sku") || ''}
-                        variants={form.watch('variants') || []}
-                        onRegenerateAll={generateVariantCombinations}
-                    />
-                    <div className="mt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                console.log('Variants:', form.getValues('variants')); // Debug log
-                                generateVariantCombinations();
-                                console.log('Generated Combinations:', form.getValues('productCombinations')); // Debug log
-                            }}
-                            className="flex items-center gap-2"
-                        >
-                            <RefreshCw className="h-4 w-4" />
-                            Generate Combinations
-                        </Button>
-                    </div>
-                </>
-            )}
-        </div>
-    );
-
-    const renderImagesStep = () => (
-        <Card>
-            <CardHeader>
-                <CardTitle>Product Images</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                    Upload high-quality images of your product. These will be the main product gallery.
-                </p>
-            </CardHeader>
-            <CardContent>
-                <FormField
-                    control={form.control}
-                    name="images"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Product Images *</FormLabel>
-                            <FormControl>
-                                <div className="space-y-4">
-                                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
-                                        <input
-                                            type="file"
-                                            multiple
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const files = Array.from(e.target.files || []);
-                                                field.onChange(files);
-                                            }}
-                                            className="hidden"
-                                            id="image-upload"
-                                        />
-                                        <label htmlFor="image-upload" className="cursor-pointer">
-                                            <Images className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                                            <h3 className="text-lg font-medium mb-2">Upload Product Images</h3>
-                                            <p className="text-muted-foreground mb-2">
-                                                Click to browse or drag and drop images here
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Supported: JPG, PNG, WebP • Max 10 files • 5MB each
-                                            </p>
-                                        </label>
-                                    </div>
-
-                                    {previewImages.length > 0 && (
-                                        <div>
-                                            <h4 className="text-sm font-medium mb-3">Image Preview</h4>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                {previewImages.map((url, index) => (
-                                                    <div key={index} className="relative group">
-                                                        <Image
-                                                            src={url}
-                                                            width={200}
-                                                            height={200}
-                                                            alt={`Preview ${index + 1}`}
-                                                            className="w-full h-32 object-cover rounded-lg border shadow-sm"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() => {
-                                                                const files = Array.from(field.value || []);
-                                                                files.splice(index, 1);
-                                                                field.onChange(files);
-                                                            }}
-                                                        >
-                                                            ×
-                                                        </Button>
-                                                        <div className="absolute bottom-1 left-1 bg-black/50 text-white text-xs px-1 rounded">
-                                                            {index + 1}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </CardContent>
-        </Card>
-    );
-
-    const renderReviewStep = () => (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        Product Summary
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Product Name:</span>
-                                <p className="font-medium">{form.watch('name') || 'Not set'}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">SKU:</span>
-                                <p className="font-medium font-mono text-sm">{form.watch('sku') || 'Not set'}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Base Price:</span>
-                                <p className="font-medium text-lg">${form.watch('basePrice') || 0}</p>
-                            </div>
-                        </div>
-                        <div className="space-y-3">
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Category:</span>
-                                <p className="font-medium">
-                                    {categories.find(c => c.id === selectedCategory)?.name || 'Not selected'}
-                                </p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Product Type:</span>
-                                <p className="font-medium">
-                                    {productTypes.find(pt => pt.id === selectedProductType)?.name || 'Not selected'}
-                                </p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Variants:</span>
-                                <p className="font-medium">
-                                    {form.watch('hasVariants') ?
-                                        `${combinationFields.length} combinations` :
-                                        'No variants'
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t">
-                        <span className="text-sm font-medium text-muted-foreground">Status:</span>
-                        <div className="flex items-center gap-2 mt-1">
-                            <div className={`w-2 h-2 rounded-full ${form.watch('status') === 'active' ? 'bg-green-500' :
-                                form.watch('status') === 'draft' ? 'bg-yellow-500' : 'bg-gray-500'
-                                }`} />
-                            <p className="font-medium capitalize">{form.watch('status')}</p>
-                            {form.watch('featured') && (
-                                <Badge variant="secondary" className="text-xs">Featured</Badge>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {combinationFields.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-blue-600" />
-                            Generated Variant Filter Strings
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            These strings will be stored in database for easy filtering. Perfect for your T-shirt example: Size Large = &quot;size-l&quot;
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {combinationFields.map((combo, index) => (
-                                <div key={combo.id} className="p-3 bg-gray-50 rounded-lg">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium text-sm">Combination {index + 1}:</span>
-                                        <span className="text-sm text-muted-foreground">{combo.sku}</span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {combo.variantStrings?.map((str, strIndex) => (
-                                            <Badge key={strIndex} variant="secondary" className="text-xs">
-                                                {str}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
-    );
-
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
-                return renderBasicInfoStep();
+                return (
+                    <BasicInfoStep
+                        form={form}
+                        storeData={storeData}
+                        generateSKU={generateSKU}
+                    />
+                )
             case 2:
-                return renderCategoryStep();
+                return (
+                    <CategoryStep
+                        form={form}
+                        categories={categories}
+                        subcategories={subcategories}
+                        productTypes={productTypes}
+                        selectedCategory={selectedCategory}
+                        selectedSubcategory={selectedSubcategory}
+                        selectedProductType={selectedProductType}
+                        availableVariants={availableVariants}
+                        currentTag={currentTag}
+                        setCurrentTag={setCurrentTag}
+                        handleCategoryChange={handleCategoryChange}
+                        handleSubcategoryChange={handleSubcategoryChange}
+                        handleProductTypeChange={handleProductTypeChange}
+                        addTag={addTag}
+                        removeTag={removeTag}
+                    />
+                );
             case 3:
-                return renderVariantsStep();
+                return (
+                    <VariantsStep
+                        form={form}
+                        availableVariants={availableVariants}
+                        generateVariantCombinations={generateVariantCombinations}
+                    />
+                );
             case 4:
-                return renderImagesStep();
+                return (
+                    <ImagesStep
+                        form={form}
+                        previewImages={previewImages}
+                    />
+                );
             case 5:
-                return renderReviewStep();
+                return (
+                    <ReviewStep
+                        form={form}
+                        storeData={storeData}
+                        categories={categories}
+                        productTypes={productTypes}
+                        selectedCategory={selectedCategory}
+                        selectedProductType={selectedProductType}
+                        previewImages={previewImages}
+                    />
+                );
             default:
                 return null;
         }
@@ -926,7 +462,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Loading state overlay */}
                     {createProductMutation.isPending && (
                         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                             <div className="bg-white p-6 rounded-lg shadow-xl">
@@ -936,7 +471,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                         </div>
                     )}
 
-                    {/* Error display */}
                     {createProductMutation.isError && (
                         <Alert variant="destructive" className="mb-4">
                             <AlertCircle className="h-4 w-4" />

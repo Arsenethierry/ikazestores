@@ -1,22 +1,23 @@
 "use client";
 
 import {
+    bulkUpdateProductStatus,
     createOriginalProduct,
     deleteOriginalProducts,
     getFeaturedOriginalProducts,
     getNearbyStoresOriginalProducts,
     getOriginalProductById,
     getOriginalProductsByCategory,
-    getOriginalProductsByOwner,
     getOriginalProductsByPriceRange,
     getOriginalProductsByStatus,
     getOriginalProductsByTag,
     getStoreOriginalProducts,
     searchOriginalProducts,
+    toggleProductFeatured,
     updateOriginalProduct
 } from "@/lib/actions/original-products-actions";
 import { getUserLocation } from "@/lib/geolocation";
-import { CreateOriginalProductTypes, UpdateOriginalProductTypes } from "@/lib/schemas/products-schems";
+import { CreateProductSchema, UpdateProductSchema } from "@/lib/schemas/products-schems";
 import { ProductFilters } from "@/lib/types";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -157,24 +158,24 @@ export const useGetOriginalProductsByTag = (
     });
 };
 
-export const useGetOriginalProductsByOwner = (
-    ownerId: string,
-    options: {
-        limit?: number;
-        page?: number;
-        status?: "active" | "inactive" | "draft";
-    } = {}
-) => {
-    return useQuery({
-        queryFn: () => getOriginalProductsByOwner(ownerId, options),
-        queryKey: ['original-products-by-owner', ownerId, options],
-        enabled: !!ownerId,
-        staleTime: 2 * 60 * 1000,
-    });
-};
+// export const useGetOriginalProductsByOwner = (
+//     ownerId: string,
+//     options: {
+//         limit?: number;
+//         page?: number;
+//         status?: "active" | "inactive" | "draft";
+//     } = {}
+// ) => {
+//     return useQuery({
+//         queryFn: () => getOriginalProductsByOwner(ownerId, options),
+//         queryKey: ['original-products-by-owner', ownerId, options],
+//         enabled: !!ownerId,
+//         staleTime: 2 * 60 * 1000,
+//     });
+// };
 
 export const useGetOriginalProductsByStatus = (
-    status: "active" | "inactive" | "draft",
+    status: "active" | "draft" | "draft",
     options: {
         limit?: number;
         page?: number;
@@ -192,7 +193,7 @@ export const useCreateOriginalProduct = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: CreateOriginalProductTypes) => createOriginalProduct(data),
+        mutationFn: (data: CreateProductSchema) => createOriginalProduct(data),
         onSuccess: (result, variables) => {
             if ('error' in result) {
                 toast.error(result.error);
@@ -201,7 +202,7 @@ export const useCreateOriginalProduct = () => {
 
             toast.success(result.success);
 
-            queryClient.invalidateQueries({ queryKey: ['store-original-products', variables.storeId] });
+            queryClient.invalidateQueries({ queryKey: ['store-original-products', variables.physicalStoreId] });
             queryClient.invalidateQueries({ queryKey: ['original-products-by-owner'] });
             queryClient.invalidateQueries({ queryKey: ['featured-original-products'] });
 
@@ -212,7 +213,7 @@ export const useCreateOriginalProduct = () => {
             }
 
             if (variables.tags?.length) {
-                variables.tags.forEach(tag => {
+                variables.tags.forEach((tag: string) => {
                     queryClient.invalidateQueries({
                         queryKey: ['original-products-by-tag', tag]
                     });
@@ -229,7 +230,7 @@ export const useUpdateOriginalProduct = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ productId, data }: { productId: string; data: UpdateOriginalProductTypes }) =>
+        mutationFn: ({ productId, data }: { productId: string; data: UpdateProductSchema }) =>
             updateOriginalProduct(productId, data),
         onSuccess: (result, variables) => {
             if ('error' in result) {
@@ -261,6 +262,59 @@ export const useUpdateOriginalProduct = () => {
             toast.error(error instanceof Error ? error.message : "Failed to update product");
         }
     });
+};
+
+export const useBulkUpdateProductStatus = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ productIds, status }: { productIds: string[]; status: "active" | "draft" | "archived" }) =>
+            bulkUpdateProductStatus(productIds, status),
+        onSuccess: (result, variables) => {
+            if ('error' in result) {
+                toast.error(result.error);
+                return;
+            }
+            toast.success(result.success);
+            queryClient.invalidateQueries({ queryKey: ['store-original-products'] });
+            variables.productIds.forEach(productId => {
+                queryClient.invalidateQueries({ queryKey: ['original-product', productId] });
+            });
+
+            queryClient.invalidateQueries({
+                queryKey: ['infinite-original-products']
+            });
+
+            queryClient.invalidateQueries({
+                queryKey: ['infinite-store-products']
+            });
+        },
+        onError: (error) => {
+            toast.error(error instanceof Error ? error.message : "Failed to update product status");
+        }
+    })
+}
+
+export const useToggleProductFeatured = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (productId: string) => toggleProductFeatured(productId),
+        onSuccess: (result, variables) => {
+            if ('error' in result) {
+                toast.error(result.error);
+                return;
+            }
+
+            toast.success(result.success);
+
+            queryClient.invalidateQueries({ queryKey: ['original-product', variables] });
+            queryClient.invalidateQueries({ queryKey: ['store-original-products'] });
+        },
+        onError: (error) => {
+            toast.error(error instanceof Error ? error.message : "Failed to toggle featured status");
+        }
+    })
 };
 
 export const useDeleteOriginalProducts = () => {

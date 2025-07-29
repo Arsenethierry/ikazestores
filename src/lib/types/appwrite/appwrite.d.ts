@@ -266,6 +266,7 @@ export type AffiliateProductImports = Models.Document & {
     isActive: boolean;
     importedAt: string;
     lastSyncedAt: string | null;
+    commission: number;
 }
 
 export type AffiliateCombinationPricing = Models.Document & {
