@@ -188,8 +188,8 @@ export const useBulkUpdateCommission = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ virtualStoreId, newRate }: { virtualStoreId: string; newRate: number }) =>
-            bulkUpdateCommission(virtualStoreId, newRate),
+        mutationFn: ({ virtualStoreId, newCommission }: { virtualStoreId: string; newCommission: number }) =>
+            bulkUpdateCommission(virtualStoreId, newCommission),
         onSuccess: (result, variables) => {
             if ('error' in result) {
                 toast.error(result.error);

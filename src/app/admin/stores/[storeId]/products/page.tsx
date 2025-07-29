@@ -489,12 +489,6 @@ function EmptyOriginalProductsState({ storeId }: { storeId: string }) {
                             Create First Product
                         </Link>
                     </Button>
-                    <Button variant="outline" asChild>
-                        <Link href={`/admin/stores/${storeId}/products/bulk-import`}>
-                            <Package className="h-4 w-4 mr-2" />
-                            Bulk Import
-                        </Link>
-                    </Button>
                 </div>
             </CardContent>
         </Card>

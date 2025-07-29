@@ -41,7 +41,7 @@ export const PhyscalStoreCard = ({ store, currentUser }: { store: PhysicalStoreT
             </CardContent>
             <CardFooter className="p-4 flex justify-between">
                 <Link
-                    href={''}
+                    href={`/admin/stores/${store.$id}`}
                     className={buttonVariants({variant: "teritary"})}
                 >
                     View Store

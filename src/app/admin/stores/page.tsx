@@ -87,7 +87,7 @@ const AllStoresPage = async () => {
                                         <Plus /> Create New Store
                                     </Link>
                                 </section>
-                                <Tabs defaultValue={"virtualStores"} className="w-full">
+                                <Tabs defaultValue={isPhysicalStoreOwner ? "physicalStores" :"virtualStores"} className="w-full">
                                     <TabsList className="w-full p-0 bg-background justify-start border-b rounded-none">
                                         <TabsTrigger
                                             key={"virtualStores"}
@@ -111,6 +111,7 @@ const AllStoresPage = async () => {
                                                     key={store.$id}
                                                     store={store as VirtualStoreTypes}
                                                     currentUser={user}
+                                                    isAdminPage={true}
                                                 />
                                             )) : (
                                                 <Card className='py-10'>
