@@ -7,6 +7,8 @@ import { useFormContext } from "react-hook-form";
 import { useEffect } from "react";
 import { Toggle } from "@/components/ui/toggle"
 import { Bold, Italic, List, ListOrdered, Strikethrough } from "lucide-react";
+import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 const Tiptap = ({ val }: { val: string }) => {
     const { setValue } = useFormContext();
@@ -43,63 +45,84 @@ const Tiptap = ({ val }: { val: string }) => {
         editorProps: {
             attributes: {
                 class:
-                    "min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    "min-h-[120px] w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 prose prose-sm max-w-none",
             },
         },
         content: val,
     });
 
     useEffect(() => {
-        if (editor?.isEmpty) editor.commands.setContent(val)
+        if (editor && editor.isEmpty) {
+            editor.commands.setContent(val)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [val]);
 
-    return (
-        <div className="flex flex-col gap-2">
-            {editor && (
-                <div className="border-input border rounded-md">
-                    <Toggle
-                        pressed={editor.isActive("bold")}
-                        onPressedChange={() => editor.chain().focus().toggleBold().run()}
-                        size={"sm"}
-                    >
-                        <Bold className="w-4 h-4" />
-                    </Toggle>
-                    <Toggle
-                        pressed={editor.isActive("italic")}
-                        onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-                        size={"sm"}
-                    >
-                        <Italic className="w-4 h-4" />
-                    </Toggle>
-                    <Toggle
-                        pressed={editor.isActive("strike")}
-                        onPressedChange={() => editor.chain().focus().toggleStrike().run()}
-                        size={"sm"}
-                    >
-                        <Strikethrough className="w-4 h-4" />
-                    </Toggle>
-                    <Toggle
-                        pressed={editor.isActive("orderedList")}
-                        onPressedChange={() =>
-                            editor.chain().focus().toggleOrderedList().run()
-                        }
-                        size={"sm"}
-                    >
-                        <ListOrdered className="w-4 h-4" />
-                    </Toggle>
-                    <Toggle
-                        pressed={editor.isActive("bulletList")}
-                        onPressedChange={() =>
-                            editor.chain().focus().toggleBulletList().run()
-                        }
-                        size={"sm"}
-                    >
-                        <List className="w-4 h-4" />
-                    </Toggle>
-                </div>
+    if (!editor) {
+        return null;
+    }
+
+    const ToolbarButton = ({
+        onClick,
+        isActive,
+        children
+    }: {
+        onClick: () => void;
+        isActive: boolean;
+        children: React.ReactNode
+    }) => (
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClick}
+            className={cn(
+                "h-8 w-8 p-0",
+                isActive && "bg-muted"
             )}
-            <EditorContent placeholder="heyy" editor={editor} />
+        >
+            {children}
+        </Button>
+    )
+
+    return (
+        <div className="border border-input rounded-md">
+            <div className="border-b border-input p-2 flex items-center gap-1">
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                    isActive={editor.isActive("bold")}
+                >
+                    <Bold className="w-4 h-4" />
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                    isActive={editor.isActive("italic")}
+                >
+                    <Italic className="w-4 h-4" />
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                    isActive={editor.isActive("strike")}
+                >
+                    <Strikethrough className="w-4 h-4" />
+                </ToolbarButton>
+                <div className="w-px h-6 bg-border mx-1" />
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                    isActive={editor.isActive("orderedList")}
+                >
+                    <ListOrdered className="w-4 h-4" />
+                </ToolbarButton>
+
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                    isActive={editor.isActive("bulletList")}
+                >
+                    <List className="w-4 h-4" />
+                </ToolbarButton>
+
+            </div>
+            <EditorContent editor={editor} />
         </div>
     );
 }

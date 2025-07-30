@@ -23,6 +23,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     generateSKU,
     storeData
 }) => {
+    console.log("ffff: ", form.watch("description"))
     return (
         <div className="space-y-6">
             <Card>
@@ -53,7 +54,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     </div>
 
                     <CustomFormField
-                        fieldType={FormFieldType.TEXTAREA}
+                        fieldType={FormFieldType.RICH_TEXT_EDITOR}
                         control={form.control}
                         name="description"
                         label="Description"

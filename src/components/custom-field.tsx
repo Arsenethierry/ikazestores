@@ -18,6 +18,7 @@ import { Input } from "./ui/input";
 import { Select, SelectContent, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { Calendar } from "lucide-react";
+import Tiptap from "./tiptap-editor";
 
 export enum FormFieldType {
     INPUT = "input",
@@ -28,6 +29,7 @@ export enum FormFieldType {
     DATE_PICKER = "datePicker",
     SELECT = "select",
     SKELETON = "skeleton",
+    RICH_TEXT_EDITOR = "richTextEditor",
 }
 
 interface CustomProps {
@@ -172,6 +174,12 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
                             {props.children}
                         </SelectContent>
                     </Select>
+                </FormControl>
+            );
+        case FormFieldType.RICH_TEXT_EDITOR:
+            return (
+                <FormControl>
+                    <Tiptap val={field.value || ""} />
                 </FormControl>
             );
         case FormFieldType.SKELETON:
