@@ -3,22 +3,40 @@ import { AppwriteRollback } from "../actions/rollback";
 import { createAdminClient, createDocumentPermissions, createSessionClient } from "../appwrite";
 import { BaseModel, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { DATABASE_ID, PRODUCT_VARIANT_OPTIONS_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, PRODUCTS_BUCKET_ID, PRODUCTS_COLLECTION_ID, VARIANT_COMBINATION_VALUES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "../env-config";
-import { CreateProductSchema, ProductCombinationSchema, UpdateProductSchema } from "../schemas/products-schems";
-import { Products } from "../types/appwrite/appwrite";
+import { CreateColorVariantData, CreateProductSchema, ProductCombinationSchema, UpdateProductSchema } from "../schemas/products-schems";
+import { ProductColors, Products } from "../types/appwrite/appwrite";
 import { getAuthState } from "../user-permission";
 import { ProductsStorageService } from "./storage-models";
 import { extractFileIdFromUrl } from "../utils";
+import { ColorVariantsModel } from "./ColorVariantsModel";
 
 export class ProductModel extends BaseModel<Products> {
     private storageService: ProductsStorageService;
+    private colorVariantsModel: ColorVariantsModel;
 
     constructor() {
         super(PRODUCTS_COLLECTION_ID);
         this.storageService = new ProductsStorageService();
+        this.colorVariantsModel = new ColorVariantsModel();
     }
 
     async findProductById(productId: string): Promise<Products | null> {
         return await this.findById(productId, {});
+    }
+
+    async findProductWithColors(productId: string): Promise<{
+        product: Products | null;
+        colors: ProductColors[];
+    }> {
+        const product = await this.findById(productId, {});
+        if (!product) {
+            return { product: null, colors: [] };
+        }
+        const colorsResult = await this.colorVariantsModel.findByProduct(productId);
+        return {
+            product,
+            colors: colorsResult.documents
+        };
     }
 
     async findByPhysicalStore(
@@ -237,8 +255,26 @@ export class ProductModel extends BaseModel<Products> {
 
             await rollback.trackDocument(PRODUCTS_COLLECTION_ID, newProduct.$id);
 
+            if (data.colorVariants && data.colorVariants.length > 0) {
+                for (const colorVariant of data.colorVariants) {
+                    const colorResult = await this.colorVariantsModel.createColorVariant({
+                        ...colorVariant,
+                        productId
+                    });
+
+                    if ('error' in colorResult) {
+                        console.error(`Failed to create color variant: ${colorResult.error}`);
+                    }
+                }
+            }
+
             if (data.hasVariants && data.variants && data.variants.length > 0) {
-                const variants = data.variants.map(async (variant) => {
+                const nonColorVariants = data.variants.filter(variant =>
+                    variant.type.toLowerCase() !== 'color' &&
+                    !variant.name.toLowerCase().includes('color')
+                );
+
+                const variants = nonColorVariants.map(async (variant) => {
                     const variantId = ID.unique();
 
                     await databases.createDocument(
@@ -394,6 +430,11 @@ export class ProductModel extends BaseModel<Products> {
                             productId
                         );
 
+                        const colorVariantsResult = await this.colorVariantsModel.deleteColorVariantsByProduct(productId);
+                        if ('error' in colorVariantsResult) {
+                            console.error(`Failed to delete color variants: ${colorVariantsResult.error}`);
+                        }
+
                         if (product.images && product.images.length > 0) {
                             await Promise.all(
                                 product.images.map(async (imageUrl: string) => {
@@ -493,6 +534,21 @@ export class ProductModel extends BaseModel<Products> {
             }
             return { error: "Failed to delete product(s)" };
         }
+    }
+
+    async addColorToProduct(productId: string, colorData: CreateColorVariantData): Promise<any> {
+        return await this.colorVariantsModel.createColorVariant({
+            ...colorData,
+            productId
+        });
+    }
+
+    async getProductColors(productId: string) {
+        return await this.colorVariantsModel.findByProduct(productId);
+    }
+
+    async removeColorFromProduct(colorVariantId: string) {
+        return await this.colorVariantsModel.deleteColorVariant(colorVariantId);
     }
 
     async toggleFeatured(productId: string): Promise<Products | { error: string }> {

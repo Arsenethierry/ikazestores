@@ -23,7 +23,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     generateSKU,
     storeData
 }) => {
-    console.log("ffff: ", form.watch("description"))
+
     return (
         <div className="space-y-6">
             <Card>

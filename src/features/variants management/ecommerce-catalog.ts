@@ -351,9 +351,10 @@ export function generateCombinationsWithStrings(
             id: `combination-${index}`,
             variantValues: variantValuesMap,
             sku: generatedSKU,
-            price: calculatedPrice,
-            quantity: 0,
+            basePrice: calculatedPrice,
+            stockQuantity: 0,
             isDefault: index === 0,
+            isActive: true,
             variantStrings: generateVariantStrings(variantValuesMap),
         };
 

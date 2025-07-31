@@ -2,12 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { OriginalProductsModel } from "@/lib/models/original-products-model";
-import { CreateProductSchema, DeleteProductSchema, UpdateProductSchema } from "../schemas/products-schems";
+import { ColorVariantUpdateSchema, CreateColorVariantData, CreateProductSchema, DeleteProductSchema, UpdateColorVariantData, UpdateProductSchema } from "../schemas/products-schems";
 import { ProductModel } from "../models/ProductModel";
 import { getAuthState } from "../user-permission";
 import { OriginalProductTypes } from "../types";
+import { ColorVariantsModel } from "../models/ColorVariantsModel";
 
 const originalProductsModel = new ProductModel();
+const colorVariantsModel = new ColorVariantsModel();
 
 export async function createOriginalProduct(data: CreateProductSchema) {
     try {
@@ -101,6 +103,84 @@ export async function bulkUpdateProductStatus(
     } catch (error) {
         console.error("bulkUpdateProductStatus error:", error);
         return { error: "Failed to bulk update product status" };
+    }
+}
+
+export async function createColorVariant(data: CreateColorVariantData) {
+    try {
+        const { user } = await getAuthState();
+        if (!user) {
+            return { error: "Authentication required" };
+        }
+
+        const result = await colorVariantsModel.createColorVariant(data);
+        if ('error' in result) {
+            return { error: result.error };
+        }
+
+        revalidatePath('/admin/stores/[storeId]/products');
+        revalidatePath(`/admin/stores/[storeId]/products/${data.productId}`);
+
+        return {
+            success: `Color variant "${result.colorName}" created successfully!`,
+            data: result
+        };
+    } catch (error) {
+        console.error("createColorVariant action error: ", error);
+        if (error instanceof Error) {
+            return { error: error.message };
+        }
+        return { error: "Failed to create color variant" };
+    }
+}
+
+export async function updateColorVariant(
+    colorVariantId: string,
+    data: UpdateColorVariantData
+) {
+    try {
+        const validatedData = ColorVariantUpdateSchema.parse(data);
+        const result = await colorVariantsModel.updateColorVariant(colorVariantId, validatedData);
+
+        if ('error' in result) {
+            return { error: result.error };
+        }
+
+        revalidatePath('/admin/stores/[storeId]/products');
+        revalidatePath(`/admin/stores/[storeId]/products/${result.productId}`);
+
+        return {
+            success: `Color variant "${result.colorName}" updated successfully!`,
+            data: result
+        };
+    } catch (error) {
+        console.error("updateColorVariant action error: ", error);
+        if (error instanceof Error) {
+            return { error: error.message };
+        }
+        return { error: "Failed to update color variant" };
+    }
+}
+
+export async function deleteColorVariant(colorVariantId: string) {
+    try {
+        const result = await colorVariantsModel.deleteColorVariant(colorVariantId);
+
+        if ('error' in result) {
+            return { error: result.error };
+        }
+
+        revalidatePath('/admin/stores/[storeId]/products');
+
+        return {
+            success: result.success || "Color variant deleted successfully!"
+        };
+    } catch (error) {
+        console.error("deleteColorVariant action error: ", error);
+        if (error instanceof Error) {
+            return { error: error.message };
+        }
+        return { error: "Failed to delete color variant" };
     }
 }
 
@@ -236,6 +316,28 @@ export async function getOriginalProductById(productId: string) {
     } catch (error) {
         console.error("getOriginalProductById action error: ", error);
         return { error: "Failed to fetch product" };
+    }
+}
+
+export async function getProductWithColors(productId: string) {
+    try {
+        const { user } = await getAuthState();
+        if (!user) {
+            return { error: "Authentication required" };
+        }
+
+        const result = await originalProductsModel.findProductWithColors(productId);
+
+        return {
+            success: "Product data retrieved successfully",
+            data: result
+        };
+    } catch (error) {
+        console.error("getProductWithColors action error: ", error);
+        if (error instanceof Error) {
+            return { error: error.message };
+        }
+        return { error: "Failed to retrieve product data" };
     }
 }
 

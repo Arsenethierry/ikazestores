@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -32,13 +32,16 @@ import {
     CheckCircle,
     Loader2,
     AlertCircle,
-    RefreshCw
+    RefreshCw,
+    Palette
 } from 'lucide-react';
 import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
 import Image from 'next/image';
 import { VariantConfig } from '@/features/variants management/variant-config';
-import { CreateProductSchema } from '@/lib/schemas/products-schems';
+import {
+    CreateProductSchema,
+} from '@/lib/schemas/products-schems';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -63,8 +66,8 @@ import { CategoryStep } from './steps/CategoryStep';
 import { VariantsStep } from './steps/VariantsStep';
 import { ImagesStep } from './steps/ImagesStep';
 import { ReviewStep } from './steps/ReviewStep';
-
-type ProductFormData = z.infer<typeof CreateProductSchema>;
+import { ColorVariantInput } from './color-variant-manager';
+import { ProductCombination } from '@/lib/schemas/product-variants-schema';
 
 interface ProductFormProps {
     storeData: PhysicalStoreTypes;
@@ -87,12 +90,12 @@ const steps = [
         step: 3,
         title: "Variants",
         description: "Product variations",
-        icon: ShoppingCart,
+        icon: Zap,
     },
     {
         step: 4,
-        title: "Images",
-        description: "Product photos",
+        title: "Images & Colors",
+        description: "Product photos and color variants",
         icon: Images,
     },
     {
@@ -113,10 +116,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const [previewImages, setPreviewImages] = useState<string[]>([]);
 
     const router = useRouter();
-
     const createProductMutation = useCreateOriginalProduct();
 
-    const form = useForm<ProductFormData>({
+    const form = useForm<z.infer<typeof CreateProductSchema>>({
         resolver: zodResolver(CreateProductSchema),
         mode: 'onChange',
         defaultValues: {
@@ -128,6 +130,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             currency: storeData.currency,
             status: 'active',
             featured: false,
+            enableColors: false,
             hasVariants: false,
             isDropshippingEnabled: true,
             images: [],
@@ -137,7 +140,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             storeLongitude: storeData.longitude,
             storeCountry: storeData.country,
             variants: [],
-            productCombinations: []
+            productCombinations: [],
+            colorVariants: [],
+            hasColorVariants: false
         }
     });
 
@@ -154,7 +159,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
     const watchedImages = form.watch("images");
     const watchedHasVariants = form.watch("hasVariants");
-    const watchedVariants = form.watch("variants");
+    const watchedVariants = form.watch("variants") || [];
+    const watchedEnableColors = form.watch("enableColors");
+    const watchedColorVariants = form.watch("colorVariants") || [];
 
     useEffect(() => {
         if (selectedProductType) {
@@ -173,13 +180,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     }, [watchedImages]);
 
+    const isColorVariant = useCallback((variant: any) => {
+        if (!variant) return false;
+        const name = variant.name?.toLowerCase() || '';
+        const type = variant.type?.toLowerCase() || '';
+        const templateId = variant.templateId?.toLowerCase() || '';
+        const colorKeywords = ['color', 'colour', 'hue', 'shade', 'tint'];
+        return colorKeywords.some(keyword =>
+            name.includes(keyword) ||
+            type.includes(keyword) ||
+            templateId.includes(keyword)
+        );
+    }, []);
+
     useEffect(() => {
         if (watchedHasVariants && watchedVariants && watchedVariants.length > 0) {
-            const hasVariantsWithValues = watchedVariants.some(variant =>
-                variant && variant.values && variant.values.length > 0
-            );
+            const hasNonColorVariantsWithValues = watchedVariants.some(variant => {
+                if (!variant || !variant.values || variant.values.length === 0) return false;
+                return !isColorVariant(variant);
+            });
 
-            if (hasVariantsWithValues) {
+            if (hasNonColorVariantsWithValues) {
                 generateVariantCombinations();
             } else {
                 replaceCombinations([]);
@@ -189,7 +210,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     }, [watchedVariants, watchedHasVariants]);
 
-    const generateVariantCombinations = () => {
+    const generateVariantCombinations = useCallback(() => {
         const variants = form.getValues("variants") || [];
         const basePrice = form.getValues("basePrice") || 0;
         const baseSku = form.getValues("sku") || '';
@@ -199,13 +220,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             return;
         }
 
+        // Filter out color variants - they're managed separately
         const validVariants = variants.filter((variant): variant is NonNullable<typeof variant> =>
             variant != null &&
             variant.values != null &&
             variant.values.length > 0 &&
             variant.templateId != null &&
             variant.name != null &&
-            variant.type != null
+            variant.type != null &&
+            !isColorVariant(variant)
         );
 
         if (validVariants.length === 0) {
@@ -214,19 +237,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
 
         try {
-
             const combinations = generateCombinationsWithStrings(validVariants, basePrice, baseSku);
 
             const formCombinations = combinations.map(combo => ({
                 variantStrings: combo.variantStrings,
                 sku: combo.sku,
-                basePrice: combo.price,
-                stockQuantity: combo.quantity || 1,
-                isActive: true,
+                basePrice: combo.basePrice,
+                stockQuantity: combo.stockQuantity || 1,
                 weight: combo.weight,
-                dimensions: combo.dimensions ? JSON.stringify(combo.dimensions) : undefined,
+                dimensions: combo.dimensions,
                 images: combo.images as File[] | undefined,
-                variantValues: combo.variantValues
+                variantValues: combo.variantValues,
+                isDefault: combinations.indexOf(combo) === 0,
+                isActive: true
             }));
 
             if (formCombinations.length > 10) {
@@ -235,11 +258,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             } else {
                 replaceCombinations(formCombinations);
             }
+
+            toast.success(`Generated ${formCombinations.length} variant combinations`);
         } catch (error) {
             toast.error("Failed to generate variant combinations. Please check your variant configuration.");
             replaceCombinations([]);
         }
-    }
+    }, [form, isColorVariant, replaceCombinations]);
+
+    console.log("ffff: ", form.watch())
 
     const handleCategoryChange = (categoryId: string) => {
         setSelectedCategory(categoryId);
@@ -269,6 +296,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         form.setValue('variants', []);
         form.setValue('productCombinations', []);
         form.setValue('hasVariants', false);
+        form.setValue('enableColors', false);
+        form.setValue('colorVariants', []);
     };
 
     const addTag = () => {
@@ -294,8 +323,55 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         form.setValue('sku', sku);
     };
 
+    const validateColorVariants = (colorVariants: ColorVariantInput[]): string[] => {
+        const errors: string[] = [];
+
+        if (colorVariants.length === 0) {
+            return errors;
+        }
+
+        const hasDefault = colorVariants.some(color => color.isDefault);
+        if (!hasDefault) {
+            errors.push("At least one color must be set as default");
+        }
+
+        const names = colorVariants.map(c => c.colorName.toLowerCase());
+        const uniqueNames = new Set(names);
+        if (uniqueNames.size !== names.length) {
+            errors.push("Color names must be unique");
+        }
+
+        const colorsWithoutImages = colorVariants.filter(c => !c.images || c.images.length === 0);
+        if (colorsWithoutImages.length > 0) {
+            errors.push(`${colorsWithoutImages.length} color(s) are missing images`);
+        }
+
+        return errors;
+    };
+
+    const validateProductCombinations = (combinations: any[]): string[] => {
+        const errors: string[] = [];
+
+        if (combinations.length === 0) {
+            return errors;
+        }
+
+        const skus = combinations.map(c => c.sku);
+        const uniqueSkus = new Set(skus);
+        if (uniqueSkus.size !== skus.length) {
+            errors.push("Product combination SKUs must be unique");
+        }
+
+        const hasDefault = combinations.some(combo => combo.isDefault);
+        if (!hasDefault) {
+            errors.push("At least one combination must be set as default");
+        }
+
+        return errors;
+    };
+
     const validateStep = async (step: number): Promise<boolean> => {
-        const fieldsToValidate: (keyof ProductFormData)[] = [];
+        const fieldsToValidate: (keyof z.infer<typeof CreateProductSchema>)[] = [];
 
         switch (step) {
             case 1:
@@ -305,15 +381,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 fieldsToValidate.push('categoryId', 'subcategoryId', 'productTypeId');
                 break;
             case 3:
+                if (watchedHasVariants) {
+                    const combinations = form.getValues('productCombinations') || [];
+                    const combinationErrors = validateProductCombinations(combinations);
+                    if (combinationErrors.length > 0) {
+                        toast.error(`Combination validation errors: ${combinationErrors.join(', ')}`);
+                        return false;
+                    }
+                }
                 break;
             case 4:
                 fieldsToValidate.push('images');
+                
+                if (watchedEnableColors) {
+                    const colorErrors = validateColorVariants(watchedColorVariants);
+                    if (colorErrors.length > 0) {
+                        toast.error(`Color validation errors: ${colorErrors.join(', ')}`);
+                        return false;
+                    }
+                }
                 break;
             case 5:
-                break;
+                return await form.trigger();
         }
 
-        return await form.trigger(fieldsToValidate);
+        return fieldsToValidate.length > 0 ? await form.trigger(fieldsToValidate) : true;
     };
 
     const handleNextStep = async () => {
@@ -329,25 +421,38 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
-    const onSubmit = async (values: ProductFormData) => {
-
+    const onSubmit = async (values: z.infer<typeof CreateProductSchema>) => {
         const isValid = await validateStep(currentStep);
-
         if (!isValid) return;
 
-        const formData = {
+        if (values.enableColors) {
+            const colorErrors = validateColorVariants(values.colorVariants || []);
+            if (colorErrors.length > 0) {
+                toast.error(`Please fix color issues: ${colorErrors.join(', ')}`);
+                return;
+            }
+        }
+
+        if (values.hasVariants) {
+            const combinationErrors = validateProductCombinations(values.productCombinations || []);
+            if (combinationErrors.length > 0) {
+                toast.error(`Please fix combination issues: ${combinationErrors.join(', ')}`);
+                return;
+            }
+        }
+
+        const transformedData = {
             ...values,
-            physicalStoreId: storeData.$id,
-            storeLatitude: storeData.latitude,
-            storeLongitude: storeData.longitude,
-            storeCountry: storeData.country,
-            currency: storeData.currency,
-            isDropshippingEnabled: values.isDropshippingEnabled ?? true,
+            hasColorVariants: values.enableColors && (values.colorVariants?.length || 0) > 0,
+            colorVariants: values.colorVariants || [],
+            variants: values.variants || [],
+            productCombinations: values.productCombinations || [],
+            tags: values.tags || [],
+            images: values.images || []
         };
 
-        createProductMutation.mutate(formData, {
+        createProductMutation.mutate(transformedData, {
             onSuccess: (result) => {
-                console.log("result: ", result)
                 if ('data' in result && result.data) {
                     toast.success("Product created successfully!");
                     router.push(`/admin/stores/${storeData.$id}/products`);
@@ -355,6 +460,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             },
             onError: (error) => {
                 console.error('Product creation failed:', error);
+                toast.error('Failed to create product. Please try again.');
             }
         });
     };
@@ -368,7 +474,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                         storeData={storeData}
                         generateSKU={generateSKU}
                     />
-                )
+                );
             case 2:
                 return (
                     <CategoryStep
@@ -421,13 +527,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
+    // Get summary counts for the stepper
+    const getVariantSummary = () => {
+        const colorCount = watchedColorVariants.length;
+        const variantCount = watchedVariants.filter(v => !isColorVariant(v)).length;
+        const combinationCount = combinationFields.length;
+
+        return { colorCount, variantCount, combinationCount };
+    };
+
+    const { colorCount, variantCount, combinationCount } = getVariantSummary();
+
     return (
         <div className="mx-auto p-6 space-y-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Create New Product</h1>
                     <p className="text-muted-foreground">
-                        Add a new product to {storeData?.storeName} with simple variant string filtering
+                        Add a new product to {storeData?.storeName} with comprehensive variant and color management
                     </p>
                 </div>
             </div>
@@ -504,11 +621,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                             <span className="text-sm text-muted-foreground">
                                 Step {currentStep} of {steps.length}
                             </span>
-                            {combinationFields.length > 0 && (
-                                <Badge variant="secondary" className="text-xs">
-                                    {combinationFields.length} combinations
-                                </Badge>
-                            )}
+
+                            {/* Enhanced summary badges */}
+                            <div className="flex gap-1">
+                                {colorCount > 0 && (
+                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                        <Palette className="h-3 w-3" />
+                                        {colorCount} colors
+                                    </Badge>
+                                )}
+                                {variantCount > 0 && (
+                                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                        <Settings className="h-3 w-3" />
+                                        {variantCount} variants
+                                    </Badge>
+                                )}
+                                {combinationCount > 0 && (
+                                    <Badge variant="default" className="text-xs flex items-center gap-1">
+                                        <Package className="h-3 w-3" />
+                                        {combinationCount} combinations
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
 
                         {currentStep < steps.length ? (

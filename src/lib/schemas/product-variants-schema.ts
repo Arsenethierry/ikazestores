@@ -10,38 +10,44 @@ export enum VariantInputType {
     RANGE = 'range'
 };
 
-export const VariantOptionSchema = z.object({
-    value: z.string().min(1, "Option value is required"),
-    label: z.string().optional(),
-    additionalPrice: z.number().default(0),
-    hex: z.string().optional(), 
-    image: z.instanceof(File).optional(),
-    sortOrder: z.number().default(0),
+export const ColorVariantSchema = z.object({
+    id: z.string(),
+    colorName: z.string().min(1, "Color name is required"),
+    colorCode: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color code"),
+    images: z.array(z.instanceof(File)).min(1, "At least one image is required for each color"),
+    additionalPrice: z.number().min(0, "Additional price cannot be negative").default(0),
     isDefault: z.boolean().default(false),
-    isActive: z.boolean().default(true)
+    category: z.string().optional()
+});
+
+export const VariantOptionSchema = z.object({
+    value: z.string(),
+    label: z.string(),
+    additionalPrice: z.number().optional().default(0),
+    metadata: z.object({
+        count: z.number()
+    }).optional().default({ count: 0 })
 });
 
 export const ProductCombinationSchema = z.object({
-    id: z.string(),
-    sku: z.string(),
-    price: z.number(),
-    quantity: z.number().min(0, 'Stock quantity must be 0 or greater'),
-    isDefault: z.boolean(),
-    variantValues: z.record(z.string()),
+    id: z.string().optional(),
     variantStrings: z.array(z.string()).optional(),
-    weight: z.number().optional(),
-    dimensions: z.object({
-        length: z.number().optional(),
-        width: z.number().optional(),
-        height: z.number().optional()
-    }).optional(),
-    images: z.array(z.instanceof(File).optional()).optional()
+    variantValues: z.record(z.string(), z.any()).optional(),
+    sku: z.string().min(1, "SKU is required"),
+    basePrice: z.number().min(0, "Price must be positive"), // Keep as basePrice to match existing
+    stockQuantity: z.number().min(0, "Quantity cannot be negative").optional(), // Keep as stockQuantity
+    isActive: z.boolean().default(true),
+    weight: z.number().min(0, "Weight cannot be negative").optional(),
+    dimensions: z.string().optional(), // Keep as string to match existing
+    images: z.array(z.instanceof(File)).optional(),
+    isDefault: z.boolean().default(false),
+    colorVariantId: z.string().optional()
 });
 
 export const ProductVariantSchema = z.object({
     templateId: z.string(),
     name: z.string(),
-    type: z.nativeEnum(VariantInputType),
+    type: z.enum(['boolean', 'text', 'select', 'range', 'number', 'multiselect']), // removed 'color'
     values: z.array(VariantOptionSchema),
     required: z.boolean().default(false),
     sortOrder: z.number().optional().default(0)

@@ -6,30 +6,29 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { VariantOption, VariantTemplate } from "@/lib/types/catalog-types";
-import { Minus, Package, Plus, Settings, Star, Upload, X } from "lucide-react";
-import Image from "next/image";
+import { Minus, Package, Plus, Settings, Star, X } from "lucide-react";
 import React from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
+import { toast } from "sonner";
 
 interface VariantValue {
     id: string;
     value: string;
     label?: string;
-    colorCode?: string;
     additionalPrice?: number;
     isDefault?: boolean;
-    images?: File[];
 }
 
-interface EnhancedVariantConfigProps {
+interface VariantConfigProps {
     control: Control<any>;
     variantTemplates: VariantTemplate[];
 }
-export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
+
+export const VariantConfig: React.FC<VariantConfigProps> = ({
     control,
     variantTemplates
 }) => {
-    const { watch, setValue } = useFormContext();
+    const { watch, setValue, trigger } = useFormContext();
     const hasVariants = watch('hasVariants');
     const watchedVariants = watch('variants') || [];
 
@@ -38,8 +37,18 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         name: 'variants'
     });
 
+    // Filter out color variants from the templates since colors are handled separately
+    const nonColorTemplates = variantTemplates.filter(template => {
+        const name = template.name?.toLowerCase() || '';
+        const type = template.inputType?.toLowerCase() || '';
+        const colorKeywords = ['color', 'colour', 'hue', 'shade', 'tint', 'paint'];
+        return !colorKeywords.some(keyword =>
+            name.includes(keyword) || type.includes(keyword)
+        ) && template.inputType !== 'color';
+    });
+
     const addVariantFromTemplate = (template: VariantTemplate) => {
-        const existingVariant = variantFields.find((field: any) => field.id === template.id);
+        const existingVariant = variantFields.find((field: any) => field.templateId === template.id);
         if (!existingVariant) {
             appendVariant({
                 templateId: template.id,
@@ -59,34 +68,23 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
             id: `${currentVariant.templateId}-${Date.now()}`,
             value: value.value || '',
             label: value.label || value.value,
-            colorCode: value.colorCode,
             additionalPrice: value.additionalPrice || 0,
-            isDefault: existingValues.length === 0,
-            images: value.images || []
+            isDefault: existingValues.length === 0
         };
 
         const updatedValues = [...existingValues, newValue];
         setValue(`variants.${variantIndex}.values`, updatedValues);
+        
+        // Trigger form validation for the variants field
+        trigger('variants');
     }
 
     const removeValueFromVariant = (variantIndex: number, valueIndex: number) => {
         const currentVariant = watchedVariants[variantIndex];
         const updatedValues = currentVariant.values.filter((_: any, index: number) => index !== valueIndex);
         setValue(`variants.${variantIndex}.values`, updatedValues);
+        trigger('variants');
     }
-
-    const handleImageUpload = (variantIndex: number, valueIndex: number, files: FileList) => {
-        const filesArray = Array.from(files);
-        const currentVariant = watch(`variants.${variantIndex}`);
-        const updatedValues = [...currentVariant.values];
-
-        updatedValues[valueIndex] = {
-            ...updatedValues[valueIndex],
-            images: filesArray
-        };
-
-        setValue(`variants.${variantIndex}.values`, updatedValues);
-    };
 
     const updateVariantValue = (variantIndex: number, valueIndex: number, field: string, newValue: any) => {
         const currentVariant = watch(`variants.${variantIndex}`);
@@ -96,6 +94,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
             [field]: newValue
         };
         setValue(`variants.${variantIndex}.values`, updatedValues);
+        trigger('variants');
     };
 
     const renderVariantValueInput = (
@@ -105,111 +104,6 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
         const variant = watchedVariants[variantIndex] || { values: [] };
 
         switch (template.inputType) {
-            case 'color':
-                return (
-                    <div className="space-y-4">
-                        {template.variantOptions && template.variantOptions.length > 0 && (
-                            <div className="space-y-3">
-                                <h5 className="text-sm font-medium">Pre-configured Colors</h5>
-                                <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
-                                    {template.variantOptions.map((option: VariantOption) => {
-
-                                        const isSelected = variant.values?.some((v: any) => v.value === option.value);
-                                        return (
-                                            <button
-                                                key={option.value}
-                                                type="button"
-                                                className={`
-                          relative p-2 rounded-lg border-2 transition-all
-                          ${isSelected
-                                                        ? 'border-blue-500 ring-2 ring-blue-200'
-                                                        : 'border-gray-200 hover:border-gray-300'
-                                                    }
-                        `}
-                                                onClick={() => {
-                                                    if (!isSelected) {
-                                                        addValueToVariant(variantIndex, {
-                                                            value: option.value,
-                                                            label: option.label,
-                                                            colorCode: option.colorCode,
-                                                            additionalPrice: option.additionalPrice
-                                                        });
-                                                    }
-                                                }}
-                                                disabled={isSelected}
-                                            >
-                                                <div
-                                                    className="w-8 h-8 rounded-full border border-gray-300 mx-auto"
-                                                    style={{ backgroundColor: option.colorCode || option.value }}
-                                                />
-                                                <p className="text-xs mt-1 truncate">{option.label}</p>
-                                                {option.additionalPrice && option.additionalPrice !== 0 && (
-                                                    <span className="text-xs text-green-600">
-                                                        +${option.additionalPrice}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="space-y-3">
-                            <h5 className="text-sm font-medium">Add Custom Color</h5>
-                            <div className="flex gap-2">
-                                <Input
-                                    type="color"
-                                    defaultValue="#000000"
-                                    onChange={(e) => {
-                                        const color = e.target.value;
-                                        setValue(`variants.${variantIndex}.newColor`, color);
-                                    }}
-                                    className="w-12 h-10 rounded border border-gray-300"
-                                />
-                                <Input
-                                    placeholder="Color name (e.g., Ocean Blue)"
-                                    onChange={(e) => {
-                                        setValue(`variants.${variantIndex}.newColorName`, e.target.value);
-                                    }}
-                                    className="flex-1"
-                                />
-                                <Input
-                                    type="number"
-                                    placeholder="Price +/-"
-                                    onChange={(e) => {
-                                        setValue(`variants.${variantIndex}.newColorPrice`, e.target.value);
-                                    }}
-                                    className="w-24"
-                                />
-                                <Button
-                                    type="button"
-                                    onClick={() => {
-                                        const colorCode = watch(`variants.${variantIndex}.newColor`) || '#000000';
-                                        const colorName = watch(`variants.${variantIndex}.newColorName`);
-                                        const price = parseFloat(watch(`variants.${variantIndex}.newColorPrice`) || 0);
-
-                                        if (colorName) {
-                                            addValueToVariant(variantIndex, {
-                                                value: colorCode,
-                                                label: colorName,
-                                                colorCode,
-                                                additionalPrice: price
-                                            });
-
-                                            // Clear inputs
-                                            setValue(`variants.${variantIndex}.newColor`, '#000000');
-                                            setValue(`variants.${variantIndex}.newColorName`, '');
-                                            setValue(`variants.${variantIndex}.newColorPrice`, '');
-                                        }
-                                    }}
-                                >
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                );
             case 'select':
             case 'multiselect':
                 return (
@@ -430,19 +324,14 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
 
         return (
             <div className="space-y-3">
-                <h5 className="text-sm font-medium">Selected Values ({currentValues.length})</h5>
+                <div className="flex items-center justify-between">
+                    <h5 className="text-sm font-medium">Selected Values ({currentValues.length})</h5>
+                </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                     {currentValues.map((value: any, valueIndex: number) => (
-                        <div key={value.id} className="p-3 bg-gray-50 rounded-lg border">
+                        <div key={value.id} className="p-3 rounded-lg border bg-gray-50 border-gray-200">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3 flex-1">
-                                    {currentVariant.type === 'color' && value.colorCode && (
-                                        <div
-                                            className="w-6 h-6 rounded-full border border-gray-300 flex-shrink-0"
-                                            style={{ backgroundColor: value.colorCode }}
-                                        />
-                                    )}
-
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="font-medium">{value.label || value.value}</span>
@@ -454,7 +343,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-2 mb-2">
+                                        <div className="flex items-center gap-2">
                                             <Label className="text-xs text-muted-foreground">Additional Price:</Label>
                                             <Input
                                                 type="number"
@@ -470,71 +359,19 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                                             />
                                             <span className="text-xs text-muted-foreground">USD</span>
                                         </div>
-
-                                        {currentVariant.type === 'color' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="file"
-                                                        multiple
-                                                        accept="image/*"
-                                                        onChange={(e) => {
-                                                            if (e.target.files) {
-                                                                handleImageUpload(variantIndex, valueIndex, e.target.files);
-                                                            }
-                                                        }}
-                                                        className="hidden"
-                                                        id={`color-images-${variantIndex}-${valueIndex}`}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            document.getElementById(`color-images-${variantIndex}-${valueIndex}`)?.click();
-                                                        }}
-                                                        className="h-7 text-xs"
-                                                    >
-                                                        <Upload className="h-3 w-3 mr-1" />
-                                                        Upload Images ({value.images?.length || 0})
-                                                    </Button>
-                                                </div>
-
-                                                {value.images && value.images.length > 0 && (
-                                                    <div className="flex gap-1 flex-wrap">
-                                                        {value.images.slice(0, 5).map((file: File, imgIndex: number) => (
-                                                            <div key={imgIndex} className="relative">
-                                                                <Image
-                                                                    src={URL.createObjectURL(file)}
-                                                                    width={50}
-                                                                    height={50}
-                                                                    alt={`Preview ${imgIndex + 1}`}
-                                                                    className="w-12 h-12 object-cover rounded border"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                        {value.images.length > 5 && (
-                                                            <div className="w-12 h-12 bg-gray-200 rounded border flex items-center justify-center text-xs">
-                                                                +{value.images.length - 5}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeValueFromVariant(variantIndex, valueIndex)}
+                                        className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
                                 </div>
                             </div>
-
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeValueFromVariant(variantIndex, valueIndex)}
-                                className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-                            >
-                                <X className="h-3 w-3" />
-                            </Button>
                         </div>
                     ))}
                 </div>
@@ -552,22 +389,22 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                 <CardHeader>
                     <CardTitle className="text-lg">Available Variant Options</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                        Select from pre-configured variant types based on your product category
+                        Select from pre-configured variant types based on your product category (colors managed separately)
                     </p>
                 </CardHeader>
                 <CardContent>
-                    {variantTemplates.length === 0 ? (
+                    {nonColorTemplates.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                             <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
                             <h3 className="text-lg font-medium mb-2">No Variant Templates Available</h3>
                             <p className="text-sm">
-                                Select a product type in the previous step to see available variant options.
+                                Select a product type in the previous step to see available variant options, or add colors using the color manager above.
                             </p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {variantTemplates.map(template => {
-                                const isAdded = variantFields.some((field: any) => field.id === template.id);
+                            {nonColorTemplates.map(template => {
+                                const isAdded = variantFields.some((field: any) => field.templateId === template.id);
                                 return (
                                     <Button
                                         key={template.id}
@@ -597,7 +434,6 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                 </CardContent>
             </Card>
 
-
             {variantFields.length > 0 && (
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium">Configure Selected Variants</h3>
@@ -605,7 +441,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                         const currentVariant = watchedVariants[variantIndex];
                         if (!currentVariant) return null;
 
-                        const template = variantTemplates.find(t => t.id === currentVariant.templateId);
+                        const template = nonColorTemplates.find(t => t.id === currentVariant.templateId);
                         if (!template) return null;
 
                         return (
@@ -656,7 +492,7 @@ export const VariantConfig: React.FC<EnhancedVariantConfigProps> = ({
                 </div>
             )}
 
-            {variantFields.length === 0 && (
+            {variantFields.length === 0 && nonColorTemplates.length > 0 && (
                 <Card>
                     <CardContent className="py-8">
                         <div className="text-center text-muted-foreground">

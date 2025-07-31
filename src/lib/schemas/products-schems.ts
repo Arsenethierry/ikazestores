@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CardProvider, OnlinePaymentProvider, PaymentMethodType } from "../constants";
 // import { VariantCombinationSchema } from "./product-variants-schema";
-import { VariantCombinationSchema } from "./product-variants-schema";
+import { ColorVariantSchema, VariantCombinationSchema } from "./product-variants-schema";
 
 export const FormVariantValueSchema = z.object({
     id: z.string(),
@@ -29,7 +29,8 @@ export const ProductCombinationSchema = z.object({
     weight: z.number().min(0).optional(),
     dimensions: z.string().optional(),
     images: z.array(z.instanceof(File)).optional(),
-    variantValues: z.record(z.string(), z.any()).optional()
+    variantValues: z.record(z.string(), z.any()).optional(),
+    colorVariantId: z.string().optional()
 });
 
 export const VariantOptionSchema = z.object({
@@ -51,7 +52,12 @@ export const ProductVariantSchema = z.object({
     sortOrder: z.number().optional().default(0)
 });
 
-export const CreateProductSchema = z.object({
+export const ColorVariantUpdateSchema = ColorVariantSchema.partial().extend({
+    newImages: z.array(z.instanceof(File)).optional(),
+    removeImageIds: z.array(z.string())
+})
+
+const BaseCreateProductSchema = z.object({
     physicalStoreId: z.string().min(1, "Physical store ID is required"),
     name: z.string().min(1, "Product name is required").max(2200, "Name too long"),
     description: z.string().min(1, "Description is required").max(10000, "Description too long"),
@@ -61,26 +67,93 @@ export const CreateProductSchema = z.object({
     currency: z.string().min(1, "Currency is required").max(20, "Currency code too long"),
     status: z.enum(["active", "draft", "archived"]).default("active"),
     featured: z.boolean().default(false),
+
     categoryId: z.string().min(1, "Category is required"),
     subcategoryId: z.string().min(1, "Subcategory is required"),
     productTypeId: z.string().min(1, "Product type is required"),
     tags: z.array(z.string()).optional(),
-    images: z.array(z.instanceof(File)).optional(),
-    hasVariants: z.boolean().default(false),
-    isDropshippingEnabled: z.boolean().default(true),
+
+    images: z.array(z.instanceof(File)).min(1, "At least one product image is required"),
+
     storeLatitude: z.number(),
     storeLongitude: z.number(),
     storeCountry: z.string().min(1, "Store country is required"),
+
+    enableColors: z.boolean().default(false),
+    hasVariants: z.boolean().default(false),
+    isDropshippingEnabled: z.boolean().default(true),
+
+    colorVariants: z.array(ColorVariantSchema).optional().refine((colors) => {
+        if (!colors || colors.length === 0) return true;
+
+        // Ensure at least one default color if colors exist
+        const hasDefault = colors.some(color => color.isDefault);
+        return hasDefault;
+    }, {
+        message: "At least one color must be set as default when colors are enabled"
+    }),
+
     variants: z.array(ProductVariantSchema).optional(),
-    productCombinations: z.array(ProductCombinationSchema).optional()
+
+    productCombinations: z.array(ProductCombinationSchema).optional(),
+
+    hasColorVariants: z.boolean().optional()
 });
 
-export const UpdateProductSchema = CreateProductSchema.partial().omit({
+export const CreateProductSchema = BaseCreateProductSchema
+    .refine((data) => {
+        if (data.enableColors && (!data.colorVariants || data.colorVariants.length === 0)) {
+            return false;
+        }
+        return true;
+    }, {
+        message: "At least one color variant is required when colors are enabled",
+        path: ["colorVariants"]
+    })
+    .refine((data) => {
+        if (data.hasVariants && (!data.variants || data.variants.length === 0)) {
+            return false;
+        }
+        if (data.hasVariants && data.variants) {
+            const hasVariantWithValues = data.variants.some(variant =>
+                variant.values && variant.values.length > 0
+            );
+            return hasVariantWithValues;
+        }
+        return true;
+    }, {
+        message: "At least one variant with options is required when variants are enabled",
+        path: ["variants"]
+    })
+    .refine((data) => {
+        if (data.colorVariants && data.colorVariants.length > 1) {
+            const colorNames = data.colorVariants.map(c => c.colorName.toLowerCase());
+            const uniqueNames = new Set(colorNames);
+            return uniqueNames.size === colorNames.length;
+        }
+        return true;
+    }, {
+        message: "Color names must be unique",
+        path: ["colorVariants"]
+    })
+    .refine((data) => {
+        if (data.productCombinations && data.productCombinations.length > 1) {
+            const skus = data.productCombinations.map(c => c.sku);
+            const uniqueSkus = new Set(skus);
+            return uniqueSkus.size === skus.length;
+        }
+        return true;
+    }, {
+        message: "Product combination SKUs must be unique",
+        path: ["productCombinations"]
+    });
+
+export const UpdateProductSchema = BaseCreateProductSchema.omit({
     physicalStoreId: true,
     storeLatitude: true,
     storeLongitude: true,
     storeCountry: true
-});
+}).partial();
 
 export const CreateAffiliateImportSchema = z.object({
     virtualStoreId: z.string().min(1, "Virtual store ID is required"),
@@ -127,7 +200,10 @@ export const ProductFiltersSchema = z.object({
         radius: z.number().min(0)
     }).optional()
 });
-
+export interface CreateColorVariantData extends z.infer<typeof ColorVariantSchema> {
+    productId: string;
+}
+export type UpdateColorVariantData = z.infer<typeof ColorVariantUpdateSchema>;
 export type CreateProductSchema = z.infer<typeof CreateProductSchema>;
 export type UpdateProductSchema = z.infer<typeof UpdateProductSchema>;
 export type ProductCombinationSchema = z.infer<typeof ProductCombinationSchema>;

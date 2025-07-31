@@ -146,6 +146,7 @@ export type ProductCombinations = Models.Document & {
     dimensions: string | null;
     images: string[] | null;
     basePrice: number;
+    colorVariantId: string | null;
 }
 
 export type VariantOptions = Models.Document & {
@@ -274,4 +275,13 @@ export type AffiliateCombinationPricing = Models.Document & {
     combinationId: string;
     customCommission: number | null;
     isActive: boolean;
+}
+
+export type ProductColors = Models.Document & {
+    productId: string;
+    colorName: string;
+    colorCode: string;
+    additionalPrice: number | null;
+    isDefault: boolean;
+    images: string[] | null;
 }
