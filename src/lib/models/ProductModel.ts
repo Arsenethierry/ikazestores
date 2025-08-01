@@ -24,17 +24,16 @@ export class ProductModel extends BaseModel<Products> {
         return await this.findById(productId, {});
     }
 
-    async findProductWithColors(productId: string): Promise<{
-        product: Products | null;
-        colors: ProductColors[];
-    }> {
+    async findProductWithColors(productId: string): Promise<
+        (Products & { colors: ProductColors[] }) | null
+    > {
         const product = await this.findById(productId, {});
         if (!product) {
-            return { product: null, colors: [] };
+            return null;
         }
         const colorsResult = await this.colorVariantsModel.findByProduct(productId);
         return {
-            product,
+            ...product,
             colors: colorsResult.documents
         };
     }
@@ -260,10 +259,13 @@ export class ProductModel extends BaseModel<Products> {
                     const colorResult = await this.colorVariantsModel.createColorVariant({
                         ...colorVariant,
                         productId
-                    });
+                    },
+                        user.$id
+                    );
 
                     if ('error' in colorResult) {
                         console.error(`Failed to create color variant: ${colorResult.error}`);
+                        throw new Error(colorResult.error)
                     }
                 }
             }
@@ -534,13 +536,6 @@ export class ProductModel extends BaseModel<Products> {
             }
             return { error: "Failed to delete product(s)" };
         }
-    }
-
-    async addColorToProduct(productId: string, colorData: CreateColorVariantData): Promise<any> {
-        return await this.colorVariantsModel.createColorVariant({
-            ...colorData,
-            productId
-        });
     }
 
     async getProductColors(productId: string) {

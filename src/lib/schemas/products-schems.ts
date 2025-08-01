@@ -27,6 +27,7 @@ export const ProductCombinationSchema = z.object({
     stockQuantity: z.number().min(1).optional(),
     isActive: z.boolean().default(true),
     weight: z.number().min(0).optional(),
+    isDefault: z.boolean().default(false),
     dimensions: z.string().optional(),
     images: z.array(z.instanceof(File)).optional(),
     variantValues: z.record(z.string(), z.any()).optional(),

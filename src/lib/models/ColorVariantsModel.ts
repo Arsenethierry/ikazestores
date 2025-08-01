@@ -43,16 +43,11 @@ export class ColorVariantsModel extends BaseModel<ProductColors> {
         return this.findOne(filters);
     }
 
-    async createColorVariant(data: CreateColorVariantData): Promise<ProductColors | { error: string }> {
+    async createColorVariant(data: CreateColorVariantData, createdBy: string): Promise<ProductColors | { error: string }> {
         const { storage, databases } = await createSessionClient();
         const rollback = await new AppwriteRollback(storage, databases);
 
         try {
-            const { user } = await getAuthState();
-            if (!user) {
-                return { error: "Authentication required" };
-            }
-
             const existingColor = await this.findOne([
                 { field: "productId", operator: "equal", value: data.productId },
                 { field: "colorName", operator: "equal", value: data.colorName }
@@ -77,7 +72,6 @@ export class ColorVariantsModel extends BaseModel<ProductColors> {
                 await this.unsetDefaultsForProduct(data.productId);
             }
 
-            const colorVariantId = ID.unique();
             const colorVariantData = {
                 productId: data.productId,
                 colorName: data.colorName,
@@ -87,7 +81,7 @@ export class ColorVariantsModel extends BaseModel<ProductColors> {
                 isDefault: data.isDefault || false,
             };
 
-            const newColorVariant = await this.create(colorVariantData, user.$id);
+            const newColorVariant = await this.create(colorVariantData, createdBy);
             await rollback.trackDocument(COLOR_VARIANTS_COLLECTION_ID, newColorVariant.$id);
             return newColorVariant as ProductColors;
         } catch (error) {

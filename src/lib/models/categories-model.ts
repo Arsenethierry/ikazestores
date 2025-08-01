@@ -1,6 +1,6 @@
 import { BaseModel, CacheOptions, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { CATEGORIES_COLLECTION_ID } from "../env-config";
-import { ProductsCategories } from "../types/appwrite/appwrite";
+import { ProductCategories } from "../types/appwrite/appwrite";
 
 export interface CategoryFilters {
     storeId?: string;
@@ -34,16 +34,16 @@ export interface CategoryQueryOptions extends QueryOptions {
     cache?: CacheOptions;
 }
 
-export class CategoryModel extends BaseModel<ProductsCategories> {
+export class CategoryModel extends BaseModel<ProductCategories> {
     constructor() {
         super(CATEGORIES_COLLECTION_ID)
     }
 
-    async findById(categoryId: string, options: { cache?: CacheOptions } = {}): Promise<ProductsCategories | null> {
+    async findById(categoryId: string, options: { cache?: CacheOptions } = {}): Promise<ProductCategories | null> {
         return super.findById(categoryId, options);
     }
 
-    async createCategory(data: CategoryCreateData, userId: string): Promise<ProductsCategories> {
+    async createCategory(data: CategoryCreateData, userId: string): Promise<ProductCategories> {
         const categoriesData = {
             ...data,
             createdBy: userId,
@@ -54,16 +54,11 @@ export class CategoryModel extends BaseModel<ProductsCategories> {
         return this.create(categoriesData, userId);
     }
 
-
-    async updateCategory(id: string, data: CategoryUpdateData): Promise<ProductsCategories> {
-        return this.update(id, data)
-    }
-
     async deleteCategory(id: string): Promise<void> {
         return this.delete(id);
     }
 
-    async findCategories(filters: CategoryFilters = {}, options: CategoryQueryOptions = {}): Promise<PaginationResult<ProductsCategories>> {
+    async findCategories(filters: CategoryFilters = {}, options: CategoryQueryOptions = {}): Promise<PaginationResult<ProductCategories>> {
         const queryFilters: QueryFilter[] = [];
 
         if (filters.storeId) {
@@ -98,7 +93,7 @@ export class CategoryModel extends BaseModel<ProductsCategories> {
         return this.findMany(queryOptions);
     }
 
-    async getStoreCategories(storeId: string, options: CategoryQueryOptions = {}): Promise<PaginationResult<ProductsCategories>> {
+    async getStoreCategories(storeId: string, options: CategoryQueryOptions = {}): Promise<PaginationResult<ProductCategories>> {
         const result = await this.findCategories(
             { storeId },
             {
@@ -110,7 +105,7 @@ export class CategoryModel extends BaseModel<ProductsCategories> {
         return result
     }
 
-    async getActiveCategories(storeId?: string, options: CategoryQueryOptions = {}): Promise<ProductsCategories[]> {
+    async getActiveCategories(storeId?: string, options: CategoryQueryOptions = {}): Promise<ProductCategories[]> {
         const filters: CategoryFilters = { isActive: true };
         if (storeId) filters.storeId = storeId;
 
@@ -118,13 +113,13 @@ export class CategoryModel extends BaseModel<ProductsCategories> {
         return result.documents
     }
 
-    async getCategoryBySlug(slug: string): Promise<ProductsCategories | null> {
+    async getCategoryBySlug(slug: string): Promise<ProductCategories | null> {
         return this.findOne([
             { field: "slug", operator: "equal", value: slug },
         ]);
     }
 
-    async searchCategories(searchTerm: string, storeId?: string, options: CategoryQueryOptions = {}): Promise<PaginationResult<ProductsCategories>> {
+    async searchCategories(searchTerm: string, storeId?: string, options: CategoryQueryOptions = {}): Promise<PaginationResult<ProductCategories>> {
         const filters: CategoryFilters = { categoryName: searchTerm };
         if (storeId) filters.storeId = storeId;
 

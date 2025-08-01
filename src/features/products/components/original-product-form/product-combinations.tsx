@@ -69,8 +69,19 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
             toast.error("Price cannot be negative");
             return;
         }
-        const updatedCombination = { ...combinations[index], price: newPrice };
+
+        const currentCombination = combinations[index];
+        if (!currentCombination) {
+            toast.error("Combination not found");
+            return;
+        }
+        const updatedCombination = {
+            ...currentCombination,
+            basePrice: newPrice
+        };
+        
         updateCombination(index, updatedCombination);
+        toast.success(`Price updated to $${newPrice}`);
     };
 
     const handleQuantityChange = (index: number, newQuantity: number) => {
@@ -78,7 +89,15 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
             toast.error("Quantity cannot be negative");
             return;
         }
-        const updatedCombination = { ...combinations[index], quantity: newQuantity };
+        const currentCombination = combinations[index];
+        if (!currentCombination) {
+            toast.error("Combination not found");
+            return;
+        }
+        const updatedCombination = {
+            ...currentCombination,
+            stockQuantity: newQuantity
+        };
         updateCombination(index, updatedCombination);
     };
 

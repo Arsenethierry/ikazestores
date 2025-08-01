@@ -3,10 +3,10 @@ import { createSessionClient } from "../appwrite";
 import { BaseModel } from "../core/database";
 import { DATABASE_ID, PRODUCTS_COLLECTION_GROUPS_ID, PRODUCTS_COLLECTIONS_COLLECTION_ID, VIRTUAL_PRODUCT_ID } from "../env-config";
 import { CollectionGroupsTypes, VirtualProductTypes } from "../types";
-import { ProductsCollections } from "../types/appwrite/appwrite";
+import { ProductCollections } from "../types/appwrite/appwrite";
 import { ProductsStorageService } from "./storage-models";
 
-export class ProductCollection extends BaseModel<ProductsCollections> {
+export class ProductCollection extends BaseModel<ProductCollections> {
     private storageService: ProductsStorageService;
 
     constructor() {
@@ -337,7 +337,7 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         return this.update(collectionId, {
             ...collection,
             productsIds: updatedProductIds
-        } as ProductsCollections)
+        } as ProductCollections)
     }
 
     async removeProductFromCollectionById(collectionId: string, productId: string) {
@@ -352,7 +352,7 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         return this.update(collectionId, {
             ...collection,
             productsIds: updatedProductIds
-        } as ProductsCollections)
+        } as ProductCollections)
     }
 
     async updateCollectionGroup(
@@ -407,7 +407,7 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         try {
             const { databases } = await createSessionClient();
 
-            const collection = await databases.getDocument<ProductsCollections>(
+            const collection = await databases.getDocument<ProductCollections>(
                 DATABASE_ID,
                 PRODUCTS_COLLECTIONS_COLLECTION_ID,
                 collectionId
@@ -454,7 +454,7 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         try {
             const { databases } = await createSessionClient();
 
-            const collection = await databases.getDocument<ProductsCollections>(
+            const collection = await databases.getDocument<ProductCollections>(
                 DATABASE_ID,
                 PRODUCTS_COLLECTIONS_COLLECTION_ID,
                 collectionId
@@ -512,7 +512,7 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         return this.update(collectionId, {
             ...collection,
             groups: updatedGroups
-        } as ProductsCollections);
+        } as ProductCollections);
     }
 
     async removeGroupFromCollection(collectionId: string, groupId: string) {
@@ -527,14 +527,14 @@ export class ProductCollection extends BaseModel<ProductsCollections> {
         return this.update(collectionId, {
             ...collection,
             groups: updatedGroups
-        } as ProductsCollections);
+        } as ProductCollections);
     }
 
     async deleteCollectionGroup(collectionId: string, groupId: string, imageId?: string | null) {
         try {
             const { databases } = await createSessionClient();
 
-            const collection = await databases.getDocument<ProductsCollections>(
+            const collection = await databases.getDocument<ProductCollections>(
                 DATABASE_ID,
                 PRODUCTS_COLLECTIONS_COLLECTION_ID,
                 collectionId

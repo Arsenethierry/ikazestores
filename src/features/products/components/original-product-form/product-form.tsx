@@ -5,11 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Form } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
 import {
     Stepper,
@@ -28,20 +24,12 @@ import {
     ArrowLeft,
     ArrowRight,
     Zap,
-    ShoppingCart,
-    CheckCircle,
     Loader2,
     AlertCircle,
-    RefreshCw,
     Palette
 } from 'lucide-react';
-import CustomFormField, { FormFieldType } from '@/components/custom-field';
 import { useFieldArray, useForm } from 'react-hook-form';
-import Image from 'next/image';
-import { VariantConfig } from '@/features/variants management/variant-config';
-import {
-    CreateProductSchema,
-} from '@/lib/schemas/products-schems';
+import { CreateProductSchema } from '@/lib/schemas/products-schems';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -52,13 +40,7 @@ import {
     getRecommendedVariantTemplates
 } from '@/features/variants management/ecommerce-catalog';
 import { PhysicalStoreTypes } from '@/lib/types';
-import {
-    Category,
-    ProductType,
-    ProductVariant,
-    Subcategory,
-    VariantTemplate
-} from '@/lib/types/catalog-types';
+import { Category, VariantTemplate } from '@/lib/types/catalog-types';
 import { useRouter } from 'next/navigation';
 import { useCreateOriginalProduct } from '@/hooks/queries-and-mutations/use-original-products-queries';
 import { BasicInfoStep } from './steps/BasicInfoStep';
@@ -67,7 +49,6 @@ import { VariantsStep } from './steps/VariantsStep';
 import { ImagesStep } from './steps/ImagesStep';
 import { ReviewStep } from './steps/ReviewStep';
 import { ColorVariantInput } from './color-variant-manager';
-import { ProductCombination } from '@/lib/schemas/product-variants-schema';
 
 interface ProductFormProps {
     storeData: PhysicalStoreTypes;
@@ -131,7 +112,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             status: 'active',
             featured: false,
             enableColors: false,
-            hasVariants: false,
+            hasVariants: true,
             isDropshippingEnabled: true,
             images: [],
             tags: [],
@@ -239,7 +220,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         try {
             const combinations = generateCombinationsWithStrings(validVariants, basePrice, baseSku);
 
-            const formCombinations = combinations.map(combo => ({
+            const formCombinations = combinations.map((combo, index) => ({
                 variantStrings: combo.variantStrings,
                 sku: combo.sku,
                 basePrice: combo.basePrice,
@@ -248,7 +229,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 dimensions: combo.dimensions,
                 images: combo.images as File[] | undefined,
                 variantValues: combo.variantValues,
-                isDefault: combinations.indexOf(combo) === 0,
+                isDefault: index === 0,
                 isActive: true
             }));
 
@@ -265,8 +246,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             replaceCombinations([]);
         }
     }, [form, isColorVariant, replaceCombinations]);
-
-    console.log("ffff: ", form.watch())
 
     const handleCategoryChange = (categoryId: string) => {
         setSelectedCategory(categoryId);
@@ -352,20 +331,56 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const validateProductCombinations = (combinations: any[]): string[] => {
         const errors: string[] = [];
 
-        if (combinations.length === 0) {
+        if (!combinations || combinations.length === 0) {
             return errors;
         }
 
-        const skus = combinations.map(c => c.sku);
+        const skus = combinations
+            .map(c => c.sku)
+            .filter(sku => sku && sku.trim() !== '');
         const uniqueSkus = new Set(skus);
         if (uniqueSkus.size !== skus.length) {
             errors.push("Product combination SKUs must be unique");
         }
 
-        const hasDefault = combinations.some(combo => combo.isDefault);
-        if (!hasDefault) {
-            errors.push("At least one combination must be set as default");
+        const validCombinations = combinations.filter(combo =>
+            combo &&
+            combo.sku &&
+            combo.sku.trim() !== '' &&
+            typeof combo.basePrice === 'number' &&
+            combo.basePrice >= 0
+        );
+
+        if (validCombinations.length > 0) {
+            const hasDefault = validCombinations.some(combo => combo.isDefault === true);
+            if (!hasDefault) {
+                errors.push("At least one combination must be set as default");
+            }
         }
+
+        combinations.forEach((combo, index) => {
+            if (!combo) return;
+
+            if (!combo.sku || combo.sku.trim() === '') {
+                errors.push(`Combination ${index + 1}: SKU is required`);
+            }
+
+            if (typeof combo.basePrice !== 'number' || combo.basePrice < 0) {
+                errors.push(`Combination ${index + 1}: Valid price is required`);
+            }
+
+            if (combo.stockQuantity !== undefined && combo.stockQuantity !== null) {
+                if (typeof combo.stockQuantity !== 'number' || combo.stockQuantity < 0) {
+                    errors.push(`Combination ${index + 1}: Stock quantity must be a non-negative number`);
+                }
+            }
+
+            if (combo.weight !== undefined && combo.weight !== null) {
+                if (typeof combo.weight !== 'number' || combo.weight < 0) {
+                    errors.push(`Combination ${index + 1}: Weight must be a non-negative number`);
+                }
+            }
+        });
 
         return errors;
     };
@@ -381,18 +396,46 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 fieldsToValidate.push('categoryId', 'subcategoryId', 'productTypeId');
                 break;
             case 3:
-                if (watchedHasVariants) {
-                    const combinations = form.getValues('productCombinations') || [];
-                    const combinationErrors = validateProductCombinations(combinations);
-                    if (combinationErrors.length > 0) {
-                        toast.error(`Combination validation errors: ${combinationErrors.join(', ')}`);
+                const hasVariants = form.getValues('hasVariants');
+                const variants = form.getValues('variants') || [];
+
+                const nonColorVariants = variants.filter((variant: any) => {
+                    if (!variant) return false;
+                    const name = variant.name?.toLowerCase() || '';
+                    const type = variant.type?.toLowerCase() || '';
+                    const templateId = variant.templateId?.toLowerCase() || '';
+                    const colorKeywords = ['color', 'colour', 'hue', 'shade', 'tint'];
+                    return !colorKeywords.some(keyword =>
+                        name.includes(keyword) ||
+                        type.includes(keyword) ||
+                        templateId.includes(keyword)
+                    );
+                });
+
+                if (hasVariants && nonColorVariants.length > 0) {
+                    const hasVariantWithValues = nonColorVariants.some((variant: any) =>
+                        variant && variant.values && variant.values.length > 0
+                    );
+
+                    if (!hasVariantWithValues) {
+                        toast.error("Please configure at least one variant option before proceeding");
                         return false;
+                    }
+
+                    const combinations = form.getValues('productCombinations') || [];
+
+                    if (combinations.length > 0) {
+                        const combinationErrors = validateProductCombinations(combinations);
+                        if (combinationErrors.length > 0) {
+                            toast.error(`Combination validation errors: ${combinationErrors.join(', ')}`);
+                            return false;
+                        }
                     }
                 }
                 break;
             case 4:
                 fieldsToValidate.push('images');
-                
+
                 if (watchedEnableColors) {
                     const colorErrors = validateColorVariants(watchedColorVariants);
                     if (colorErrors.length > 0) {
@@ -450,6 +493,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             tags: values.tags || [],
             images: values.images || []
         };
+
+        console.log("transformedData: ", transformedData)
 
         createProductMutation.mutate(transformedData, {
             onSuccess: (result) => {

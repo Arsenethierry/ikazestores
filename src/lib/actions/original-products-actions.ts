@@ -106,34 +106,6 @@ export async function bulkUpdateProductStatus(
     }
 }
 
-export async function createColorVariant(data: CreateColorVariantData) {
-    try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
-
-        const result = await colorVariantsModel.createColorVariant(data);
-        if ('error' in result) {
-            return { error: result.error };
-        }
-
-        revalidatePath('/admin/stores/[storeId]/products');
-        revalidatePath(`/admin/stores/[storeId]/products/${data.productId}`);
-
-        return {
-            success: `Color variant "${result.colorName}" created successfully!`,
-            data: result
-        };
-    } catch (error) {
-        console.error("createColorVariant action error: ", error);
-        if (error instanceof Error) {
-            return { error: error.message };
-        }
-        return { error: "Failed to create color variant" };
-    }
-}
-
 export async function updateColorVariant(
     colorVariantId: string,
     data: UpdateColorVariantData
@@ -321,11 +293,6 @@ export async function getOriginalProductById(productId: string) {
 
 export async function getProductWithColors(productId: string) {
     try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
-
         const result = await originalProductsModel.findProductWithColors(productId);
 
         return {

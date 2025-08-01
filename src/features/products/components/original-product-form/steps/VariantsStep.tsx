@@ -29,7 +29,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
     const hasVariants = form.watch('hasVariants');
     const variants = form.watch('variants') || [];
 
-    // Filter out color variants from catalog variants since they're handled in Images step
     const nonColorVariants = useMemo(() => {
         return variants.filter((variant: any) => {
             if (!variant) return false;
@@ -45,11 +44,9 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
         });
     }, [variants]);
 
-    // Validation states
     const hasNonColorVariantsConfigured = nonColorVariants.length > 0;
     const hasValidConfiguration = hasVariants && hasNonColorVariantsConfigured;
 
-    // Generate combinations for non-color variants only
     const handleGenerateCombinations = () => {
         if (!hasVariants || !hasNonColorVariantsConfigured) {
             return;
@@ -59,7 +56,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
 
     return (
         <div className="space-y-6">
-            {/* Variant Configuration Options */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -130,7 +126,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
                 </Card>
             )}
 
-            {/* Configuration Summary */}
             {hasVariants && (
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
@@ -156,7 +151,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
                 </div>
             )}
 
-            {/* Generation Instructions */}
             {hasValidConfiguration && (
                 <Alert>
                     <Info className="h-4 w-4" />
@@ -171,7 +165,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
                 </Alert>
             )}
 
-            {/* Generate Combinations Button */}
             {hasVariants && hasNonColorVariantsConfigured && (
                 <div className="flex justify-end">
                     <Button
@@ -186,7 +179,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
                 </div>
             )}
 
-            {/* Product Combinations Component (for catalog variants only) */}
             {hasVariants && hasNonColorVariantsConfigured && (
                 <ProductCombinations
                     control={form.control}
@@ -197,7 +189,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
                 />
             )}
 
-            {/* No Variants State */}
             {!hasVariants && (
                 <Card>
                     <CardContent className="p-6">
@@ -217,7 +208,6 @@ export const VariantsStep: React.FC<VariantsStepProps> = ({
                 </Card>
             )}
 
-            {/* Partial Configuration State */}
             {hasVariants && !hasValidConfiguration && (
                 <Card>
                     <CardContent className="p-6">

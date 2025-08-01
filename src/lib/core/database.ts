@@ -1,5 +1,5 @@
 import { ID, Models, Query } from "node-appwrite";
-import { createDocumentPermissions, createSessionClient } from "../appwrite";
+import { createAdminClient, createDocumentPermissions, createSessionClient } from "../appwrite";
 import { DATABASE_ID } from "../env-config";
 import { AppwriteErrorHandler } from "../errors/appwrite-errors";
 import { VirtualStore } from "../types/appwrite/appwrite";
@@ -92,7 +92,8 @@ export abstract class BaseModel<T extends Models.Document> {
 
     async create(data: Omit<T, keyof VirtualStore>, userId: string): Promise<T> {
         try {
-            const { databases } = await createSessionClient();
+            // to be able to asign permissions, using server api key to create docs
+            const { databases } = await createAdminClient();
             const permissions = createDocumentPermissions({ userId });
             const documentId = ID.unique();
 
@@ -108,6 +109,7 @@ export abstract class BaseModel<T extends Models.Document> {
 
             return document;
         } catch (error) {
+            console.log("create error: ", error)
             throw AppwriteErrorHandler.handle(error);
         }
     }

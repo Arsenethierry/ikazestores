@@ -10,11 +10,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOriginalProductById } from "@/lib/actions/original-products-actions";
+import { ProductDescription } from "@/features/products/components/product-description";
+import { getProductWithColors } from "@/lib/actions/original-products-actions";
 import { getPhysicalStoreById } from "@/lib/actions/physical-store.action";
 import { getAuthState } from "@/lib/user-permission";
 import { formatPrice } from "@/lib/utils";
-import { AlertTriangle, Archive, ArrowLeft, Calendar, Copy, Edit, Eye, ImageIcon, MapPin, Package, RotateCcw, Star, Tag, Trash2, Truck } from "lucide-react";
+import { AlertTriangle, Archive, ArrowLeft, Calendar, Edit, Eye, ImageIcon, MapPin, Package, RotateCcw, Star, Tag, Trash2, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -52,7 +53,7 @@ async function ProductDetailsContent({ params }: ProductDetailsPageProps) {
 
     const [storeData, productResult] = await Promise.all([
         getPhysicalStoreById(storeId),
-        getOriginalProductById(productId)
+        getProductWithColors(productId)
     ]);
 
     if (!storeData) {
@@ -68,13 +69,13 @@ async function ProductDetailsContent({ params }: ProductDetailsPageProps) {
         );
     }
 
-    if ('error' in productResult) {
+    if ('error' in productResult || !productResult.data) {
         return (
             <div className="max-w-4xl mx-auto p-6">
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                        {productResult.error}
+                        {productResult.error ?? 'Something went wrong, please refresh the page'}
                     </AlertDescription>
                 </Alert>
             </div>
@@ -191,9 +192,10 @@ async function ProductDetailsContent({ params }: ProductDetailsPageProps) {
                         <CardContent className="space-y-4">
                             <div>
                                 <h3 className="font-semibold mb-2">Description</h3>
-                                <p className="text-muted-foreground whitespace-pre-wrap">
-                                    {product.description || "No description provided"}
-                                </p>
+                                <ProductDescription
+                                    description={product.description || "No description provided"}
+                                    className="text-muted-foreground whitespace-pre-wrap"
+                                />
                             </div>
 
                             {product.shortDescription && (
