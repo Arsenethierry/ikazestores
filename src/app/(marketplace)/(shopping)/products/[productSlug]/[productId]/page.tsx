@@ -1,6 +1,6 @@
 import { NoItemsCard } from '@/components/no-items-card';
 import SpinningLoader from '@/components/spinning-loader';
-import { ProductDetails } from '@/features/products/components/product-details-page';
+import { ProductDetails } from '@/features/products/components/product-details';
 import { getVirtualProductById, getVirtualStoreProducts } from '@/lib/actions/affiliate-product-actions';
 import React, { Suspense } from 'react';
 
