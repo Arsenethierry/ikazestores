@@ -8,15 +8,15 @@ export const StoreHero = async () => {
   return (
     <div className="w-full">
 
-      <div className="md:hidden px-4 py-2 bg-accent/50">
+      {/* <div className="md:hidden px-4 py-2 bg-accent/50">
         <ScrollArea className='pb-2'>
           <div className='flex gap-2'>
             <Suspense fallback={<SpinningLoader />}>
-              <CategoriesCard mobile />
+              <CategoriesCard mobile={true} />
             </Suspense>
           </div>
         </ScrollArea>
-      </div>
+      </div> */}
 
       <div className="container mx-auto flex flex-col md:flex-row gap-4 px-4 my-4">
         <div className="hidden md:block w-full md:w-[240px] h-[500px] bg-background rounded-lg border shadow-sm">

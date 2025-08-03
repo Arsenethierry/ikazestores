@@ -41,7 +41,7 @@ export const CategoriesCard = async ({
         if (depth >= maxDepth || !children || children.length === 0) return null;
 
         return (
-            <div className={`grid ${mobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mt-2`}>
+            <div className={`${mobile ? 'hidden' : 'grid grid-cols-2'} gap-2 mt-2`}>
                 {children.map((child: any) => (
                     <div key={child.$id} className="space-y-1">
                         <Link
@@ -56,19 +56,6 @@ export const CategoriesCard = async ({
                                 )}
                             </div>
                             <div className="flex items-center gap-1 mt-1">
-                                {!child.storeId && (
-                                    <Badge variant="outline" className="text-xs">
-                                        <Globe className="w-2 h-2 mr-1" />
-                                        Global
-                                    </Badge>
-                                )}
-                                {child.storeId && (
-                                    <Badge variant="secondary" className="text-xs">
-                                        <Store className="w-2 h-2 mr-1" />
-                                        Store
-                                    </Badge>
-                                )}
-
                                 {child.children && child.children.length > 0 && depth < maxDepth - 1 && (
                                     <div className="ml-4 pl-2 border-l border-muted">
                                         {renderCategoryChildren(child.children, depth + 1)}
