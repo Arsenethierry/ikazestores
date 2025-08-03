@@ -38,7 +38,6 @@ const VirtualProductCard = memo(({
     isMyProduct = false,
     user
 }: VirtualProductCardProps) => {
-    console.log("productproduct: ",product)
     const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
 

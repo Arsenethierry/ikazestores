@@ -10,7 +10,7 @@ const RECENT_VIEWS_KEY = 'recently_viewed_products'
 
 interface LocalStorageProductId {
     $id: string;
-    title: string;
+    name: string;
 }
 export const useRecentlyViewedProducts = () => {
     const [recentProducts, setRecentProducts] = useState<LocalStorageProductId[]>([]);
@@ -33,7 +33,7 @@ export const useRecentlyViewedProducts = () => {
             const recentItems = getRecentlyViewedProducts();
             const productToStore: LocalStorageProductId = {
                 $id: product.$id,
-                title: product.title
+                name: product.name
             }
 
             const filteredItems = recentItems.filter(item => item.$id !== product.$id);
@@ -110,10 +110,10 @@ export const RecentlyViewedProducts = () => {
                     <li
                         key={product.$id}
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-accent cursor-pointer"
-                        onClick={() => router.push(`/products/${slugify(product.title)}/${product.$id}`)}
+                        onClick={() => router.push(`/products/${slugify(product.name)}/${product.$id}`)}
                     >
                         <div>
-                            <p className="text-sm font-medium line-clamp-1">{product.title}</p>
+                            <p className="text-sm font-medium line-clamp-1">{product.name}</p>
                         </div>
                     </li>
                 ))}

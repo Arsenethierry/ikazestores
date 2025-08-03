@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DOMPurify from "isomorphic-dompurify";
+import { Button } from "@/components/ui/button";
 
 interface ProductDescriptionProps {
     description: string;
@@ -99,12 +100,14 @@ export const ProductDescription: React.FC<ProductDescriptionProps> = ({
             )}
 
             {truncate && expandable && maxLength && textContent.length > maxLength && (
-                <button
+                <Button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded inline-block"
+                    variant={'ghost'}
+                    size={'xs'}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none rounded inline-block"
                 >
                     {isExpanded ? 'Show less' : 'Show more'}
-                </button>
+                </Button>
             )}
         </div>
     );

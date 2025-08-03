@@ -4,6 +4,7 @@ import { getAllPshyicalStoresByOwnerId } from "@/lib/actions/physical-store.acti
 import { getAllVirtualStoresByOwnerId } from "@/lib/actions/virtual-store.action";
 import { getAuthState } from "@/lib/user-permission";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
 
 export default async function AdminPage() {
     const queryClient = new QueryClient();
@@ -13,6 +14,10 @@ export default async function AdminPage() {
         isVirtualStoreOwner,
         user
     } = await getAuthState();
+
+    if (isSystemAdmin) {
+        redirect('/admin/sys-admin');
+    }
 
     if (user && !isSystemAdmin) {
         try {

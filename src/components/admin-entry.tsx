@@ -53,7 +53,7 @@ export default function AdminEntry({
     });
 
     useEffect(() => {
-        if (storesLoading || error) return;
+        if (storesLoading || error || isSystemAdmin) return;
 
         const currentPath = window.location.pathname;
 
@@ -91,17 +91,6 @@ export default function AdminEntry({
                 >
                     Refresh Page
                 </button>
-            </div>
-        );
-    }
-
-    if (isSystemAdmin && typeof window !== 'undefined' && window.location.pathname === '/admin') {
-        return (
-            <div className="p-6">
-                <h1 className="text-3xl font-bold">System Admin Dashboard</h1>
-                <p className="text-muted-foreground mt-2">
-                    Welcome to the system administration panel
-                </p>
             </div>
         );
     }

@@ -20,15 +20,15 @@ export const getSidebarLinks = (storeId: string | null) => ({
             items: [
                 {
                     title: "All Stores",
-                    url: "/admin/stores",
+                    url: "/admin/sys-admin/stores",
                 },
                 {
                     title: "Store Analytics",
-                    url: "/admin/stores/analytics",
+                    url: "/admin/sys-admin/stores/analytics",
                 },
                 {
                     title: "Store Settings",
-                    url: "/admin/stores/settings",
+                    url: "/admin/sys-admin/stores/settings",
                 },
             ],
         },
@@ -40,7 +40,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
             items: [
                 {
                     title: "All Users",
-                    url: "/admin/users",
+                    url: "/admin/sys-admin/users",
                 },
             ],
         },
@@ -62,15 +62,15 @@ export const getSidebarLinks = (storeId: string | null) => ({
             items: [
                 {
                     title: "All Product Types",
-                    url: "/admin/product-types",
+                    url: "/admin/sys-admin/product-types",
                 },
                 {
                     title: "Create Product Type",
-                    url: "/admin/product-types/create",
+                    url: "/admin/sys-admin/product-types/create",
                 },
                 {
                     title: "Product Type Analytics",
-                    url: "/admin/product-types/analytics",
+                    url: "/admin/sys-admin/product-types/analytics",
                 },
             ],
         },
@@ -81,15 +81,15 @@ export const getSidebarLinks = (storeId: string | null) => ({
             items: [
                 {
                     title: "All Templates",
-                    url: "/admin/variant-templates",
+                    url: "/admin/sys-admin/variant-templates",
                 },
                 {
                     title: "Create Template",
-                    url: "/admin/variant-templates/create",
+                    url: "/admin/sys-admin/variant-templates/create",
                 },
                 {
                     title: "Template Categories",
-                    url: "/admin/variant-templates/categories",
+                    url: "/admin/sys-admin/variant-templates/categories",
                 },
             ],
         },
@@ -100,15 +100,15 @@ export const getSidebarLinks = (storeId: string | null) => ({
             items: [
                 {
                     title: "All Products",
-                    url: "/admin/products",
+                    url: "/admin/sys-admin/products",
                 },
                 {
                     title: "Product Analytics",
-                    url: "/admin/products/analytics",
+                    url: "/admin/sys-admin/products/analytics",
                 },
                 {
                     title: "Import/Export",
-                    url: "/admin/products/import-export",
+                    url: "/admin/sys-admin/products/import-export",
                 },
             ],
         },
