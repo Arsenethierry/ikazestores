@@ -25,7 +25,9 @@ export const ResponsiveModal = ({
                         <DialogDescription>
                         </DialogDescription>
                     </DialogHeader>
-                    {children}
+                    <div>
+                        {children}
+                    </div>
                 </DialogContent>
             </Dialog>
         )

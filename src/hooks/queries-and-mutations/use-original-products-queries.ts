@@ -11,6 +11,7 @@ import {
     getOriginalProductsByPriceRange,
     getOriginalProductsByStatus,
     getOriginalProductsByTag,
+    getProductsCombinations,
     getStoreOriginalProducts,
     searchOriginalProducts,
     toggleProductFeatured,
@@ -440,4 +441,63 @@ export const useNearbyProducts = (
         enabled: !!lat && !!lng,
         staleTime: 5 * 60 * 1000,
     })
+}
+
+export const useGetProductsCombinations = (
+    productId: string,
+    options: {
+        limit?: number;
+        offset?: number;
+        activeOnly?: boolean;
+        orderBy?: string;
+        orderType?: 'asc' | 'desc';
+    } = {},
+    queryOptions: {
+        enabled?: boolean;
+        staleTime?: number;
+        refetchInterval?: number;
+    } = {}
+) => {
+    const { enabled = true, staleTime = 5 * 60 * 1000, refetchInterval } = queryOptions;
+    return useQuery({
+        queryKey: ['product-combinations', productId, options],
+        queryFn: () => getProductsCombinations(productId, options),
+        enabled: enabled && !!productId,
+        staleTime,
+        refetchInterval,
+        retry: 2,
+        refetchOnWindowFocus: false,
+    });
+}
+
+export const useGetProductsCombinationsInfinite = (
+    productId: string,
+    options: {
+        limit?: number;
+        activeOnly?: boolean;
+        orderBy?: string;
+        orderType?: 'asc' | 'desc';
+    } = {}
+) => {
+    return useInfiniteQuery({
+        queryKey: ['product-combinations-infinite', productId, options],
+        queryFn: async ({ pageParam = 0 }) => {
+            const result = await getProductsCombinations(productId, {
+                ...options,
+                offset: pageParam,
+                limit: options.limit || 20
+            });
+
+            return {
+                combinations: result.combinations,
+                total: result.total,
+                nextOffset: result.hasMore ? pageParam + (options.limit || 20) : undefined,
+                hasMore: result.hasMore
+            };
+        },
+        getNextPageParam: (lastPage) => lastPage.nextOffset,
+        initialPageParam: 0,
+        enabled: !!productId,
+        staleTime: 5 * 60 * 1000,
+    });
 }

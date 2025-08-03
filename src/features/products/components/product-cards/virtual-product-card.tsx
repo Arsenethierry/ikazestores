@@ -38,6 +38,7 @@ const VirtualProductCard = memo(({
     isMyProduct = false,
     user
 }: VirtualProductCardProps) => {
+    console.log("productproduct: ",product)
     const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -47,8 +48,8 @@ const VirtualProductCard = memo(({
         rootMargin: '50px'
     });
 
-    const originalPrice = product?.price ?? product?.sellingPrice;
-    const sellingPrice = (product?.price ?? product?.sellingPrice) - 5; // Your discount logic
+    const originalPrice = product.price;
+    const sellingPrice = originalPrice - 5;
     const productCurrency = product?.currency || 'USD';
 
     const discountPercentage = originalPrice && sellingPrice ?
@@ -71,7 +72,8 @@ const VirtualProductCard = memo(({
         setImageLoaded(true);
     }, []);
 
-    const productUrl = `${getStoreSubdomainUrl({ subdomain: product.virtualStore.subDomain })}/products/${slugify(product.title)}/${product.$id}`;
+    // const productUrl = `${getStoreSubdomainUrl({ subdomain: product.virtualStore.subDomain })}/products/${slugify(product.title)}/${product.$id}`;
+    const productUrl = `/products/${slugify(product.name)}/${product.$id}`;
 
     if (viewMode === 'list') {
         return (
@@ -91,8 +93,8 @@ const VirtualProductCard = memo(({
                             {inView && (
                                 <Link href={productUrl} target="_blank">
                                     <Image
-                                        src={product?.generalImageUrls?.[0] || '/placeholder-product.jpg'}
-                                        alt={product?.title}
+                                        src={product?.images?.[0] || '/placeholder-product.jpg'}
+                                        alt={product?.name}
                                         fill
                                         className={cn(
                                             "object-cover transition-all duration-500",
@@ -143,18 +145,19 @@ const VirtualProductCard = memo(({
                                 <div className="flex-1 min-w-0">
                                     <Link href={productUrl} target="_blank">
                                         <h3 className="font-semibold text-base line-clamp-2 hover:text-primary transition-colors">
-                                            {product.title}
+                                            {product.name}
                                         </h3>
                                     </Link>
 
                                     {/* Categories */}
                                     {product.categoryNames && product.categoryNames.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                            {product.categoryNames.slice(0, 2).map((category: string, index: number) => (
-                                                <Badge key={index} variant="outline" className="text-xs">
-                                                    {category}
+                                            {/* {product.categoryId.slice(0, 2).map((category: string, index: number) => ( */}
+                                                <Badge variant="outline" className="text-xs">
+                                                    {/* {category} */}
+                                                    category
                                                 </Badge>
-                                            ))}
+                                            {/* ))} */}
                                         </div>
                                     )}
                                 </div>
@@ -270,7 +273,7 @@ const VirtualProductCard = memo(({
                     <Carousel className="relative w-full h-full">
                         <Link href={productUrl} target="_blank">
                             <CarouselContent>
-                                {product?.generalImageUrls?.map((imageUrl: string, index: number) => (
+                                {product?.images?.map((imageUrl: string, index: number) => (
                                     <CarouselItem key={index} className="relative h-60 w-full">
                                         <Image
                                             src={imageUrl}
@@ -369,7 +372,7 @@ const VirtualProductCard = memo(({
                 {/* Image Indicators */}
                 {(product?.generalImageUrls?.length || 0) > 1 && (
                     <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 z-20">
-                        {product.generalImageUrls?.map((_, index) => (
+                        {product.generalImageUrls?.map((_: string, index: number) => (
                             <div
                                 key={index}
                                 className="w-1.5 h-1.5 rounded-full bg-white/50 transition-all duration-300"
@@ -476,11 +479,11 @@ const VirtualProductCard = memo(({
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <div className="w-4 h-4 bg-primary/10 rounded-full flex items-center justify-center">
                             <span className="text-[8px] font-semibold text-primary">
-                                {product.virtualStore.storeName.charAt(0).toUpperCase()}
+                                {product.virtualStoreName.charAt(0).toUpperCase()}
                             </span>
                         </div>
                         <span className="truncate max-w-[120px]">
-                            {product.virtualStore.storeName}
+                            {product.virtualStoreName}
                         </span>
                     </div>
 

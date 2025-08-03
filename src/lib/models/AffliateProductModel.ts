@@ -1,24 +1,23 @@
 import { ID, Query } from "node-appwrite";
-import { createDocumentPermissions, createSessionClient } from "../appwrite";
-import { BaseModel, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
+import { createAdminClient, createDocumentPermissions, createSessionClient } from "../appwrite";
+import { BaseModel, CacheOptions, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { AFFILIATE_COMBINATION_PRICING_COLLECTION_ID, AFFILIATE_PRODUCT_IMPORTS_COLLECTION_ID, DATABASE_ID, PRODUCTS_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "../env-config";
 import { AffiliateCombinationPricing, AffiliateProductImports, ProductCombinations, Products } from "../types/appwrite/appwrite";
 import { CreateAffiliateImportSchema, UpdateAffiliateImportSchema } from "../schemas/products-schems";
 import { getAuthState } from "../user-permission";
-
-export interface VirtualStoreProduct extends Products {
-    finalPrice: number;
-    commission: number;
-    affiliateImportId: string;
-}
+import { ProductModel } from "./ProductModel";
+import { VirtualProductTypes } from "../types";
 
 export interface VirtualStoreCombination extends ProductCombinations {
     finalPrice: number;
     commission: number;
 }
 export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
+    private originalProduct: ProductModel;
+
     constructor() {
-        super(AFFILIATE_PRODUCT_IMPORTS_COLLECTION_ID)
+        super(AFFILIATE_PRODUCT_IMPORTS_COLLECTION_ID);
+        this.originalProduct = new ProductModel();
     }
 
     async findByVirtualStore(
@@ -36,19 +35,114 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
         })
     }
 
-    async findByProductId(
-        productId: string,
-        options: QueryOptions = {}
-    ): Promise<PaginationResult<AffiliateProductImports>> {
-        const filters: QueryFilter[] = [
-            { field: "productId", operator: "equal", value: productId },
-            ...(options.filters || [])
-        ];
+    async findVirtualProductById(productId: string): Promise<VirtualProductTypes | null> {
+        const virtualProduct = await this.findById(productId, {});
+        if (!virtualProduct) return null;
+        const originalProduct = await this.originalProduct.findProductWithColors(virtualProduct.productId);
+        if (!originalProduct) return null;
 
-        return this.findMany({
-            ...options,
-            filters
-        });
+        return {
+            ...virtualProduct,
+            name: originalProduct.name,
+            description: originalProduct.description,
+            shortDescription: originalProduct.shortDescription || undefined,
+            sku: originalProduct.sku,
+            images: originalProduct.images || [],
+            tags: originalProduct.tags?.length ? originalProduct.tags : null,
+            price: virtualProduct.commission + originalProduct.basePrice,
+            currency: originalProduct.currency,
+            status: originalProduct.status,
+            hasVariants: originalProduct.hasVariants,
+            // combinations: combinations.length > 0 ? combinations : undefined,
+            colors: originalProduct.colors.length > 0 ? originalProduct.colors : null,
+            categoryId: originalProduct.categoryId,
+            subcategoryId: originalProduct.subcategoryId,
+            productTypeId: originalProduct.productTypeId,
+            physicalStoreCountry: originalProduct.storeCountry,
+            physicalStoreLatitude: originalProduct.storeLatitude,
+            physicalStoreLongitude: originalProduct.storeLongitude,
+            physicalStoreId: originalProduct.physicalStoreId
+        }
+    }
+
+    async getVirtualStoreProducts(
+        virtualStoreId: string,
+        options: QueryOptions = {}
+    ): Promise<PaginationResult<VirtualProductTypes>> {
+        try {
+            const imports = await this.findActiveImports(virtualStoreId, options);
+            if (imports.documents.length === 0) {
+                return {
+                    documents: [],
+                    total: 0,
+                    limit: options.limit || 25,
+                    offset: options.offset || 0,
+                    hasMore: false
+                };
+            }
+
+            const productIds = imports.documents.map(imp => imp.productId);
+            const productFilters: QueryFilter[] = [
+                { field: "$id", operator: "in", values: productIds },
+                { field: "status", operator: "equal", value: "active" },
+                { field: "isDropshippingEnabled", operator: "equal", value: true }
+            ];
+
+            if (options.filters) {
+                productFilters.push(...options.filters);
+            }
+
+            const productsResult = await this.originalProduct.findMany({
+                ...options,
+                filters: productFilters
+            });
+
+            const virtualStoreProducts = await Promise.all(
+
+                productsResult.documents.map(async (product) => {
+                    const import_ = imports.documents.find(imp => imp.productId === product.$id);
+
+                    const colorsResult = await this.originalProduct.getProductColors(product.$id);
+
+                    return {
+                        ...import_,
+                        categoryId: product.categoryId,
+                        colors: colorsResult.documents.length > 0 ? colorsResult.documents : null,
+                        currency: product.currency,
+                        description: product.description,
+                        hasVariants: product.hasVariants,
+                        images: product.images,
+                        name: product.name,
+                        price: product.basePrice + (import_?.commission || 0),
+                        productTypeId: product.productTypeId,
+                        sku: product.sku,
+                        status: product.status,
+                        subcategoryId: product.subcategoryId,
+                        tags: product.tags,
+                        physicalStoreCountry: product.storeCountry,
+                        physicalStoreLatitude: product.storeLatitude,
+                        physicalStoreLongitude: product.storeLongitude,
+                        physicalStoreId: product.physicalStoreId
+                    } as VirtualProductTypes
+                })
+            )
+            return {
+                documents: virtualStoreProducts,
+                total: virtualStoreProducts.length,
+                limit: options.limit || 25,
+                offset: options.offset || 0,
+                hasMore: false
+            };
+        } catch (error) {
+            console.error('getVirtualStoreProducts error:', error);
+            return {
+                documents: [],
+                total: 0,
+                limit: options.limit || 25,
+                offset: options.offset || 0,
+                hasMore: false,
+            }
+        }
     }
 
     async findActiveImports(
@@ -65,94 +159,6 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
             ...options,
             filters
         });
-    }
-
-    async getVirtualStoreProducts(
-        virtualStoreId: string,
-        options: QueryOptions = {}
-    ): Promise<PaginationResult<VirtualStoreProduct>> {
-        try {
-            const { databases } = await createSessionClient();
-
-            const imports = await this.findActiveImports(virtualStoreId, options);
-            if (imports.documents.length === 0) {
-                return {
-                    documents: [],
-                    total: 0,
-                    limit: options.limit || 25,
-                    offset: options.offset || 0,
-                    hasMore: false
-                };
-            }
-
-            const productIds = imports.documents.map(imp => imp.productId);
-            const productFilters: string[] = [
-                Query.equal('$id', productIds),
-                Query.equal('status', 'active'),
-                Query.equal('isDropshippingEnabled', true)
-            ];
-
-            if (options.filters) {
-                for (const filter of options.filters) {
-                    switch (filter.operator) {
-                        case "equal":
-                            productFilters.push(Query.equal(filter.field, filter.value));
-                            break;
-                        case "contains":
-                            productFilters.push(Query.search(filter.field, filter.value));
-                            break;
-                        case "greaterThanEqual":
-                            productFilters.push(Query.greaterThanEqual(filter.field, filter.value));
-                            break;
-                        case "lessThanEqual":
-                            productFilters.push(Query.lessThanEqual(filter.field, filter.value));
-                            break;
-                    }
-                }
-            }
-
-            if (options.limit) productFilters.push(Query.limit(options.limit));
-            if (options.offset) productFilters.push(Query.offset(options.offset));
-            if (options.orderBy) {
-                const orderMethod = options.orderType === 'desc' ? Query.orderDesc : Query.orderAsc;
-                productFilters.push(orderMethod(options.orderBy))
-            }
-
-            const productsResponse = await databases.listDocuments<Products>(
-                DATABASE_ID,
-                PRODUCTS_COLLECTION_ID,
-                productFilters
-            );
-
-            const virtualStoreProducts: VirtualStoreProduct[] = productsResponse.documents.map(product => {
-                const import_ = imports.documents.find(imp => imp.productId === product.$id);
-                const finalPrice = product.basePrice + (import_?.commission || 0);
-
-                return {
-                    ...product,
-                    finalPrice,
-                    commission: import_?.commission || 0,
-                    affiliateImportId: import_?.$id || '',
-                };
-            });
-
-            return {
-                documents: virtualStoreProducts,
-                total: productsResponse.total,
-                limit: options.limit || 25,
-                offset: options.offset || 0,
-                hasMore: (options.offset || 0) + virtualStoreProducts.length < productsResponse.total
-            };
-        } catch (error) {
-            console.error('getVirtualStoreProducts error:', error);
-            return {
-                documents: [],
-                total: 0,
-                limit: options.limit || 25,
-                offset: options.offset || 0,
-                hasMore: false,
-            }
-        }
     }
 
     async getProductCombinationsWithPricing(
@@ -220,15 +226,11 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
                 return { error: "Authentication required" };
             }
 
-            const { databases } = await createSessionClient();
+            const { databases } = await createAdminClient();
 
-            const product = await databases.getDocument<Products>(
-                DATABASE_ID,
-                PRODUCTS_COLLECTION_ID,
-                data.productId
-            );
+            const product = await this.originalProduct.findById(data.productId, {})
 
-            if (!product.isDropshippingEnabled) {
+            if (!product || !product.isDropshippingEnabled) {
                 return { error: "This product is not available for dropshipping" };
             }
 
@@ -424,7 +426,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
         virtualStoreId: string,
         searchTerm: string,
         options: QueryOptions = {}
-    ): Promise<PaginationResult<VirtualStoreProduct>> {
+    ): Promise<PaginationResult<VirtualProductTypes>> {
         const searchFilters: QueryFilter[] = [
             { field: "name", operator: "contains", value: searchTerm },
             ...(options.filters || [])
@@ -440,7 +442,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
         virtualStoreId: string,
         categoryId: string,
         options: QueryOptions = {}
-    ): Promise<PaginationResult<VirtualStoreProduct>> {
+    ): Promise<PaginationResult<VirtualProductTypes>> {
         const categoryFilters: QueryFilter[] = [
             { field: "categoryId", operator: "equal", value: categoryId },
             ...(options.filters || [])
@@ -457,7 +459,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
         minPrice: number,
         maxPrice: number,
         options: QueryOptions = {}
-    ): Promise<PaginationResult<VirtualStoreProduct>> {
+    ): Promise<PaginationResult<VirtualProductTypes>> {
         // Note: Price filtering for virtual stores needs to be done after calculating final prices
         // This is a simplified version - for better performance, consider implementing server-side calculation
 
@@ -479,7 +481,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
     async getFeaturedVirtualStoreProducts(
         virtualStoreId: string,
         options: QueryOptions = {}
-    ): Promise<PaginationResult<VirtualStoreProduct>> {
+    ): Promise<PaginationResult<VirtualProductTypes>> {
         const featuredFilters: QueryFilter[] = [
             { field: "featured", operator: "equal", value: true },
             ...(options.filters || [])

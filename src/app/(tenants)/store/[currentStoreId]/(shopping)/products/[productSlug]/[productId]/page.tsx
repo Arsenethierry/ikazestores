@@ -1,7 +1,7 @@
 import { NoItemsCard } from '@/components/no-items-card';
 import SpinningLoader from '@/components/spinning-loader';
-import { getVirtualProductById } from '@/lib/actions/virtual-products-actions';
 import { ProductDetails } from '@/features/products/components/product-details-page';
+import { getVirtualProductById } from '@/lib/actions/affiliate-product-actions';
 import React, { Suspense } from 'react';
 
 async function page({

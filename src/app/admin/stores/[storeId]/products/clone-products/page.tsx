@@ -57,7 +57,7 @@ async function page({
                 </div>
             </div>
 
-            <CloneProductsPage storeId={storeId} user={user} />
+            <CloneProductsPage virtualStoreId={storeId} user={user} />
         </div>
     );
 }

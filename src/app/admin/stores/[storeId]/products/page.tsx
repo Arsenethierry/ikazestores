@@ -1,6 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
     Card,
     CardContent
@@ -13,7 +13,9 @@ import { ProductSekeleton } from "@/features/products/components/products-list-s
 import { ProductsDataTable } from "@/features/products/components/products-list-table/products-data-table";
 import { getVirtualStoreProducts } from "@/lib/actions/affiliate-product-actions";
 import { getStoreOriginalProducts } from "@/lib/actions/original-products-actions";
-import { Products, VirtualProducts } from "@/lib/types/appwrite/appwrite";
+import { PaginationResult } from "@/lib/core/database";
+import { VirtualProductTypes } from "@/lib/types";
+import { Products } from "@/lib/types/appwrite/appwrite";
 import { getAuthState } from "@/lib/user-permission";
 import { AlertTriangle, Copy, Eye, Package, Plus, RefreshCw, Search, ShoppingCart, Star, Store, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +27,6 @@ interface StoreProductsPageProps {
 
 export default async function StoreProductsPage({ params }: StoreProductsPageProps) {
     const { storeId } = await params;
-
     return (
         <div className="container mx-auto py-6 space-y-6">
             <Suspense fallback={<StoreProductsPageSkeleton />}>
@@ -55,11 +56,9 @@ async function StoreProductsContent({ storeId }: { storeId: string }) {
                             <p className="text-muted-foreground mb-4">
                                 You don't have permission to view products for this store.
                             </p>
-                            <Button asChild>
-                                <Link href="/admin/stores">
-                                    Back to Stores
-                                </Link>
-                            </Button>
+                            <Link className={buttonVariants({ variant: 'teritary' })} href="/admin/stores">
+                                Back to Stores
+                            </Link>
                         </div>
                     </CardContent>
                 </Card>
@@ -68,13 +67,13 @@ async function StoreProductsContent({ storeId }: { storeId: string }) {
     }
 
     let originalProducts = null;
-    let virtualProductsResult = null;
+    let virtualProductsResult: PaginationResult<VirtualProductTypes> | null = null;
+    let error: string | null = null;
 
     try {
         if (isPhysicalStoreOwner) {
             originalProducts = await getStoreOriginalProducts(storeId);
         }
-
         if (isVirtualStoreOwner) {
             virtualProductsResult = await getVirtualStoreProducts(
                 storeId,
@@ -83,16 +82,17 @@ async function StoreProductsContent({ storeId }: { storeId: string }) {
                 }
             );
         }
-    } catch (error) {
-        console.error('Error fetching products:', error);
+    } catch (err) {
+        console.error('Error fetching products:', err);
+        error = err instanceof Error ? err.message : 'Failed to fetch products';
     }
 
     if (isVirtualStoreOwner) {
         return (
             <VirtualStoreProductsView
                 storeId={storeId}
-                // @ts-ignore
                 virtualProductsResult={virtualProductsResult}
+                error={error}
             />
         )
     }
@@ -111,12 +111,14 @@ async function StoreProductsContent({ storeId }: { storeId: string }) {
 
 function VirtualStoreProductsView({
     storeId,
-    virtualProductsResult
+    virtualProductsResult,
+    error
 }: {
     storeId: string;
-    virtualProductsResult: { success: boolean; data?: VirtualProducts[]; error?: string } | null;
+    virtualProductsResult: PaginationResult<VirtualProductTypes> | null;
+    error: string | null;
 }) {
-    if (virtualProductsResult && !virtualProductsResult.success) {
+    if (error || !virtualProductsResult) {
         return (
             <div className="space-y-6">
                 <ProductsHeader
@@ -125,11 +127,10 @@ function VirtualStoreProductsView({
                     storeId={storeId}
                     isVirtual={true}
                 />
-
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription className="flex items-center justify-between">
-                        <span>{virtualProductsResult.error}</span>
+                        <span>{error || 'Failed to load virtual products'}</span>
                         <Button
                             variant="outline"
                             size="sm"
@@ -144,7 +145,7 @@ function VirtualStoreProductsView({
         )
     }
 
-    const virtualProducts = virtualProductsResult?.data || [];
+    const virtualProducts = virtualProductsResult.documents;
 
     return (
         <div className="space-y-6">
@@ -154,16 +155,16 @@ function VirtualStoreProductsView({
                 storeId={storeId}
                 isVirtual={true}
                 productCount={virtualProducts.length}
+                totalCount={virtualProductsResult.total}
             />
-
             <VirtualProductsStats products={virtualProducts} />
-
             {virtualProducts.length === 0 ? (
                 <EmptyVirtualProductsState storeId={storeId} />
             ) : (
                 <VirtualProductsGrid
                     products={virtualProducts}
                     storeId={storeId}
+                    hasMore={virtualProductsResult.hasMore}
                 />
             )}
         </div>
@@ -186,7 +187,6 @@ function PhysicalStoreProductsView({
                     storeId={storeId}
                     isVirtual={false}
                 />
-
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
@@ -210,9 +210,7 @@ function PhysicalStoreProductsView({
                 productCount={products.length}
                 totalCount={totalCount}
             />
-
             <OriginalProductsStats products={products} />
-
             {products.length === 0 ? (
                 <EmptyOriginalProductsState storeId={storeId} />
             ) : (
@@ -252,13 +250,12 @@ function ProductsHeader({
                     <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
                     {productCount !== undefined && (
                         <Badge variant="secondary" className="text-lg px-3 py-1">
-                            {totalCount ? `${productCount}/${totalCount}` : productCount}
+                            {totalCount && totalCount !== productCount ? `${productCount}/${totalCount}` : productCount}
                         </Badge>
                     )}
                 </div>
                 <p className="text-muted-foreground">{description}</p>
             </div>
-
             <div className="flex items-center gap-2">
                 {isVirtual ? (
                     <>
@@ -290,12 +287,12 @@ function ProductsHeader({
     )
 }
 
-function VirtualProductsStats({ products }: { products: VirtualProducts[] }) {
-    const totalValue = products.reduce((sum, product) => sum + (product.sellingPrice || 0), 0);
+function VirtualProductsStats({ products }: { products: VirtualProductTypes[] }) {
+    const totalValue = products.reduce((sum, product) => sum + (product.price || 0), 0);
     const averageCommission = products.length > 0
-        ? products.reduce((sum, product) => sum + (product.mainProdCommission || 0), 0) / products.length
+        ? products.reduce((sum, product) => sum + (product.commission || 0), 0) / products.length
         : 0;
-    const activeProducts = products.filter(p => p.virtualStore).length;
+    const activeProducts = products.filter(p => p.isActive).length;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -404,16 +401,18 @@ function StatsCard({
 
 function VirtualProductsGrid({
     products,
-    storeId
+    storeId,
+    hasMore
 }: {
-    products: VirtualProducts[];
+    products: VirtualProductTypes[];
     storeId: string;
+    hasMore: boolean;
 }) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Your Products</h2>
-                {products.length >= 20 && (
+                {hasMore && (
                     <Button variant="outline" asChild>
                         <Link href={`/admin/stores/${storeId}/products?view=all`}>
                             View All Products
@@ -421,7 +420,6 @@ function VirtualProductsGrid({
                     </Button>
                 )}
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                 {products.map((product) => (
                     <div key={product.$id}>
@@ -531,7 +529,6 @@ function StoreProductsPageSkeleton() {
                     <Skeleton className="h-10 w-32" />
                 </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                     <Card key={i}>
@@ -548,7 +545,6 @@ function StoreProductsPageSkeleton() {
                     </Card>
                 ))}
             </div>
-
             <Card>
                 <CardContent className="p-6">
                     <Skeleton className="h-64 w-full" />

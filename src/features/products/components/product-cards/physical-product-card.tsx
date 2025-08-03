@@ -15,14 +15,14 @@ import { CloneProductModal } from '../clone-products/clone-product-modal';
 
 export const PhysicalProductCard = ({
     product,
-    storeId,
+    virtualStoreId,
     user,
     isSystemAdmin,
     isPhysicalStoreOwner,
     isVirtualStoreOwner,
 }: {
     product: OriginalProductTypes,
-    storeId: string,
+    virtualStoreId: string,
     isVirtualStoreOwner: boolean,
     isPhysicalStoreOwner: boolean,
     isSystemAdmin: boolean,
@@ -120,7 +120,7 @@ export const PhysicalProductCard = ({
                                 <CloneProductModal
                                     currentUser={user}
                                     product={product}
-                                    storeId={storeId}
+                                    virtualStoreId={virtualStoreId}
                                 />
                             </div>
                         </div>

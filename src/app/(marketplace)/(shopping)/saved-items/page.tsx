@@ -1,10 +1,10 @@
 import { NoItemsCard } from '@/components/no-items-card';
 import { getUserSavedItems } from '@/hooks/queries-and-mutations/saved-items-action';
-import { getVirtualProductById } from '@/lib/actions/virtual-products-actions';
 import { VirtualProductCard } from '@/features/products/components/product-cards/virtual-product-card';
 import { getAuthState } from '@/lib/user-permission';
 import { redirect } from 'next/navigation';
 import React from 'react';
+import { getVirtualProductById } from '@/lib/actions/affiliate-product-actions';
 
 async function SavedItemsPage() {
     const { user } = await getAuthState();
@@ -18,7 +18,7 @@ async function SavedItemsPage() {
             const product = await getVirtualProductById(savedItem.productId);
             return {
                 savedItemId: savedItem.$id,
-                product: product.data
+                product: product?.data || []
             };
         })
     );

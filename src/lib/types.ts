@@ -1,7 +1,7 @@
 import { Models } from "node-appwrite";
 import { UserAccountType, UserRole } from "./constants";
 import { ProductCombination } from "./schemas/product-variants-schema";
-import { ProductCollectionGroups, ProductCollections, Products, VirtualProducts, VirtualStore } from "./types/appwrite/appwrite";
+import { AffiliateProductImports, ProductCollectionGroups, ProductCollections, ProductColors, Products, Status, VirtualProducts, VirtualStore } from "./types/appwrite/appwrite";
 import z from "zod";
 import { createPhysicalStoreFormSchema, createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "./schemas/stores-schema";
 import { PhysicalStore } from "@/lib/types/appwrite/appwrite"
@@ -108,7 +108,26 @@ export interface ProductCombinationTypes extends Models.Document {
     dimensions?: string;
     images?: string[]
 }
-export type VirtualProductTypes = VirtualProducts
+export interface VirtualProductTypes extends AffiliateProductImports {
+    name: string;
+    description: string;
+    sku: string;
+    price: number;
+    currency: string;
+    status: Status;
+    hasVariants: boolean;
+    categoryId: string;
+    subcategoryId: string;
+    productTypeId: string;
+    tags: string[] | null;
+    images: string[] | null;
+    colors: ProductColors[] | null,
+    physicalStoreLatitude: number;
+    physicalStoreLongitude: number;
+    physicalStoreCountry: string;
+    shortDescription?: string;
+    physicalStoreId: string
+}
 
 export type VirtualStoreTypes = VirtualStore
 export interface ColorImagesTypes extends Models.Document {

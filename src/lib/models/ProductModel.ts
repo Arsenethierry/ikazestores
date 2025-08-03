@@ -4,7 +4,7 @@ import { createAdminClient, createDocumentPermissions, createSessionClient } fro
 import { BaseModel, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { DATABASE_ID, PRODUCT_VARIANT_OPTIONS_COLLECTION_ID, PRODUCT_VARIANTS_COLLECTION_ID, PRODUCTS_BUCKET_ID, PRODUCTS_COLLECTION_ID, VARIANT_COMBINATION_VALUES_COLLECTION_ID, VARIANT_COMBINATIONS_COLLECTION_ID } from "../env-config";
 import { CreateColorVariantData, CreateProductSchema, ProductCombinationSchema, UpdateProductSchema } from "../schemas/products-schems";
-import { ProductColors, Products } from "../types/appwrite/appwrite";
+import { ProductColors, ProductCombinations, Products } from "../types/appwrite/appwrite";
 import { getAuthState } from "../user-permission";
 import { ProductsStorageService } from "./storage-models";
 import { extractFileIdFromUrl } from "../utils";
@@ -113,6 +113,80 @@ export class ProductModel extends BaseModel<Products> {
             ...options,
             filters
         });
+    }
+
+    async getProductsCombinations(
+        productId: string,
+        options: {
+            limit?: number;
+            offset?: number;
+            activeOnly?: boolean;
+            orderBy?: string;
+            orderType?: 'asc' | 'desc';
+        } = {}
+    ): Promise<{
+        success: boolean;
+        combinations: ProductCombinations[];
+        total: number;
+        hasMore: boolean;
+        error?: string;
+    }> {
+        try {
+            const {
+                limit = 50,
+                offset = 0,
+                activeOnly = true,
+                orderBy = '$createdAt',
+                orderType = 'asc'
+            } = options;
+            const { databases } = await createSessionClient();
+            if (!productId) {
+                return {
+                    success: true,
+                    combinations: [],
+                    total: 0,
+                    hasMore: false
+                };
+            }
+
+            const queries = [
+                Query.equal('productId', productId),
+                Query.limit(limit),
+                Query.offset(offset)
+            ];
+
+            if (orderType === 'desc') {
+                queries.push(Query.orderDesc(orderBy));
+            } else {
+                queries.push(Query.orderAsc(orderBy));
+            }
+
+            if (activeOnly) {
+                queries.push(Query.equal('isActive', true));
+            }
+
+            const result = await databases.listDocuments<ProductCombinations>(
+                DATABASE_ID,
+                VARIANT_COMBINATIONS_COLLECTION_ID,
+                queries
+            );
+
+            return {
+                success: true,
+                combinations: result.documents,
+                total: result.total,
+                hasMore: offset + result.documents.length < result.total
+            };
+        } catch (error) {
+            console.error("getProductsCombinations error: ", error);
+            return {
+                success: false,
+                combinations: [],
+                total: 0,
+                hasMore: false,
+                error: error instanceof Error ? error.message : "Failed to fetch product combinations"
+            };
+        }
     }
 
     async findByPriceRange(

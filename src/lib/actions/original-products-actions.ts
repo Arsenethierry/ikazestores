@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { OriginalProductsModel } from "@/lib/models/original-products-model";
-import { ColorVariantUpdateSchema, CreateColorVariantData, CreateProductSchema, DeleteProductSchema, UpdateColorVariantData, UpdateProductSchema } from "../schemas/products-schems";
+import { ColorVariantUpdateSchema, CreateProductSchema, DeleteProductSchema, UpdateColorVariantData, UpdateProductSchema } from "../schemas/products-schems";
 import { ProductModel } from "../models/ProductModel";
 import { getAuthState } from "../user-permission";
 import { OriginalProductTypes } from "../types";
@@ -190,6 +189,57 @@ export async function toggleProductFeatured(productId: string) {
     }
 }
 
+export async function getProductsCombinations(
+    productId: string,
+    options: {
+        limit?: number;
+        offset?: number;
+        activeOnly?: boolean;
+        orderBy?: string;
+        orderType?: 'asc' | 'desc';
+    } = {}
+) {
+    try {
+        if (!productId) {
+            return {
+                success: false,
+                combinations: [],
+                total: 0,
+                hasMore: false,
+                error: "Product ID is required"
+            };
+        }
+
+        const result = await originalProductsModel.getProductsCombinations(productId, options);
+
+        if (!result.success) {
+            return {
+                success: false,
+                combinations: [],
+                total: 0,
+                hasMore: false,
+                error: result.error || "Failed to fetch product combinations"
+            };
+        }
+
+        return {
+            success: true,
+            combinations: result.combinations,
+            total: result.total,
+            hasMore: result.hasMore
+        };
+    } catch (error) {
+        console.error("getProductsCombinations action error: ", error);
+        return {
+            success: false,
+            combinations: [],
+            total: 0,
+            hasMore: false,
+            error: error instanceof Error ? error.message : "Failed to fetch product combinations"
+        };
+    }
+}
+
 export async function getProductAnalytics(
     storeId: string,
     options: {
@@ -337,10 +387,11 @@ export async function searchOriginalProducts(
         status?: "active" | "inactive" | "draft" | 'all';
         minPrice?: number;
         maxPrice?: number;
+        withCombinations?: boolean;
     } = {}
 ) {
     try {
-        const { limit = 10, page = 1, ...filters } = options;
+        const { limit = 10, page = 1, withCombinations = false, ...filters } = options;
         const offset = (page - 1) * limit;
 
         const queryFilters: any[] = [];

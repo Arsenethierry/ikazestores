@@ -159,10 +159,11 @@ export const UpdateProductSchema = BaseCreateProductSchema.omit({
 export const CreateAffiliateImportSchema = z.object({
     virtualStoreId: z.string().min(1, "Virtual store ID is required"),
     productId: z.string().min(1, "Product ID is required"),
-    commission: z.number().min(0, "Commission must be positive"),
+    commission: z.number().min(0, "Commission must be greater than or equal to 0"),
+    selectedCombinations: z.array(z.string()).optional().default([]), // Array of combination IDs to import
     customCombinationPricing: z.array(z.object({
         combinationId: z.string(),
-        customCommission: z.number().min(0)
+        customCommission: z.number().min(0, "Custom commission must be ≥ 0"),
     })).optional()
 });
 

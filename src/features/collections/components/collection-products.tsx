@@ -13,15 +13,12 @@ import { CollectionProductsPagination } from "./collection-products-pagination";
 import { usePathname } from "next/navigation";
 import { ClientVirtualProductCard } from "@/features/products/components/product-cards/client-virtual-product-card";
 import {
-    useGetAllVirtualProducts,
-    useGetVirtualStoreProducts
-} from "@/hooks/queries-and-mutations/use-virtual-products";
-import { 
     useGetCollectionProducts,
     useAddProductsToCollection,
     useRemoveProductFromCollection
 } from "@/hooks/queries-and-mutations/use-products-collections";
 import { VirtualProductTypes } from "@/lib/types";
+import { useVirtualStoreProductsSearch } from "@/hooks/queries-and-mutations/use-affliate-products";
 
 interface PageProps {
     virtualStoreId: string | null;
@@ -57,19 +54,23 @@ export const CollectionProducts = ({
     const addProductsMutation = useAddProductsToCollection();
     const removeProductMutation = useRemoveProductFromCollection();
 
-    const { data: allProductsData, isLoading: isAllProductsLoading } = useGetAllVirtualProducts({
-        search: search || undefined,
-        page: Number(page),
-        limit: Number(pageSize)
-    });
+    const { data: allProductsData, isLoading: isAllProductsLoading } = useVirtualStoreProductsSearch(
+        virtualStoreId || '',
+        search || '',
+        {
+            limit: Number(pageSize),
+            page: Number(page),
+        }
+    );
 
-    const { data: storeProductsData, isLoading: isStoreProductsLoading } = useGetVirtualStoreProducts({
-        virtualStoreId: virtualStoreId!,
-        limit: Number(pageSize),
-        page: Number(page),
-        search: search || undefined,
-        withStoreData: true
-    });
+    const { data: storeProductsData, isLoading: isStoreProductsLoading } = useVirtualStoreProductsSearch(
+        virtualStoreId || '',
+        search || '',
+        {
+            limit: Number(pageSize),
+            page: Number(page),
+        }
+    );
 
     const { data: collectionProductsData, isLoading: isCollectionProductsLoading } = useGetCollectionProducts(
         collectionId,
@@ -107,7 +108,7 @@ export const CollectionProducts = ({
             toast.error("Please select at least one product to add to the collection");
             return;
         }
-        
+
         if (addedProductIds.length === 0 && removedProductIds.length === 0) {
             toast.error('No changes. No products were added or removed');
             return;
@@ -179,9 +180,9 @@ export const CollectionProducts = ({
     if (isAdminPortal) {
         if (virtualStoreId) {
             isLoading = isStoreProductsLoading;
-            productsData = storeProductsData;
+            productsData = storeProductsData?.documents;
             // Assuming storeProductsData has pagination info
-            totalPages = Math.ceil((storeProductsData?.length || 0) / Number(pageSize));
+            totalPages = Math.ceil((storeProductsData?.documents?.length || 0) / Number(pageSize));
         } else {
             isLoading = isAllProductsLoading;
             productsData = allProductsData?.documents;
@@ -287,7 +288,7 @@ export const CollectionProducts = ({
                         <Button
                             onClick={handleSaveProducts}
                             disabled={
-                                (selectedProductsIds.length === 0 && existingProductIds.length === 0) || 
+                                (selectedProductsIds.length === 0 && existingProductIds.length === 0) ||
                                 (addedProductIds.length === 0 && removedProductIds.length === 0) ||
                                 isSaving
                             }

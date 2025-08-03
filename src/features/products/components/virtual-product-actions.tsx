@@ -12,7 +12,7 @@ import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import { MoreHorizontal, TrashIcon } from "lucide-react";
 import { useConfirm } from "@/hooks/use-confirm";
 import { VirtualProductTypes } from "@/lib/types";
-import { useDeleteVirtualProduct } from "@/hooks/queries-and-mutations/use-virtual-products";
+import { useRemoveProductFromVirtualStore } from "@/hooks/queries-and-mutations/use-affliate-products";
 
 export const VirtualProductMenuActions = ({ product }: { product: VirtualProductTypes }) => {
     const { data: user } = useCurrentUser();
@@ -23,7 +23,7 @@ export const VirtualProductMenuActions = ({ product }: { product: VirtualProduct
         "destructive"
     );
 
-    const deleteMutation = useDeleteVirtualProduct();
+    const deleteMutation = useRemoveProductFromVirtualStore();
 
     const handleRemoveProduct = async () => {
         const ok = await confirmRemoveProduct();

@@ -6,7 +6,7 @@ import { useDebounce } from "../ui/multiselect";
 import { useParams, useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
 import { VirtualProductTypes } from "@/lib/types";
-import { useSearchVirtualProducts } from "@/hooks/queries-and-mutations/use-virtual-products";
+import { useVirtualStoreProductsSearch } from "@/hooks/queries-and-mutations/use-affliate-products";
 
 const categories = [
   {
@@ -45,11 +45,14 @@ export const ProductSearchField = (): JSX.Element => {
   const debounceSearchValue = useDebounce(searchValue, 300);
   const storeId = Array.isArray(currentStoreId) ? currentStoreId[0] : currentStoreId;
 
-  const { data: searchResults, isLoading, error } = useSearchVirtualProducts({
-    query: debounceSearchValue,
-    limit: 10,
-    currentStoreId: storeId
-  });
+  const { data: searchResults, isLoading, error } = useVirtualStoreProductsSearch(
+    storeId || '',
+    debounceSearchValue,
+    {
+      limit: 10,
+    },
+    debounceSearchValue.length >= 2 && !!storeId
+  );
 
   useEffect(() => {
     try {
@@ -81,13 +84,13 @@ export const ProductSearchField = (): JSX.Element => {
 
   const saveToRecentSearches = (value: string): void => {
     if (!value.trim()) return;
-    
+
     try {
       const updatedRecent = [
-        value.trim(), 
+        value.trim(),
         ...recentSearches.filter(item => item !== value.trim())
       ].slice(0, 5);
-      
+
       setRecentSearches(updatedRecent);
       localStorage.setItem('recentSearches', JSON.stringify(updatedRecent));
     } catch (error) {
@@ -119,10 +122,11 @@ export const ProductSearchField = (): JSX.Element => {
   };
 
   const handleProductSelect = (product: VirtualProductTypes): void => {
-    saveToRecentSearches(product.title);
+    // Use product name instead of non-existent title field
+    saveToRecentSearches(product.name);
     setSearchValue('');
     setIsOpen(false);
-    router.push(`/products/${slugify(product.title)}/${product.$id}`);
+    router.push(`/products/${slugify(product.name)}/${product.$id}`);
   };
 
   const handleCategorySelect = (item: string): void => {
@@ -200,28 +204,28 @@ export const ProductSearchField = (): JSX.Element => {
                       >
                         <div className="flex justify-between items-center w-full">
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{result.title}</div>
-                            {result.categoryNames && result.categoryNames.length > 0 && (
+                            <div className="text-sm font-medium truncate">{result.name}</div>
+                            {result.tags && result.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
-                                {result.categoryNames.slice(0, 3).map((category: string, idx: number) => (
+                                {result.tags.slice(0, 3).map((tag: string, idx: number) => (
                                   <span
                                     key={idx}
                                     className="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full truncate max-w-32"
-                                    title={category}
+                                    title={tag}
                                   >
-                                    {category}
+                                    {tag}
                                   </span>
                                 ))}
-                                {result.categoryNames.length > 3 && (
+                                {result.tags.length > 3 && (
                                   <span className="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                                    +{result.categoryNames.length - 3}
+                                    +{result.tags.length - 3}
                                   </span>
                                 )}
                               </div>
                             )}
                           </div>
                           <span className="font-medium text-gray-700 ml-2 flex-shrink-0">
-                            ${result.sellingPrice.toFixed(2)}
+                            ${result.price.toFixed(2)}
                           </span>
                         </div>
                       </li>

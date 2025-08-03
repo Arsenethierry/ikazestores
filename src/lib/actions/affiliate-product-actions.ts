@@ -1,7 +1,9 @@
 "use server";
 
+import { PaginationResult, QueryOptions } from "../core/database";
 import { AffiliateProductModel } from "../models/AffliateProductModel";
 import { CreateAffiliateImportSchema, UpdateAffiliateImportSchema } from "../schemas/products-schems";
+import { VirtualProductTypes } from "../types";
 
 const affiliateProductModel = new AffiliateProductModel();
 
@@ -64,20 +66,23 @@ export async function removeProductFromVirtualStore(importId: string) {
     }
 }
 
-export async function checkProductSyncStatus(virtualStoreId: string) {
+export async function checkProductSyncStatus(productId: string, virtualStoreId: string) {
     try {
-        const outdatedImports = await affiliateProductModel.checkSyncStatus(virtualStoreId);
+        const existingImport = await affiliateProductModel.findOne([
+            { field: "virtualStoreId", operator: "equal", value: virtualStoreId },
+            { field: "productId", operator: "equal", value: productId }
+        ]);
 
         return {
-            data: outdatedImports,
-            needsSync: outdatedImports.length > 0
+            isCloned: !!existingImport,
+            importData: existingImport
         };
     } catch (error) {
         console.error("checkProductSyncStatus action error: ", error);
         return {
-            data: [],
-            needsSync: false,
-            error: "Failed to check sync status"
+            isCloned: false,
+            importData: null,
+            error: "Failed to check product sync status"
         };
     }
 }
@@ -149,6 +154,48 @@ export async function getVirtualStoreProductsByPriceRange(
 
 export async function getVirtualStoreProducts(
     virtualStoreId: string,
+    options: QueryOptions = {}
+): Promise<PaginationResult<VirtualProductTypes>> {
+    try {
+        
+        if (!virtualStoreId || virtualStoreId.trim() === '') {
+            throw new Error("Virtual store ID is required");
+        }
+
+        const affiliateProductModel = new AffiliateProductModel();
+        
+        const queryOptions: QueryOptions = {
+            limit: 25,
+            offset: 0,
+            orderBy: "$createdAt",
+            orderType: "desc",
+            ...options
+        };
+
+        // Get virtual store products
+        const result = await affiliateProductModel.getVirtualStoreProducts(
+            virtualStoreId,
+            queryOptions
+        );
+
+        return result;
+
+    } catch (error) {
+        console.error("getVirtualStoreProducts action error:", error);
+        
+        // Return empty result with error handling
+        return {
+            documents: [],
+            total: 0,
+            limit: options.limit || 25,
+            offset: options.offset || 0,
+            hasMore: false
+        };
+    }
+}
+
+export async function searchVirtualStoreProducts(
+    virtualStoreId: string,
     options: {
         limit?: number;
         page?: number;
@@ -183,7 +230,7 @@ export async function getVirtualStoreProducts(
                 offset,
                 filters: queryFilters,
                 orderBy: "$createdAt",
-                orderType: "desc"
+                orderType: "desc",
             });
         } else {
             result = await affiliateProductModel.getVirtualStoreProducts(virtualStoreId, {
@@ -191,7 +238,7 @@ export async function getVirtualStoreProducts(
                 offset,
                 filters: queryFilters,
                 orderBy: "$createdAt",
-                orderType: "desc"
+                orderType: "desc",
             });
         }
 
@@ -200,7 +247,8 @@ export async function getVirtualStoreProducts(
             total: result.total,
             totalPages: Math.ceil(result.total / limit),
             currentPage: page,
-            hasMore: result.hasMore
+            hasMore: result.hasMore,
+            success: true
         };
     } catch (error) {
         console.error("getVirtualStoreProducts action error: ", error);
@@ -209,7 +257,8 @@ export async function getVirtualStoreProducts(
             total: 0,
             totalPages: 0,
             currentPage: 1,
-            hasMore: false
+            hasMore: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch products'
         };
     }
 }
@@ -333,6 +382,15 @@ export async function bulkUpdateCommission(
 
         return { success: result.success }
     } catch (error) {
-        return { error: `bulkUpdateCommission failed`}
+        return { error: `bulkUpdateCommission failed` }
+    }
+}
+
+export async function getVirtualProductById(productId: string) {
+    try {
+        const result = await affiliateProductModel.findVirtualProductById(productId);
+        return result
+    } catch (error) {
+        return null;
     }
 }

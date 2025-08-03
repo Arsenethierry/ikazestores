@@ -10,7 +10,7 @@ import { PhysicalProductCard } from "../product-cards/physical-product-card";
 import SpinningLoader from "@/components/spinning-loader";
 import { useInfiniteOriginalProducts, useNearbyProducts } from "@/hooks/queries-and-mutations/use-original-products-queries";
 
-const CloneProductsPage: React.FC<{ storeId: string, user: CurrentUserType }> = ({ storeId, user }) => {
+const CloneProductsPage: React.FC<{ virtualStoreId: string, user: CurrentUserType }> = ({ virtualStoreId, user }) => {
     const [filters, setFilters] = useState<ProductFilters>({
         status: 'active',
         sortBy: 'name',
@@ -99,7 +99,7 @@ const CloneProductsPage: React.FC<{ storeId: string, user: CurrentUserType }> = 
                                     <PhysicalProductCard
                                         key={product.$id}
                                         product={product}
-                                        storeId={storeId}
+                                        virtualStoreId={virtualStoreId}
                                         user={user}
                                         isSystemAdmin={false}
                                         isPhysicalStoreOwner={false}
@@ -155,7 +155,7 @@ const CloneProductsPage: React.FC<{ storeId: string, user: CurrentUserType }> = 
                                         <PhysicalProductCard
                                             key={product.$id}
                                             product={product}
-                                            storeId={storeId}
+                                            virtualStoreId={virtualStoreId}
                                             user={user}
                                             isSystemAdmin={false}
                                             isPhysicalStoreOwner={false}

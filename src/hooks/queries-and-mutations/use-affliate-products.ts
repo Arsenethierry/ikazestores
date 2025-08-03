@@ -10,6 +10,7 @@ import {
     getVirtualStoreProductsByCategory,
     importProductToVirtualStore,
     removeProductFromVirtualStore,
+    searchVirtualStoreProducts,
     updateAffiliateImport
 } from "@/lib/actions/affiliate-product-actions";
 import { CreateAffiliateImportSchema, UpdateAffiliateImportSchema, VirtualStoreProductFilters } from "@/lib/schemas/products-schems";
@@ -78,11 +79,11 @@ export const useGetProductCombinationsWithPricing = (
     });
 }
 
-export const useCheckProductSyncStatus = (virtualStoreId: string) => {
+export const useCheckProductSyncStatus = (productId: string, virtualStoreId: string) => {
     return useQuery({
-        queryKey: ['product-sync-status', virtualStoreId],
-        queryFn: () => checkProductSyncStatus(virtualStoreId),
-        enabled: !!virtualStoreId,
+        queryKey: ['product-sync-status', productId, virtualStoreId],
+        queryFn: () => checkProductSyncStatus(productId, virtualStoreId),
+        enabled: !!productId && !!virtualStoreId,
         staleTime: 10 * 60 * 1000,
         refetchInterval: 10 * 60 * 1000,
     });
@@ -266,7 +267,7 @@ export const useVirtualStoreProductsSearch = (
     enabled: boolean = true
 ) => {
     return useQuery({
-        queryFn: () => getVirtualStoreProducts(virtualStoreId, {
+        queryFn: () => searchVirtualStoreProducts(virtualStoreId, {
             ...options,
             search: searchTerm
         }),
@@ -275,7 +276,6 @@ export const useVirtualStoreProductsSearch = (
         staleTime: 30 * 1000,
     });
 }
-
 export const useVirtualStoreProductPricing = (
     virtualStoreId: string,
     productId: string

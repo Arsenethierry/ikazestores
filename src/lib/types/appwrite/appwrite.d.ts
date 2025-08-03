@@ -268,6 +268,8 @@ export type AffiliateProductImports = Models.Document & {
     importedAt: string;
     lastSyncedAt: string | null;
     commission: number;
+    featured: boolean;
+    virtualStoreName: string;
 }
 
 export type AffiliateCombinationPricing = Models.Document & {
