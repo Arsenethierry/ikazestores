@@ -9,6 +9,7 @@ import { EasyZoomOnHover, EasyZoomOnMove } from "easy-magnify";
 import { useMedia } from 'react-use';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductTypes } from '@/lib/types';
+
 interface ProductImagesZoomComponentProps {
     productImages: string[];
     productTitle: string;
@@ -229,50 +230,20 @@ export const ProductImagesZoomComponent = ({
                 <div className="flex-1 min-h-[400px] md:min-h-[500px]">
                     <MainImageDisplay />
                 </div>
-                {isDesktop ? (
-                    <EasyZoomOnHover
-                        mainImage={{
-                            src: productImages[selectedImage],
-                            alt: "My Product",
-                            width: 500,
-                            height: 500
-                        }}
-                        zoomImage={{
-                            src: productImages[selectedImage],
-                            alt: "My Product Zoom",
-                        }}
-                        zoomContainerHeight={500}
-                        zoomContainerWidth={500}
-                    />
-                ) : (
-                    <EasyZoomOnMove
-                        mainImage={{
-                            src: productImages[selectedImage],
-                            alt: "My Product",
-                            width: 500,
-                            height: 500
-                        }}
-                        zoomImage={{
-                            src: productImages[selectedImage],
-                            alt: "My Product Zoom",
-                        }}
-                    />
-                )}
-
             </Card>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row sm:gap-2 gap-4">
                 <AddToCartButton
                     item={product}
                     variant="primary"
                     size="lg"
-                    className="flex-1"
+                    className="flex-1 min-h-7"
                     showText={true}
                     text="Add To Cart"
                     iconSize="h-5 w-5"
                     showTooltip={false}
                 />
-                <Button className="flex-1" variant={'teritary'} size="lg">
+                <Button className="flex-1 min-h-7" variant={'teritary'} size="lg">
                     <BoltIcon className="mr-2 h-5 w-5" /> BUY NOW
                 </Button>
             </div>
@@ -292,4 +263,4 @@ export const ProductImagesZoomComponent = ({
             </div>
         </div>
     );
-}
+};
