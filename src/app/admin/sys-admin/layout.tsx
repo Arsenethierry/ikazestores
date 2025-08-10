@@ -16,6 +16,7 @@ export default async function AdminLayout({
 
     const {
         isSystemAdmin,
+        user
     } = await getAuthState();
 
     await queryClient.prefetchQuery({
@@ -41,6 +42,7 @@ export default async function AdminLayout({
                         isSystemAdmin ? 'systemAdmin'
                             : undefined
                     }
+                    initialUser={user}
                 />
                 <SidebarInset>
                     <header className='sticky top-0 bg-muted z-20 flex h-16 shrink-0 items-center gap-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b'>

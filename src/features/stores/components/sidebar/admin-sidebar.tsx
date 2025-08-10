@@ -4,25 +4,27 @@ import * as React from "react"
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { NavMain } from "./nav-main-sidebar";
-import SpinningLoader from "@/components/spinning-loader";
 import { useCurrentUser } from "../../../auth/queries/use-get-current-user";
 import { LayoutDashboard } from "lucide-react";
 import { NavUser } from "./sidebar-userbutton";
 import { SidebarSkeleton } from "./sidebar-skeleton";
-import { AdminDashboardType } from "@/lib/types";
+import { AdminDashboardType, CurrentUserType } from "@/lib/types";
 import { getSidebarLinks } from "./sidebar-links";
 import { StoreSwitcher } from "./store-switcher";
 
 interface AdminSidebarProps extends React.ComponentProps<typeof Sidebar> {
     adminType: AdminDashboardType;
     storeId?: string;
+    initialUser?: CurrentUserType;
 }
 
-export function AdminSidebar({ adminType, storeId, ...props }: AdminSidebarProps) {
-    const { data: user, isPending, refetch: refetchUser, isRefetching } = useCurrentUser();
+export function AdminSidebar({ adminType, storeId, initialUser, ...props }: AdminSidebarProps) {
+    const { data: user, isPending } = useCurrentUser(initialUser);
 
     const sidebarLinks = React.useMemo(() => {
-        if (!user) return [];
+        // Use initialUser as fallback if query data isn't available yet
+        const currentUser = user || initialUser;
+        if (!currentUser) return [];
 
         const links = getSidebarLinks(storeId || null);
 
@@ -36,18 +38,16 @@ export function AdminSidebar({ adminType, storeId, ...props }: AdminSidebarProps
             default:
                 return [];
         }
-    }, [user, adminType, storeId]);
+    }, [user, initialUser, adminType, storeId]);
 
-    React.useEffect(() => {
-        if (!user) refetchUser()
-    }, [user, refetchUser]);
-
-    if (isPending || isRefetching) {
+    if (isPending && !initialUser) {
         return <SidebarSkeleton />;
     }
 
-    if (!user || !adminType) {
-        return null;
+    const currentUser = user || initialUser;
+
+    if (!currentUser || !adminType) {
+        return <SidebarSkeleton />;
     }
 
     const isStoreAdmin = adminType === 'physicalStoreAdmin' || adminType === 'virtualStoreAdmin';
@@ -61,7 +61,7 @@ export function AdminSidebar({ adminType, storeId, ...props }: AdminSidebarProps
                             <div className="p-2">
                                 <StoreSwitcher
                                     adminType={adminType}
-                                    adminUserId={user.$id}
+                                    adminUserId={currentUser.$id}
                                 />
                             </div>
                         ) : (
@@ -82,11 +82,7 @@ export function AdminSidebar({ adminType, storeId, ...props }: AdminSidebarProps
                 />
             </SidebarContent>
             <SidebarFooter>
-                {!user ? (
-                    <SpinningLoader />
-                ) : (
-                    <NavUser currentUser={user} />
-                )}
+                <NavUser currentUser={currentUser} />
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

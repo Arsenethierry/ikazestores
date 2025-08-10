@@ -8,10 +8,10 @@ export const SidebarSkeleton = () => {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg">
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/50">
-                                <Skeleton className="size-4" />
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                                <div className="animate-pulse rounded-md bg-primary/10 size-4" />
                             </div>
-                            <Skeleton className="h-4 w-20" />
+                            <div className="animate-pulse h-4 w-24 bg-primary/10 rounded" />
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

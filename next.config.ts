@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
       },
       {
+        hostname: "localhost",
+        protocol: "http",
+      },
+      {
         hostname: "images.unsplash.com",
         protocol: "https"
       }

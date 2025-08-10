@@ -6,6 +6,7 @@ import {
   ChevronsUpDown,
   CreditCard,
   Sparkles,
+  User,
 } from "lucide-react"
 
 import {
@@ -30,13 +31,14 @@ import {
 } from "@/components/ui/sidebar"
 import { CurrentUserType } from "@/lib/types"
 import LogoutButton from "@/features/auth/components/logout-button"
+import Link from "next/link"
 
 export function NavUser({
   currentUser: user,
-}: {currentUser: CurrentUserType}) {
+}: { currentUser: CurrentUserType }) {
   const { isMobile } = useSidebar();
 
-  if(!user) return;
+  if (!user) return;
 
   return (
     <SidebarMenu>
@@ -78,10 +80,12 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
+              <Link href={'/profile'} target="_blank">
+                <DropdownMenuItem>
+                  <User />
+                  Profile
+                </DropdownMenuItem>
+              </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

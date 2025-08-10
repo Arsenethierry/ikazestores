@@ -12,7 +12,7 @@ export const CreateStoresTabs = ({
 }) => {
     return (
         <div className='max-w-5xl w-full mx-auto'>
-            <Tabs defaultValue='virtualStore'>
+            <Tabs defaultValue={`${isPhysicalStoreOwner ? 'physicalStore' : 'virtualStore'}`}>
                 <TabsList className="relative h-auto w-full gap-0.5 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
                     <TabsTrigger
                         value="virtualStore"

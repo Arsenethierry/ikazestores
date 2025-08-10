@@ -8,16 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { applyPhysicalSeller } from '@/features/users/users-actions';
+import { usePhysicalStoresByOwner } from '@/hooks/queries-and-mutations/use-physical-store';
+import { useGetVirtualStoresByOwnerId } from '@/hooks/queries-and-mutations/use-virtual-store';
 import { useConfirm } from '@/hooks/use-confirm';
 import { deleteUserAccount, updateUserAccountType } from '@/lib/actions/auth.action';
 import { UserRole } from '@/lib/constants';
 import { physicalSellerApplicationData, profileSchema } from '@/lib/schemas/user-schema';
 import { UserDataTypes } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, Clock, Crown, Edit, Facebook, Instagram, Linkedin, Loader2, Save, ShieldCheck, Store, Twitter, User, ArrowUp, FileText } from 'lucide-react';
+import { Camera, Clock, Crown, Edit, Facebook, Instagram, Linkedin, Loader2, Save, ShieldCheck, Store, Twitter, User, ArrowUp, FileText, Globe, Eye, BarChart3, MapPin, ExternalLink, Package, LayoutDashboard } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -66,6 +70,131 @@ interface ProfilePageProps {
     hasPhysicalSellerPending: boolean;
 }
 
+const VirtualStoreCard = ({ store }: { store: any }) => (
+    <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                        <Globe className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm">{store.name}</h4>
+                        <p className="text-xs text-muted-foreground">Virtual Store</p>
+                    </div>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                    {store.status || 'Active'}
+                </Badge>
+            </div>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Products</span>
+                    <span className="font-medium">{store.productCount || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Orders</span>
+                    <span className="font-medium">{store.orderCount || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Revenue</span>
+                    <span className="font-medium">${store.revenue || 0}</span>
+                </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+                <Button asChild size="sm" variant="outline" className="flex-1 h-8">
+                    <Link href={`/admin/stores/${store.$id}`}>
+                        <LayoutDashboard className="h-3 w-3 mr-1" />
+                        Dashboard
+                    </Link>
+                </Button>
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const PhysicalStoreCard = ({ store }: { store: any }) => (
+    <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                        <MapPin className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm">{store.name}</h4>
+                        <p className="text-xs text-muted-foreground">Physical Store</p>
+                    </div>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                    {store.status || 'Active'}
+                </Badge>
+            </div>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="font-medium truncate ml-2">{store.address || 'Not set'}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Products</span>
+                    <span className="font-medium">{store.productCount || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Rating</span>
+                    <span className="font-medium">{store.rating || 'N/A'}</span>
+                </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+                <Button asChild size="sm" variant="outline" className="flex-1 h-8">
+                    <Link href={`/admin/stores/${store.$id}`}>
+                        <LayoutDashboard className="h-3 w-3 mr-1" />
+                        Dashboard
+                    </Link>
+                </Button>
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const StoresSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+            <Card key={i}>
+                <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <Skeleton className="h-8 w-8 rounded-lg" />
+                            <div>
+                                <Skeleton className="h-4 w-24 mb-1" />
+                                <Skeleton className="h-3 w-16" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-5 w-12 rounded-full" />
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between">
+                            <Skeleton className="h-3 w-16" />
+                            <Skeleton className="h-3 w-8" />
+                        </div>
+                        <div className="flex justify-between">
+                            <Skeleton className="h-3 w-16" />
+                            <Skeleton className="h-3 w-8" />
+                        </div>
+                        <div className="flex justify-between">
+                            <Skeleton className="h-3 w-16" />
+                            <Skeleton className="h-3 w-12" />
+                        </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                        <Skeleton className="h-8 flex-1" />
+                        <Skeleton className="h-8 flex-1" />
+                    </div>
+                </CardContent>
+            </Card>
+        ))}
+    </div>
+);
+
 export const ProfilePage = ({
     userData,
     isPhysicalStoreOwner,
@@ -77,6 +206,20 @@ export const ProfilePage = ({
     const [isUpdating, setIsUpdating] = useState(false)
     const [isEditing, setIsEditing] = useState(false);
     const router = useRouter();
+
+    const {
+        data: virtualStoresData,
+        isLoading: virtualStoresLoading
+    } = useGetVirtualStoresByOwnerId(userData.$id, {
+        enabled: isVirtualStoreOwner
+    });
+
+    const {
+        data: physicalStoresData,
+        isLoading: physicalStoresLoading
+    } = usePhysicalStoresByOwner(userData.$id, {
+        enabled: isPhysicalStoreOwner
+    });
 
     const [ChangeAccountTypeDialog, confirmChangeAccountType] = useConfirm(
         "Confirm to make this account a seller account.",
@@ -270,6 +413,80 @@ export const ProfilePage = ({
                         </Button>
                     </div>
                 </div>
+
+                {(isVirtualStoreOwner || isPhysicalStoreOwner) && (
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-purple-100 rounded-lg">
+                                            <Globe className="h-5 w-5 text-purple-600" />
+                                        </div>
+                                        <div>
+                                            {isVirtualStoreOwner && (
+                                                <>
+                                                    <CardTitle className="text-lg">Virtual Stores</CardTitle>
+                                                    <CardDescription>
+                                                        Your online dropshipping stores
+                                                    </CardDescription>
+                                                </>
+                                            )}
+
+                                            {isPhysicalStoreOwner && (
+                                                <>
+                                                    <CardTitle className="text-lg">Your Stores</CardTitle>
+                                                    <CardDescription>
+                                                        Your online physical stores
+                                                    </CardDescription>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline">
+                                            {virtualStoresData?.documents?.length || 0} stores
+                                        </Badge>
+                                        <Button asChild size="sm" variant="outline">
+                                            <Link href="/admin/stores">
+                                                <ExternalLink className="h-4 w-4 mr-2" />
+                                                Manage All
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {virtualStoresLoading || physicalStoresLoading ? (
+                                    <StoresSkeleton />
+                                ) : virtualStoresData?.documents?.length ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {virtualStoresData.documents.slice(0, 3).map((store: any) => (
+                                            <VirtualStoreCard key={store.$id} store={store} />
+                                        ))}
+                                    </div>
+                                ) : physicalStoresData?.documents?.length ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {physicalStoresData.documents.slice(0, 3).map((store: any) => (
+                                            <PhysicalStoreCard key={store.$id} store={store} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                        <p className="text-muted-foreground mb-4">No stores yet</p>
+                                        <Button asChild>
+                                            <Link href="/sell/new-store">
+                                                <Package className="h-4 w-4 mr-2" />
+                                                Create Your First Store
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 {isNormalUser && (
                     <div className='space-y-4'>

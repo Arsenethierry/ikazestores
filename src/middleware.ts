@@ -10,9 +10,11 @@ const PROTECTED_SUBDOMAINS = ["www", "admin", "api", "dashboard"];
 const PROTECTED_ROUTES = {
     '/admin': {
         roles: [UserRole.SYS_ADMIN, UserRole.PHYSICAL_STORE_OWNER, UserRole.VIRTUAL_STORE_OWNER],
+        requiresSystemAdmin: false,
     },
-    '/dashboard': {
-        roles: [UserRole.VIRTUAL_STORE_OWNER],
+    '/admin/stores': {
+        roles: [UserRole.SYS_ADMIN, UserRole.PHYSICAL_STORE_OWNER, UserRole.VIRTUAL_STORE_OWNER],
+        requiresSystemAdmin: false,
     },
     // '/my-orders': {
     //     roles: [UserRole.BUYER, UserRole.PHYSICAL_STORE_OWNER, UserRole.SYS_ADMIN, UserRole.VIRTUAL_STORE_OWNER]
@@ -25,12 +27,43 @@ const isProtectedRoute = (path: string) => {
     );
 }
 
+const requiresSystemAdminOnly = (path: string): boolean => {
+    if (path.startsWith("/admin/")) {
+        if (path.startsWith('/admin/stores')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 const getRouteAuthConfig = (path: string) => {
+    const exactMatch = PROTECTED_ROUTES[path];
+    if (exactMatch) {
+        return exactMatch;
+    }
+
     const route = Object.entries(PROTECTED_ROUTES).find(([route]) =>
-        path === route || path.startsWith(`${route}`)
+        path.startsWith(`${route}/`)
     );
 
-    return route ? PROTECTED_ROUTES[route[0]] : null;
+    if (route) {
+        const config = PROTECTED_ROUTES[route[0]];
+
+        if (requiresSystemAdminOnly(path)) {
+            return {
+                ...config,
+                roles: [UserRole.SYS_ADMIN],
+                requiresSystemAdmin: true
+            };
+        }
+
+        return config;
+    }
+
+    return null;
 }
 
 export async function middleware(request: NextRequest) {
@@ -47,29 +80,31 @@ export async function middleware(request: NextRequest) {
         const isProtected = isProtectedRoute(path);
         const authConfig = isProtected ? getRouteAuthConfig(path) : null;
 
-        // Check authentication for protected routes
         if (isProtected && authConfig) {
             const auth = await getAuthState();
 
-            // Redirect to login if not authenticated
             if (!auth.isAuthenticated) {
                 const signInUrl = new URL(`/sign-in?redirectUrl=${path}${searchParams.toString() ? '&' + searchParams.toString() : ''}`, request.url);
                 return NextResponse.redirect(signInUrl);
             }
 
-            // Check role authorization
-            const hasRequiredRole = authConfig.roles.some((role: any) => {
-                switch (role) {
-                    case UserRole.SYS_ADMIN: return auth.isSystemAdmin;
-                    case UserRole.VIRTUAL_STORE_OWNER: return auth.isVirtualStoreOwner;
-                    case UserRole.PHYSICAL_STORE_OWNER: return auth.isPhysicalStoreOwner;
-                    default: return false;
+            if (authConfig.requiresSystemAdmin || requiresSystemAdminOnly(path)) {
+                if (!auth.isSystemAdmin) {
+                    return NextResponse.redirect(new URL('/admin', request.url));
                 }
-            });
+            } else {
+                const hasRequiredRole = authConfig.roles.some((role: any) => {
+                    switch (role) {
+                        case UserRole.SYS_ADMIN: return auth.isSystemAdmin;
+                        case UserRole.VIRTUAL_STORE_OWNER: return auth.isVirtualStoreOwner;
+                        case UserRole.PHYSICAL_STORE_OWNER: return auth.isPhysicalStoreOwner;
+                        default: return false;
+                    }
+                });
 
-            if (!hasRequiredRole) {
-                // Redirect to home page or unauthorized page
-                return NextResponse.redirect(new URL('/', request.url));
+                if (!hasRequiredRole) {
+                    return NextResponse.redirect(new URL('/', request.url));
+                }
             }
         }
 

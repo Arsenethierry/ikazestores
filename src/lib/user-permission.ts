@@ -37,7 +37,23 @@ const extractStoreRole = (teamName: string, membershipRole: string, userLabels: 
 
 const checkAuth = async (): Promise<AuthResult> => {
     try {
-        const user = await getLoggedInUser();
+        let user = null;
+        let teams: any[] = [];
+        let memberships: any[] = [];
+
+        try {
+            user = await getLoggedInUser();
+        } catch (error) {
+            console.error('Failed to get logged in user:', error);
+
+            return {
+                isAuthenticated: false,
+                user: null,
+                roles: [],
+                teams: [],
+                memberships: []
+            };
+        }
 
         if (!user) {
             return {
@@ -49,10 +65,19 @@ const checkAuth = async (): Promise<AuthResult> => {
             };
         }
 
-        const userRoles = (user.labels || []).filter(isValidUserRole) as UserRoleType[];
+        try {
+            [teams, memberships] = await Promise.allSettled([
+                getUserTeams(),
+                getUserMemberships()
+            ]).then(results => [
+                results[0].status === 'fulfilled' ? results[0].value : [],
+                results[1].status === 'fulfilled' ? results[1].value : []
+            ]);
+        } catch (error) {
+            console.error('Failed to get user teams/memberships:', error);
+        }
 
-        const teams = await getUserTeams();
-        const memberships = await getUserMemberships();
+        const userRoles = (user.labels || []).filter(isValidUserRole) as UserRoleType[];
 
         return {
             isAuthenticated: true,
