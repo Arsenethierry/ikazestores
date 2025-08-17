@@ -189,7 +189,7 @@ export const loginWithGoogle = async () => {
         return { url: authorizationUrl };
     } catch (error) {
         console.error("Google OAuth initiation failed:", error);
-        redirect(`${MAIN_DOMAIN}/sign-in?google-auth-error=true`);
+        throw error;
     }
 };
 

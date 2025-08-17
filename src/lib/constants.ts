@@ -46,6 +46,14 @@ export enum CardProvider {
     MASTERCARD = "MASTERCARD"
 }
 
+export enum PhysicalStoreFulfillmentOrderStatus {
+    PENDING = "pending_fulfillment",
+    PROCESSING = "processing",
+    SHIPPED = "shipped",
+    COMPLETED = "completed",
+    CANCELLED = "cancelled"
+}
+
 export enum OrderStatus {
     PENDING = "pending",
     PROCESSING = "processing",

@@ -57,6 +57,7 @@ export type CartItem = {
     price: number;
     quantity: number;
     image: string;
+    productCurrency: string;
 };
 
 export interface Cart {

@@ -66,16 +66,22 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
     const handleLoginWithGoogle = async () => {
         try {
             setGoogleLoginPending(true);
-            const { url } = await loginWithGoogle();
+            const result = await loginWithGoogle();
 
-            if (typeof window !== "undefined" && url) {
-                // Perform client-side redirect to Google auth page
-                window.location.href = url;
+            if (result?.url && typeof window !== "undefined") {
+                if (redirectUrl) {
+                    sessionStorage.setItem('oauth_redirect', redirectUrl);
+                }
+
+                window.location.href = result.url;
+            } else {
+                throw new Error("Failed to get authorization URL");
             }
+
         } catch (error) {
             console.error("Google login failed:", error);
+            toast.error("Failed to initiate Google login. Please try again.");
             setGoogleLoginPending(false);
-            window.location.href = `/sign-in?google-auth-error=true`;
         } finally {
             setGoogleLoginPending(false);
         }

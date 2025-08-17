@@ -1,18 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware'
-import { CartItem } from "@/lib/types";
+import { CartItem, VirtualProductTypes } from "@/lib/types";
 
 interface CartState {
     items: CartItem[];
     totalItems: number;
     totalPrice: number;
-    addToCart: (item: {
-        $id: string
-        imageUrl: string
-        quantity: number
-        sellingPrice: number
-        title: string
-    }) => void
+    addToCart: (item: VirtualProductTypes) => void
     removeFromCart: (item: string) => void
     updateItemQuantity: (item: string, quantity: number) => void
     clearCart: () => void
@@ -42,16 +36,18 @@ export const useCartStore = create(
                     if (existingItemIndex > -1) {
                         updatedItems[existingItemIndex] = {
                             ...updatedItems[existingItemIndex],
-                            quantity: updatedItems[existingItemIndex].quantity + newItem.quantity,
+                            quantity: updatedItems[existingItemIndex].quantity + 1,
+                            productCurrency: newItem.currency
                         }
                     } else {
                         updatedItems.push({
                             id: Math.random().toString(36).substring(2, 15),
                             productId: newItem.$id,
-                            name: newItem.title,
-                            price: newItem.sellingPrice,
-                            quantity: newItem.quantity,
-                            image: newItem.imageUrl
+                            name: newItem.name,
+                            price: newItem.price,
+                            quantity: 1,
+                            image: newItem.images ?  newItem.images[0] : '',
+                            productCurrency: newItem.currency
                         })
                     }
 

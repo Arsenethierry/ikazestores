@@ -7,6 +7,7 @@ import { CreateAffiliateImportSchema, UpdateAffiliateImportSchema } from "../sch
 import { getAuthState } from "../user-permission";
 import { ProductModel } from "./ProductModel";
 import { VirtualProductTypes } from "../types";
+import { VirtualStore } from "./virtual-store";
 
 export interface VirtualStoreCombination extends ProductCombinations {
     finalPrice: number;
@@ -14,10 +15,12 @@ export interface VirtualStoreCombination extends ProductCombinations {
 }
 export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
     private originalProduct: ProductModel;
+    private virtualStore: VirtualStore;
 
     constructor() {
         super(AFFILIATE_PRODUCT_IMPORTS_COLLECTION_ID);
         this.originalProduct = new ProductModel();
+        this.virtualStore = new VirtualStore()
     }
 
     async findByVirtualStore(
@@ -228,7 +231,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
 
             const { databases } = await createAdminClient();
 
-            const product = await this.originalProduct.findById(data.productId, {})
+            const product = await this.originalProduct.findById(data.productId, {});
 
             if (!product || !product.isDropshippingEnabled) {
                 return { error: "This product is not available for dropshipping" };
@@ -246,11 +249,18 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
             const documentPermissions = createDocumentPermissions({ userId: user.$id });
             const importId = ID.unique();
 
+            const storeData = await this.virtualStore.findById(data.virtualStoreId, {});
+
+            if(!storeData) {
+                return { error: "Invalid store, please contact support" };
+            }
+
             const importData = {
                 virtualStoreId: data.virtualStoreId,
                 productId: data.productId,
                 commission: data.commission,
                 isActive: true,
+                virtualStoreName: storeData.storeName,
                 importedAt: new Date().toISOString(),
                 lastSyncedAt: new Date().toISOString()
             };

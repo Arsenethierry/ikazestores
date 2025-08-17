@@ -16,7 +16,22 @@ type CurrencyContextType = {
     exchangeRatesLoading: boolean;
 };
 
-const supportedCurrencies: Currency[] = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CNY', 'INR'];
+const supportedCurrencies: Currency[] = [
+    'RWF', // Rwanda Franc
+    'KES', // Kenya Shilling
+    'UGX', // Uganda Shilling  
+    'TZS', // Tanzania Shilling
+    'BIF', // Burundi Franc
+    'ETB', // Ethiopia Birr
+    'SOS', // Somalia Shilling
+    'DJF', // Djibouti Franc
+    'ERN', // Eritrea Nakfa
+    'SSP', // South Sudan Pound
+    'SDG', // Sudan Pound
+    'ZMW', // Zambia Kwacha
+    'MWK', // Malawi Kwacha
+    'CDF', // Congo Franc (DRC)
+];
 
 const CurrencyContext = createContext<CurrencyContextType>({
     currentCurrency: 'USD',
@@ -42,16 +57,18 @@ export const CurrencyProvider = ({ children }: { children: React.ReactNode }) =>
             setIsLoading(true);
             try {
                 const storedPreference = localStorage.getItem('preferredCurrency');
-                if (user?.prefs?.currency) {
+                if (user?.prefs?.currency && supportedCurrencies.includes(user.prefs.currency)) {
                     setCurrentCurrency(user.prefs.currency)
-                } else if (storedPreference) {
+                } else if (storedPreference && supportedCurrencies.includes(storedPreference)) {
                     setCurrentCurrency(storedPreference);
                 } else {
                     const info = await getUserLocale();
                     setLocaleInfo(info);
 
                     const currency = getUserCurrencyPreference(undefined, info);
-                    setCurrentCurrency(currency);
+                    // Ensure the currency is supported, fallback to USD if not
+                    const finalCurrency = supportedCurrencies.includes(currency) ? currency : 'USD';
+                    setCurrentCurrency(finalCurrency);
                 }
             } catch (error) {
                 console.error('Failed to initialize currency:', error);
@@ -65,11 +82,13 @@ export const CurrencyProvider = ({ children }: { children: React.ReactNode }) =>
     }, [user]);
 
     const setCurrency = (currency: Currency) => {
-        if (currency === currentCurrency) return;
+        if (currency === currentCurrency || !supportedCurrencies.includes(currency)) return;
 
         setCurrentCurrency(currency);
         if (user) {
             console.log("updateUserPreferences({ currency })")
+
+            localStorage.setItem('preferredCurrency', currency);
         } else {
             localStorage.setItem('preferredCurrency', currency);
         }

@@ -8,7 +8,6 @@ import { SelectItem } from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { Control, UseFormSetValue } from "react-hook-form";
 import { z } from "zod";
-import { useGetDeliverAddress } from "../../order-queries";
 import { OrderFormSchema } from "@/lib/schemas/products-schems";
 
 type Props = {
@@ -32,8 +31,13 @@ const countries = [
 ];
 
 export const DeliveryAddress = ({ control, disabled = false, setValue, currentUserId }: Props) => {
-    const { data: initialAddress, isLoading } = useGetDeliverAddress(currentUserId);
+    // const { data: initialAddress, isLoading } = useGetDeliverAddress(currentUserId);
 
+    const initialAddress = {
+        total: 0,
+        documents: []
+    }
+    const isLoading = false
     const [isNewAddress, setIsNewAddress] = useState(true);
     const [selectedAddress, setSelectedAddress] = useState("");
 

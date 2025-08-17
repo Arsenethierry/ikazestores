@@ -5,10 +5,12 @@ import { createSessionClient } from "../appwrite";
 import { DATABASE_ID, VIRTUAL_PRODUCT_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { createVirtualStoreFormSchema } from "../schemas/stores-schema";
 import { VirtualStore } from "../models/virtual-store";
-import { CreateVirtualStoreTypes, UpdateVirtualStoreTypes, VirtualStoreTypes } from "../types";
+import { CreateVirtualStoreTypes, UpdateVirtualStoreTypes, VirtualProductTypes, VirtualStoreTypes } from "../types";
 import { getAuthState } from "../user-permission";
 import { revalidatePath } from "next/cache";
 import { PaginationResult } from "../core/database";
+import { getVirtualStoreProducts } from "./affiliate-product-actions";
+import { getUserLocale } from "./auth.action";
 
 const virtualStore = new VirtualStore();
 
@@ -58,7 +60,7 @@ export async function updateVirtualStore(
             formData,
         );
         revalidatePath(`/dashboard/stores/${storeId}`);
-        
+
         return {
             success: "Store updated successfully",
             data: updatedStore
@@ -142,37 +144,43 @@ export const getAllVirtualStoresByOwnerId = async (ownerId: string,): Promise<Pa
 
 export const getAllVirtualStores = async ({ withProducts }: { withProducts: boolean }) => {
     try {
-        const { databases } = await createSessionClient();
-        const allVirtualStores = await databases.listDocuments<VirtualStoreTypes>(
-            DATABASE_ID,
-            VIRTUAL_STORE_ID,
-            [
-                Query.limit(5)
-            ]
-        );
+        let storesResult: PaginationResult<VirtualStoreTypes>;
+        const currentUserCountry = await await getUserLocale();
+
+        if (currentUserCountry?.country) {
+            storesResult = await virtualStore.findByOperatingCountries([currentUserCountry.country], {
+                limit: 5,
+                orderBy: "$createdAt",
+                orderType: "desc"
+            });
+            if (storesResult.documents.length === 0) {
+                storesResult = await virtualStore.findMany({
+                    limit: 25,
+                    orderBy: "$createdAt",
+                    orderType: "desc"
+                });
+            }
+        } else {
+            storesResult = await virtualStore.findMany({
+                limit: 25,
+                orderBy: "$createdAt",
+                orderType: "desc"
+            });
+        }
 
         if (!withProducts) {
-            return allVirtualStores;
+            return storesResult;
         }
 
         const storesWithProducts = await Promise.all(
-            allVirtualStores.documents.map(async (store) => {
-                let vitualProducts: VirtualStoreTypes[] = [];
+            storesResult.documents.map(async (store) => {
+                let vitualProducts: VirtualProductTypes[] = [];
 
-                if (store.virtualProductsIds && store.virtualProductsIds.length > 0) {
-                    try {
-                        const products = await databases.listDocuments<VirtualStoreTypes>(
-                            DATABASE_ID,
-                            VIRTUAL_PRODUCT_ID,
-                            [
-                                Query.equal('$id', store.virtualProductsIds),
-                                Query.equal('virtualStoreId', store.$id)
-                            ]
-                        );
-                        vitualProducts = products.documents;
-                    } catch (productError) {
-                        console.error(`Error fetching products for store ${store.$id}:`, productError);
-                    }
+                try {
+                    const products = await getVirtualStoreProducts(store.$id, { limit: 5 })
+                    vitualProducts = products.documents;
+                } catch (productError) {
+                    console.error(`Error fetching products for store ${store.$id}:`, productError);
                 }
 
                 return {
@@ -183,7 +191,7 @@ export const getAllVirtualStores = async ({ withProducts }: { withProducts: bool
         );
 
         return {
-            ...allVirtualStores,
+            ...storesResult,
             documents: storesWithProducts
         };
     } catch (error) {

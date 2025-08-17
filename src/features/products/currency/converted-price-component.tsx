@@ -8,13 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductPriceDisplayProps {
     productPrice: number;
-    productCurrency?: string;
+    productCurrency: string;
     showOriginalPrice?: boolean;
 }
 
 export const ProductPriceDisplay = ({
     productPrice,
-    productCurrency = 'USD',
+    productCurrency,
     showOriginalPrice = true
 }: ProductPriceDisplayProps) => {
     const {

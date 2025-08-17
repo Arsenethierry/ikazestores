@@ -9,11 +9,18 @@ import { DecreaseCartItemQuantity, IncreaseCartItemQuantity, RemoveCartItem } fr
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '../use-cart-store';
 import { NoItemsCard } from '@/components/no-items-card';
+import { useCurrency } from '@/features/products/currency/currency-context';
+import { ProductPriceDisplay } from '@/features/products/currency/converted-price-component';
+import { convertCurrency } from '@/hooks/use-currency';
+import { Separator } from '@/components/ui/separator';
 
 export const CartPage = () => {
     const { items, totalItems } = useCartStore();
+
+
     const router = useRouter();
     const [selectedItems, setSelectedItems] = useState<string[]>(items.map(item => item.id));
+    const { exchangeRates, exchangeRatesLoading, currentCurrency } = useCurrency();
 
     if (totalItems === 0) {
         return (
@@ -26,7 +33,26 @@ export const CartPage = () => {
 
     const selectedItemsData = items.filter(item => selectedItems.includes(item.id));
     const selectedTotalItems = selectedItemsData.reduce((acc, item) => acc + item.quantity, 0);
-    const subtotal = selectedItemsData.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+    const calculateConvertedSubtotal = () => {
+        if (exchangeRatesLoading || !exchangeRates) {
+            return 0;
+        }
+
+        return selectedItemsData.reduce((acc, item) => {
+            const itemCurrency = item.productCurrency || 'USD';
+            const itemSubtotal = item.price * item.quantity;
+            const convertedAmount = convertCurrency(
+                itemSubtotal,
+                itemCurrency,
+                currentCurrency,
+                exchangeRates
+            );
+            return acc + convertedAmount;
+        }, 0);
+    };
+
+    const subtotal = calculateConvertedSubtotal();
     const total = subtotal;
 
     const handleCheckedChange = (itemId: string) => (checked: boolean) => {
@@ -64,7 +90,13 @@ export const CartPage = () => {
                                 <h3 className='font-medium text-base truncate max-w-[250px] w-full' title={item.name}>
                                     {item.name}
                                 </h3>
-                                <p className='text-sm text-gray-500'>${item.price.toFixed(2)} each</p>
+                                <div className='text-sm text-gray-500'>
+                                    <ProductPriceDisplay
+                                        productPrice={item.price}
+                                        productCurrency={item.productCurrency || 'USD'}
+                                    /> {' '}
+                                    each
+                                </div>
 
                                 <div className='flex items-center gap-3 mt-2'>
                                     <DecreaseCartItemQuantity item={item} />
@@ -74,7 +106,12 @@ export const CartPage = () => {
                             </div>
 
                             <div className='flex flex-col items-end gap-2'>
-                                <p className='font-semibold text-lg'>${(item.price * item.quantity).toFixed(2)}</p>
+                                <div className='font-semibold text-lg'>
+                                    <ProductPriceDisplay
+                                        productPrice={(item.price * item.quantity)}
+                                        productCurrency={item.productCurrency || 'USD'}
+                                    />
+                                </div>
                                 <RemoveCartItem item={item} />
                             </div>
                         </CardContent>
@@ -83,27 +120,86 @@ export const CartPage = () => {
             </div>
 
             <div className='md:sticky md:top-20 h-fit'>
-                <Card className='shadow-lg'>
-                    <CardContent className='p-6'>
-                        <h2 className='text-xl font-bold mb-4'>Order Summary</h2>
-                        <div className='space-y-3'>
-                            <div className='flex justify-between'>
-                                <span>Subtotal ({selectedTotalItems} items)</span>
-                                <span>${subtotal.toFixed(2)}</span>
-                            </div>
-                            <div className='flex justify-between'>
-                                <span>Shipping</span>
-                                <span>FREE</span>
+                <Card className='shadow-sm hover:shadow-md transition-shadow'>
+                    <CardContent className='p-4 gap-4'>
+                        {(() => {
+                            const currencies = [...new Set(selectedItemsData.map(item => item.productCurrency || 'USD'))];
+
+                            return currencies.length > 1 ? (
+                                <div className='space-y-2 mb-3 p-3 bg-gray-50 rounded-lg'>
+                                    <span className='text-sm font-medium text-gray-600'>Items by currency:</span>
+                                    {currencies.map(currency => {
+                                        const currencyItems = selectedItemsData.filter(item => (item.productCurrency || 'USD') === currency);
+                                        const currencySubtotal = currencyItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                                        const itemCount = currencyItems.reduce((sum, item) => sum + item.quantity, 0);
+
+                                        return (
+                                            <div key={currency} className='flex justify-between text-sm'>
+                                                <span>{itemCount} items ({currency})</span>
+                                                <ProductPriceDisplay
+                                                    productPrice={currencySubtotal}
+                                                    productCurrency={currency}
+                                                    showOriginalPrice={false}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                    <Separator className='border-gray-200' />
+                                </div>
+                            ) : null;
+                        })()}
+
+                        <div className='flex justify-between'>
+                            <span>Subtotal ({selectedTotalItems} items)</span>
+                            <div className='text-right'>
+                                {exchangeRatesLoading ? (
+                                    <span className='text-sm text-gray-500'>Calculating...</span>
+                                ) : (
+                                    <>
+                                        <ProductPriceDisplay
+                                            productPrice={subtotal}
+                                            productCurrency={currentCurrency}
+                                            showOriginalPrice={false}
+                                        />
+                                        {[...new Set(selectedItemsData.map(item => item.productCurrency || 'USD'))].length > 1 && (
+                                            <div className='text-xs text-gray-500'>
+                                                Total in {currentCurrency}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
+                        <div className='flex justify-between'>
+                            <span>Shipping</span>
+                            <span>FREE</span>
+                        </div>
 
-                        <hr className='my-4' />
+                        <Separator className='my-4' />
 
                         <div className='flex justify-between font-bold text-lg'>
                             <span>Total</span>
-                            <span>${total.toFixed(2)}</span>
+                            <div className='text-right'>
+                                {exchangeRatesLoading ? (
+                                    <span className='text-sm text-gray-500'>Calculating...</span>
+                                ) : (
+                                    <ProductPriceDisplay
+                                        productPrice={total}
+                                        productCurrency={currentCurrency}
+                                        showOriginalPrice={false}
+                                    />
+                                )}
+                            </div>
                         </div>
+
+                        {!exchangeRatesLoading && [...new Set(selectedItemsData.map(item => item.productCurrency || 'USD'))].length > 1 && (
+                            <div className='mt-3 p-2 bg-blue-50 rounded-md text-xs text-blue-700'>
+                                <span className='font-medium'>Note:</span> Prices converted to {currentCurrency} using current exchange rates
+                            </div>
+                        )}
                     </CardContent>
+
+                    <Separator className='my-4' />
 
                     <CardFooter className='p-6 pt-0'>
                         <Button

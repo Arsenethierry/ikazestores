@@ -17,6 +17,8 @@ interface AddToCartButtonProps {
     showTooltip?: boolean;
     tooltipText?: string;
     iconSize?: string;
+    disabled?: boolean;
+    children?: React.ReactNode;
 }
 
 export const AddToCartButton = ({ 
@@ -28,20 +30,18 @@ export const AddToCartButton = ({
     text = "BUY NOW",
     showTooltip = true,
     tooltipText = "Add to cart",
-    iconSize = "h-4 w-4"
+    iconSize = "h-4 w-4",
+    disabled = false,
+    children
 }: AddToCartButtonProps) => {
-    const { addToCart } = useCartStore.getState()
+    const addToCart = useCartStore((state) => state.addToCart);
 
-    const handleAddToCart = async () => {
-        const cartData = {
-            $id: item.$id,
-            title: item.title,
-            sellingPrice: item.sellingPrice,
-            imageUrl: item.generalImageUrls ? item.generalImageUrls[0] : '',
-            quantity: 1,
-        };
-        await addToCart(cartData)
-        toast("Product added to cart successfully")
+    const handleAddToCart = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        addToCart(item);
+        toast.success("Product added to cart successfully");
     }
 
     const defaultIconClassName = size === "icon" && variant === "ghost" && !showText
@@ -57,14 +57,19 @@ export const AddToCartButton = ({
             variant={variant}
             size={size}
             onClick={handleAddToCart}
+            disabled={disabled}
             className={`${defaultIconClassName} ${className}`}
         >
-            <ShoppingCart className={`${iconSize} ${iconClassName} ${showText ? 'mr-2' : ''}`} />
-            {showText && text}
+            {children || (
+                <>
+                    <ShoppingCart className={`${iconSize} ${iconClassName} ${showText ? 'mr-2' : ''}`} />
+                    {showText && text}
+                </>
+            )}
         </Button>
     );
 
-    if (!showTooltip || showText) {
+    if (!showTooltip || showText || disabled) {
         return buttonContent;
     }
 

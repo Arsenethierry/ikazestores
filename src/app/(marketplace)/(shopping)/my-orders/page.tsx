@@ -2,7 +2,7 @@ import { NoItemsCard } from '@/components/no-items-card';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getAllCustomerOrders } from '@/features/order/actions/order-actions';
+import { getLogedInUserOrders } from '@/lib/actions/product-order-actions';
 // import { OrderItemRow } from '@/features/order/my-orders/order-item-row';
 // import { OrderTypes } from '@/lib/types';
 import { getAuthState } from '@/lib/user-permission';
@@ -16,9 +16,9 @@ async function page() {
     //     return <AccessDeniedCard />
     // }
     if (!user) redirect("/sign-in");
-    const myOrders = await getAllCustomerOrders(user.$id);
+    const myOrders = await getLogedInUserOrders()
 
-    if (myOrders.total === 0) {
+    if (myOrders.success && myOrders.data.total === 0 || !myOrders.data) {
         return <NoItemsCard />
     }
 
@@ -27,7 +27,7 @@ async function page() {
             <h1 className="text-2xl font-bold mb-8">Your Orders</h1>
 
             <div className="space-y-6">
-                {myOrders.documents.map(order => (
+                {myOrders.data.documents.map(order => (
                     <Card key={order.$id}>
                         <CardHeader className="border-b">
                             <CardTitle className="text-lg w-full flex justify-between">

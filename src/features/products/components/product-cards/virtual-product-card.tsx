@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { CurrentUserType, VirtualProductTypes } from '@/lib/types';
 import { cn, slugify } from '@/lib/utils';
-import { StarIcon, Eye, Truck } from 'lucide-react';
+import { StarIcon, Eye, Truck, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useCallback, memo } from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -48,7 +48,7 @@ const VirtualProductCard = memo(({
     });
 
     const originalPrice = product.price;
-    const sellingPrice = originalPrice - 5;
+    const sellingPrice = originalPrice - 0;
     const productCurrency = product?.currency || 'USD';
 
     const discountPercentage = originalPrice && sellingPrice ?
@@ -152,10 +152,10 @@ const VirtualProductCard = memo(({
                                     {product.categoryNames && product.categoryNames.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {/* {product.categoryId.slice(0, 2).map((category: string, index: number) => ( */}
-                                                <Badge variant="outline" className="text-xs">
-                                                    {/* {category} */}
-                                                    category
-                                                </Badge>
+                                            <Badge variant="outline" className="text-xs">
+                                                {/* {category} */}
+                                                category
+                                            </Badge>
                                             {/* ))} */}
                                         </div>
                                     )}
@@ -463,13 +463,14 @@ const VirtualProductCard = memo(({
                         )}
                     </div>
 
-                    {/* Action Button for Mobile/Touch Devices */}
                     <div className="md:hidden">
                         <AddToCartButton
                             item={product}
-                        // size="sm"
-                        // disabled={!isInStock}
-                        />
+                            size="sm"
+                            disabled={!isInStock}
+                        >
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                        </AddToCartButton>
                     </div>
                 </div>
 
@@ -487,17 +488,16 @@ const VirtualProductCard = memo(({
                     </div>
 
                     <div className={cn(
-                        "hidden md:block transition-opacity duration-300",
-                        isHovered ? "opacity-100" : "opacity-0"
+                        "hidden md:block",
+                        isHovered ? "opacity-80" : "opacity-100"
                     )}>
-                        {/* <AddToCartButton
+                        <AddToCartButton
                             item={product}
                             size="sm"
                             disabled={!isInStock}
                         >
                             <ShoppingCart className="h-4 w-4 mr-1" />
-                            Add
-                        </AddToCartButton> */}
+                        </AddToCartButton>
                     </div>
                 </div>
             </CardContent>

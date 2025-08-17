@@ -12,70 +12,58 @@ import { useState } from 'react';
 import { useCurrency } from './currency-context';
 
 const currencyFlags: Record<string, string> = {
-  USD: '🇺🇸',
-  EUR: '🇪🇺',
-  GBP: '🇬🇧',
-  JPY: '🇯🇵',
-  CAD: '🇨🇦',
-  AUD: '🇦🇺',
-  CNY: '🇨🇳',
-  INR: '🇮🇳',
-  RWF: '🇷🇼',
-  KES: '🇰🇪',
-  UGX: '🇺🇬',
-  TZS: '🇹🇿',
-  BIF: '🇧🇮',
-  CDF: '🇨🇩',
-  SSP: '🇸🇸',
-  ETB: '🇪🇹',
-  SOS: '🇸🇴',
-  SDG: '🇸🇩',
-  ZMW: '🇿🇲',
-  MWK: '🇲🇼',
+  RWF: '🇷🇼', // Rwanda Franc
+  KES: '🇰🇪', // Kenya Shilling
+  UGX: '🇺🇬', // Uganda Shilling
+  TZS: '🇹🇿', // Tanzania Shilling
+  BIF: '🇧🇮', // Burundi Franc
+  ETB: '🇪🇹', // Ethiopia Birr
+  SOS: '🇸🇴', // Somalia Shilling
+  DJF: '🇩🇯', // Djibouti Franc
+  ERN: '🇪🇷', // Eritrea Nakfa
+  SSP: '🇸🇸', // South Sudan Pound
+  SDG: '🇸🇩', // Sudan Pound
+  ZMW: '🇿🇲', // Zambia Kwacha
+  MWK: '🇲🇼', // Malawi Kwacha
+  CDF: '🇨🇩', // Congo Franc (DRC)
 };
 
 const currencyNames: Record<string, string> = {
-  USD: 'US Dollar',
-  EUR: 'Euro',
-  GBP: 'British Pound',
-  JPY: 'Japanese Yen',
-  CAD: 'Canadian Dollar',
-  AUD: 'Australian Dollar',
-  CNY: 'Chinese Yuan',
-  INR: 'Indian Rupee',
   RWF: 'Rwandan Franc',
   KES: 'Kenyan Shilling',
   UGX: 'Ugandan Shilling',
   TZS: 'Tanzanian Shilling',
   BIF: 'Burundian Franc',
-  CDF: 'Congolese Franc',
-  SSP: 'South Sudanese Pound',
   ETB: 'Ethiopian Birr',
   SOS: 'Somali Shilling',
+  DJF: 'Djiboutian Franc',
+  ERN: 'Eritrean Nakfa',
+  SSP: 'South Sudanese Pound',
   SDG: 'Sudanese Pound',
   ZMW: 'Zambian Kwacha',
   MWK: 'Malawian Kwacha',
+  CDF: 'Congolese Franc',
 };
 
 export const CurrencySelector = () => {
   const { currentCurrency, setCurrency, supportedCurrencies, isLoading } = useCurrency();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  
+
   if (isLoading) {
     return <span className="text-sm text-gray-500">Loading...</span>;
   }
-  
-  const filteredCurrencies = supportedCurrencies.filter(currency => 
-    currency.toLowerCase().includes(search.toLowerCase()) || 
+
+  const filteredCurrencies = supportedCurrencies.filter(currency =>
+    currency.toLowerCase().includes(search.toLowerCase()) ||
     (currencyNames[currency] && currencyNames[currency].toLowerCase().includes(search.toLowerCase()))
   );
-  
+
   const handleCurrencySelect = (currency: string) => {
     setCurrency(currency);
-    setOpen(false); // Close the popover after selection
+    setOpen(false);
   };
-  
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -93,7 +81,6 @@ export const CurrencySelector = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 border-none bg-transparent focus-visible:ring-0 p-0"
-              // Clear search when popover opens
               onFocus={() => setSearch('')}
             />
           </div>

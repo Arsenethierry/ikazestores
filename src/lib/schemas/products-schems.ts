@@ -259,6 +259,7 @@ export const OrderFormSchema = z.object({
         country: z.string().min(2).max(50).optional(),
     }),
     notes: z.string().max(255).optional(),
+    customerCurrency: z.string(),
     preferredPaymentMethod: z.object({
         type: z.nativeEnum(PaymentMethodType),
         onlineProvider: z.nativeEnum(OnlinePaymentProvider).optional(),
@@ -276,8 +277,12 @@ export const OrderSchema = OrderFormSchema.extend({
         name: z.string(),
         price: z.number(),
         quantity: z.number(),
-        image: z.string()
+        image: z.string(),
+        productCurrency: z.string().optional(),
     }).array(),
+    customerCurrency: z.string(),
+    exchangeRatesSnapshot: z.record(z.string(), z.number()),
+    exchangeRatesTimestamp: z.string(),
 });
 
 export const DeleteProductSchema = z.object({
