@@ -1,83 +1,117 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1, "Required"),
+  email: z.string().email(),
+  password: z.string().min(1, "Required"),
 });
 
-export const signupSchema = z.object({
+export const signupSchema = z
+  .object({
     email: z.string().email(),
-    password: z.string().min(1, { message: 'Password must be at least 8 characters' }).max(265, { message: "Password must be less than 265 characters" }),
+    password: z
+      .string()
+      .min(1, { message: "Password must be at least 8 characters" })
+      .max(265, { message: "Password must be less than 265 characters" }),
     confirmPassword: z
-        .string()
-        .min(1, { message: 'Please confirm your password' }),
+      .string()
+      .min(1, { message: "Please confirm your password" }),
     fullName: z.string().min(1, "Required"),
-    phoneNumber: z.string().min(10, { message: "Number must be at least 10 digits" }),
-}).superRefine((val, ctx) => {
+    phoneNumber: z
+      .string()
+      .min(10, { message: "Number must be at least 10 digits" }),
+  })
+  .superRefine((val, ctx) => {
     if (val.password !== val.confirmPassword) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Password does not match with confirmed password",
-            path: ['confirmPassword']
-        })
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Password does not match with confirmed password",
+        path: ["confirmPassword"],
+      });
     }
-})
+  });
 
 export const verifyEmilSchema = z.object({
-    secret: z.string().min(1, "Required"),
-    userId: z.string().min(1, "Required"),
+  secret: z.string().min(1, "Required"),
+  userId: z.string().min(1, "Required"),
 });
 
 export const InitiatePasswordRecoverySchema = z.object({
-    email: z.string().email(),
+  email: z.string().email(),
 });
 
 export const CompletePasswordRecoverySchema = z.object({
-    secret: z.string(),
-    userId: z.string(),
-    newPassword: z.string()
+  secret: z.string(),
+  userId: z.string(),
+  newPassword: z.string(),
 });
 
 export const profileSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Invalid email address'),
-    phone: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
-    bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
-    website: z.string().url('Invalid URL').optional().or(z.literal('')),
-    instagram: z.string().optional(),
-    twitter: z.string().optional(),
-    facebook: z.string().optional(),
-    linkedin: z.string().optional(),
-})
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits")
+    .optional(),
+  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  instagram: z.string().optional(),
+  twitter: z.string().optional(),
+  facebook: z.string().optional(),
+  linkedin: z.string().optional(),
+});
+
+export const completeGoogleUserSetupSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().optional(),
+  bio: z.string().optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+});
+
+export const createUserDataSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().optional(),
+  bio: z.string().optional(),
+  website: z.string().optional(),
+});
 
 export const AddNewUserLabels = z.object({
-    userId: z.string(),
-    labels: z.array(z.string())
+  userId: z.string(),
+  labels: z.array(z.string()),
 });
 
 export const DeleteUserAccount = z.object({
-    userId: z.string(),
+  userId: z.string(),
 });
 
 export const physicalSellerApplicationData = z.object({
-    businessName: z.string().min(2, "Business name must be at least 2 characters"),
-    businessAddress: z.string().min(10, "Please provide a complete business address"),
-    businessPhone: z.string().min(10, "Please provide a valid phone number"),
-    reason: z.string().min(30, "Please explain your motivation (minimum 30 characters)"),
+  businessName: z
+    .string()
+    .min(2, "Business name must be at least 2 characters"),
+  businessAddress: z
+    .string()
+    .min(10, "Please provide a complete business address"),
+  businessPhone: z.string().min(10, "Please provide a valid phone number"),
+  reason: z
+    .string()
+    .min(30, "Please explain your motivation (minimum 30 characters)"),
 });
 
-export const applyPhysicalSellerActionSchema = physicalSellerApplicationData.extend({
-    userId: z.string()
-});
+export const applyPhysicalSellerActionSchema =
+  physicalSellerApplicationData.extend({
+    userId: z.string(),
+  });
 
 export const reviewApplicationSchema = z.object({
-    userId: z.string(),
-    reviewNotes: z.string().optional(),
-    action: z.enum(['approve', 'reject'])
+  userId: z.string(),
+  reviewNotes: z.string().optional(),
+  action: z.enum(["approve", "reject"]),
 });
 
 export const changeUserRoleSchema = z.object({
-    userId: z.string(),
-    newRole: z.string(),
-    reason: z.string().optional()
+  userId: z.string(),
+  newRole: z.string(),
+  reason: z.string().optional(),
 });

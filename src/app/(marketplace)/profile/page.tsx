@@ -1,4 +1,4 @@
-import { AccessDeniedCard } from '@/components/access-denied-card';
+import { GoogleUserSetup } from '@/features/auth/components/google-user-setup';
 import { ProfilePage } from '@/features/auth/components/profile-page';
 import { getUserData } from '@/lib/actions/auth.action';
 import { UserRole } from '@/lib/constants';
@@ -14,12 +14,19 @@ async function page() {
         isSystemAdmin,
         isSystemAgent
     } = await getAuthState();
+
     if (!user) redirect('/sign-in');
 
     const hasPhysicalSellerPending = user?.labels?.includes(UserRole.PHYSICAL_SELLER_PENDING);
     const userData = await getUserData(user.$id);
 
-    if (!userData) return <AccessDeniedCard />
+    if (!userData) {
+        return (
+            <div>
+                <GoogleUserSetup user={user} />
+            </div>
+        );
+    }
 
     return (
         <div>
