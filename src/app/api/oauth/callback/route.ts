@@ -2,51 +2,53 @@ import { createAdminClient } from "@/lib/appwrite";
 import { AUTH_COOKIE } from "@/lib/constants";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const secret = searchParams.get("secret");
-    const error = searchParams.get("error");
-    const errorDescription = searchParams.get("error_description");
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get("userId");
+  const secret = searchParams.get("secret");
+  const error = searchParams.get("error");
+  const errorDescription = searchParams.get("error_description");
 
-    const redirectTo = (path: string) =>
-        NextResponse.redirect(`${request.nextUrl.origin}${path}`);
+  const redirectTo = (path: string) =>
+    NextResponse.redirect(`${request.nextUrl.origin}${path}`);
 
-    try {
-        if (error) {
-            console.error(`OAuth provider error: ${error}`);
-            if (error === "access_denied") {
-                return redirectTo("/sign-in?google-auth-error=cancelled");
-            }
+  try {
+    if (error) {
+      console.error(`OAuth provider error: ${error}`);
+      if (error === "access_denied") {
+        return redirectTo("/sign-in?google-auth-error=cancelled");
+      }
 
-            return redirectTo("/sign-in?google-auth-error=true");
-        }
+      return redirectTo("/sign-in?google-auth-error=true");
+    }
 
-        if (!userId || !secret) {
-            console.error("Missing OAuth parameters:", { userId: !!userId, secret: !!secret });
-            return redirectTo("/sign-in?google-auth-error=true");
-        }
+    if (!userId || !secret) {
+      console.error("Missing OAuth parameters:", {
+        userId: !!userId,
+        secret: !!secret,
+      });
+      return redirectTo("/sign-in?google-auth-error=true");
+    }
 
-        const { account } = await createAdminClient();
-        const session = await account.createSession(userId, secret);
+    const { account } = await createAdminClient();
+    const session = await account.createSession(userId, secret);
 
-        if (!session || !session.secret) {
-            throw new Error("Failed to create session");
-        }
+    if (!session || !session.secret) {
+      throw new Error("Failed to create session");
+    }
 
-        const cookieStore = await cookies();
+    const cookieStore = await cookies();
 
-        await cookieStore.set(AUTH_COOKIE, session.secret, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'strict',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 30 * 24 * 60 * 60,
-        });
+    await cookieStore.set(AUTH_COOKIE, session.secret, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60,
+    });
 
-        const html = `
+    const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -117,30 +119,30 @@ export async function GET(request: NextRequest) {
         </html>
         `;
 
-        return new Response(html, {
-            status: 200,
-            headers: {
-                'Content-Type': 'text/html',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        });
-    } catch (error) {
-        console.error("OAuth callback error:", error);
-        
-        // Determine error type for better user experience
-        let errorParam = "true";
-        if (error instanceof Error) {
-            if (error.message.includes("session")) {
-                errorParam = "session-error";
-            } else if (error.message.includes("user")) {
-                errorParam = "user-error";
-            } else if (error.message.includes("database")) {
-                errorParam = "database-error";
-            }
-        }
-        
-        return redirectTo("/sign-in?google-auth-error=true");
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+  } catch (error) {
+    console.error("OAuth callback error:", error);
+
+    // Determine error type for better user experience
+    let errorParam = "true";
+    if (error instanceof Error) {
+      if (error.message.includes("session")) {
+        errorParam = "session-error";
+      } else if (error.message.includes("user")) {
+        errorParam = "user-error";
+      } else if (error.message.includes("database")) {
+        errorParam = "database-error";
+      }
     }
+
+    return redirectTo("/sign-in?google-auth-error=true");
+  }
 }

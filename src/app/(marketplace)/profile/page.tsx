@@ -32,6 +32,7 @@ async function page() {
         <div>
             <ProfilePage
                 userData={userData}
+                user={user}
                 isVirtualStoreOwner={isVirtualStoreOwner}
                 isPhysicalStoreOwner={isPhysicalStoreOwner}
                 isSystemAdmin={isSystemAdmin}

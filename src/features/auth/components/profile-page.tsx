@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -14,12 +15,39 @@ import { applyPhysicalSeller } from '@/features/users/users-actions';
 import { usePhysicalStoresByOwner } from '@/hooks/queries-and-mutations/use-physical-store';
 import { useGetVirtualStoresByOwnerId } from '@/hooks/queries-and-mutations/use-virtual-store';
 import { useConfirm } from '@/hooks/use-confirm';
-import { deleteUserAccount, updateUserAccountType } from '@/lib/actions/auth.action';
+import {
+    deleteUserAccount,
+    updateUserAccountType,
+    updateProfileAction
+} from '@/lib/actions/auth.action';
 import { UserRole } from '@/lib/constants';
-import { physicalSellerApplicationData, profileSchema } from '@/lib/schemas/user-schema';
-import { UserDataTypes } from '@/lib/types';
+import { physicalSellerApplicationData, updateProfileSchema } from '@/lib/schemas/user-schema';
+import { CurrentUserType, PhysicalStoreTypes, UserDataTypes, VirtualStoreTypes } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, Clock, Crown, Edit, Facebook, Instagram, Linkedin, Loader2, Save, ShieldCheck, Store, Twitter, User, ArrowUp, FileText, Globe, Eye, BarChart3, MapPin, ExternalLink, Package, LayoutDashboard } from 'lucide-react';
+import {
+    Camera,
+    Clock,
+    Crown,
+    Edit,
+    Facebook,
+    Instagram,
+    Linkedin,
+    Loader2,
+    Save,
+    ShieldCheck,
+    Store,
+    Twitter,
+    User,
+    ArrowUp,
+    FileText,
+    Globe,
+    ExternalLink,
+    Package,
+    LayoutDashboard,
+    MapPin,
+    Settings,
+    Shield,
+} from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -27,21 +55,17 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { SecuritySettings } from './security-settings';
 
-type ProfileFormData = z.infer<typeof profileSchema>
+type UpdateProfileData = z.infer<typeof updateProfileSchema>
 type PhysicalSellerApplicationDataTypes = z.infer<typeof physicalSellerApplicationData>
 
 // Role helper functions
 const getRoleDisplayName = (labels: string, teams?: string[]) => {
-    // Check for system admin team membership
     if (teams?.includes(UserRole.SYS_ADMIN)) return 'System Admin'
-
-    // Check labels for roles
     if (labels?.includes(UserRole.VIRTUAL_STORE_OWNER)) return 'Virtual Seller'
     if (labels?.includes(UserRole.PHYSICAL_STORE_OWNER)) return 'Physical Seller'
     if (labels?.includes(UserRole.PHYSICAL_SELLER_PENDING)) return 'Physical Seller (Pending)'
-
-    // Default role
     return 'User'
 }
 
@@ -67,10 +91,11 @@ interface ProfilePageProps {
     isSystemAgent: boolean;
     isSystemAdmin: boolean;
     userData: UserDataTypes;
+    user: CurrentUserType;
     hasPhysicalSellerPending: boolean;
 }
 
-const VirtualStoreCard = ({ store }: { store: any }) => (
+const VirtualStoreCard = ({ store }: { store: VirtualStoreTypes | PhysicalStoreTypes }) => (
     <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
@@ -187,7 +212,6 @@ const StoresSkeleton = () => (
                     </div>
                     <div className="flex gap-2 mt-3">
                         <Skeleton className="h-8 flex-1" />
-                        <Skeleton className="h-8 flex-1" />
                     </div>
                 </CardContent>
             </Card>
@@ -197,13 +221,13 @@ const StoresSkeleton = () => (
 
 export const ProfilePage = ({
     userData,
+    user,
     isPhysicalStoreOwner,
     isSystemAdmin,
     isSystemAgent,
     isVirtualStoreOwner,
     hasPhysicalSellerPending
 }: ProfilePageProps) => {
-    const [isUpdating, setIsUpdating] = useState(false)
     const [isEditing, setIsEditing] = useState(false);
     const router = useRouter();
 
@@ -241,18 +265,17 @@ export const ProfilePage = ({
 
     const isNormalUser = !isVirtualStoreOwner && !isPhysicalStoreOwner && !isSystemAdmin && !isSystemAgent;
 
-    const profileForm = useForm<ProfileFormData>({
-        resolver: zodResolver(profileSchema),
+    const profileForm = useForm<UpdateProfileData>({
+        resolver: zodResolver(updateProfileSchema),
         defaultValues: {
-            name: userData?.fullName || '',
-            email: userData?.email || '',
-            phone: userData?.phoneNumber || '',
+            fullName: userData?.fullName || '',
             bio: userData?.bio || '',
             website: userData?.website || '',
-            instagram: '',
-            twitter: '',
-            facebook: '',
-            linkedin: '',
+            phoneNumber: userData?.phoneNumber || '',
+            instagram: userData?.instagram || '',
+            twitter: userData?.twitter || '',
+            facebook: userData?.facebook || '',
+            linkedin: userData?.linkedin || '',
         },
         mode: "onChange"
     });
@@ -268,10 +291,11 @@ export const ProfilePage = ({
         mode: "onChange"
     })
 
+    // Actions
     const { execute: upgradeAccount, isPending: isUpgrading } = useAction(updateUserAccountType, {
         onSuccess: async ({ data }) => {
             if (data?.success) {
-                toast.success("You account has been changed to seller account.");
+                toast.success("Your account has been changed to seller account.");
                 router.push("/sell/new-store")
             } else if (data?.error) {
                 toast.error(data?.error)
@@ -285,7 +309,7 @@ export const ProfilePage = ({
     const { execute: deleteAccount, isPending: isDeletingAccount } = useAction(deleteUserAccount, {
         onSuccess: async ({ data }) => {
             if (data?.success) {
-                toast.success("You account has been deleted");
+                toast.success("Your account has been deleted");
                 router.push("/sign-up")
             } else if (data?.error) {
                 toast.error(data?.error);
@@ -310,14 +334,24 @@ export const ProfilePage = ({
         }
     })
 
-    const onProfileSubmit = async (data: ProfileFormData) => {
-        try {
-            console.log(data)
-            console.log(setIsUpdating)
-        } catch (error) {
-            console.log(error)
+    const { execute: updateProfile, isPending: updatingProfile } = useAction(updateProfileAction, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data.success);
+                setIsEditing(false);
+                router.refresh();
+            } else if (data?.error) {
+                toast.error(data.error);
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError || "Failed to update profile");
         }
-    }
+    })
+
+    const onProfileSubmit = async (data: UpdateProfileData) => {
+        updateProfile(data);
+    };
 
     const handleUpgradeToVirtualSeller = async () => {
         const ok = await confirmChangeAccountType();
@@ -348,74 +382,81 @@ export const ProfilePage = ({
         });
     }
 
-    const isLoading = isDeletingAccount || isUpgrading || applyPhysicalSellerPending
+    const isLoading = isDeletingAccount || isUpgrading || applyPhysicalSellerPending || updatingProfile
 
     if (!userData) return <AccessDeniedCard />
 
     return (
-        <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="container mx-auto py-8 px-4 max-w-6xl">
             <ChangeAccountTypeDialog />
             <DeleteAccountDialog />
             <PhysicalSellerApplicationDialog />
-            <div className='space-y-8'>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="relative">
-                        <Avatar className="h-24 w-24">
-                            {/* {userData?.avatar && (
-                                <AvatarImage src={userData.avatar} alt={userData.name} />
-                            )} */}
-                            <AvatarFallback className="text-lg">
-                                {/* {userData.name.split(' ').map((n: string[]) => n[0]).join('').toUpperCase()} */}
-                            </AvatarFallback>
-                        </Avatar>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                            disabled={isUpdating}
-                        >
-                            <Camera className="h-4 w-4" />
-                        </Button>
-                    </div>
 
-                    <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                            <h1 className="text-3xl font-bold">{userData.name}</h1>
-                            <Badge variant={getRoleBadgeVariant(userData.labels, userData.teams)} className="w-fit">
-                                {getRoleIcon(userData.labels, userData.teams)}
-                                <span className="ml-1">{getRoleDisplayName(userData.accountType, userData.teams)}</span>
-                            </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-2">{userData.email}</p>
-                        {userData.bio && <p className="text-sm text-muted-foreground">{userData.bio}</p>}
-                    </div>
-
-                    <div className="flex gap-2">
-                        <Button
-                            onClick={() => setIsEditing(!isEditing)}
-                            variant={isEditing ? "outline" : "teritary"}
-                            disabled={isUpdating}
-                            size={'sm'}
-                        >
-                            <Edit className="h-4 w-4 mr-2" />
-                            {isEditing ? 'Cancel' : 'Edit Profile'}
-                        </Button>
-
-                        <Button
-                            variant="destructive"
-                            type='button'
-                            size="sm"
-                            onClick={handleDeleteAccount}
-                            disabled={isLoading}
-                        >
-                            <ArrowUp className="h-4 w-4 mr-2" />
-                            Delete Account
-                        </Button>
-                    </div>
+            {/* Profile Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+                <div className="relative">
+                    <Avatar className="h-24 w-24">
+                        <AvatarFallback className="text-lg">
+                            {userData.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
+                        disabled={isLoading}
+                    >
+                        <Camera className="h-4 w-4" />
+                    </Button>
                 </div>
 
-                {(isVirtualStoreOwner || isPhysicalStoreOwner) && (
-                    <div className="space-y-6">
+                <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                        <h1 className="text-3xl font-bold">{userData.fullName}</h1>
+                        <Badge variant={getRoleBadgeVariant(userData.labels || [], user?.labels)} className="w-fit">
+                            {getRoleIcon(userData.labels || [], user?.labels)}
+                            <span className="ml-1">{getRoleDisplayName(userData.accountType, user?.labels)}</span>
+                        </Badge>
+                    </div>
+                    <p className="text-muted-foreground mb-2">{userData.email}</p>
+                    {userData.bio && <p className="text-sm text-muted-foreground">{userData.bio}</p>}
+                </div>
+
+                <div className="flex gap-2">
+                    <Button
+                        variant="destructive"
+                        type='button'
+                        size="sm"
+                        onClick={handleDeleteAccount}
+                        disabled={isLoading}
+                    >
+                        <ArrowUp className="h-4 w-4 mr-2" />
+                        Delete Account
+                    </Button>
+                </div>
+            </div>
+
+            {/* Tabs for different sections */}
+            <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="overview" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="profile" className="flex items-center gap-2">
+                        <Edit className="h-4 w-4" />
+                        Edit Profile
+                    </TabsTrigger>
+                    <TabsTrigger value="security" className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Security
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Overview Tab */}
+                <TabsContent value="overview" className="space-y-6">
+                    {/* Stores Section */}
+                    {(isVirtualStoreOwner || isPhysicalStoreOwner) && (
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center justify-between">
@@ -424,28 +465,15 @@ export const ProfilePage = ({
                                             <Globe className="h-5 w-5 text-purple-600" />
                                         </div>
                                         <div>
-                                            {isVirtualStoreOwner && (
-                                                <>
-                                                    <CardTitle className="text-lg">Virtual Stores</CardTitle>
-                                                    <CardDescription>
-                                                        Your online dropshipping stores
-                                                    </CardDescription>
-                                                </>
-                                            )}
-
-                                            {isPhysicalStoreOwner && (
-                                                <>
-                                                    <CardTitle className="text-lg">Your Stores</CardTitle>
-                                                    <CardDescription>
-                                                        Your online physical stores
-                                                    </CardDescription>
-                                                </>
-                                            )}
+                                            <CardTitle className="text-lg">Your Stores</CardTitle>
+                                            <CardDescription>
+                                                {isVirtualStoreOwner ? "Your online dropshipping stores" : "Your physical stores"}
+                                            </CardDescription>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline">
-                                            {virtualStoresData?.documents?.length || 0} stores
+                                            {(virtualStoresData?.documents?.length || physicalStoresData?.documents?.length) || 0} stores
                                         </Badge>
                                         <Button asChild size="sm" variant="outline">
                                             <Link href="/admin/stores">
@@ -485,92 +513,119 @@ export const ProfilePage = ({
                                 )}
                             </CardContent>
                         </Card>
-                    </div>
-                )}
+                    )}
 
-                {isNormalUser && (
-                    <div className='space-y-4'>
-                        <Card className="border-blue-200 bg-blue-50">
-                            <CardContent className="pt-6 flex justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 rounded-full">
-                                        <Crown className="h-5 w-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-blue-900">Upgrade Your Account</h3>
-                                        <p className="text-sm text-blue-700">
-                                            Become a Virtual Seller to start selling products and managing your online store.
-                                        </p>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="secondary"
-                                    type='button'
-                                    size="sm"
-                                    disabled={isLoading}
-                                    onClick={handleUpgradeToVirtualSeller}
-                                >
-                                    <ArrowUp className="h-4 w-4 mr-2" />
-                                    Upgrade to Virtual Seller
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-green-200 bg-green-50">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
+                    {/* Account Upgrade Options */}
+                    {isNormalUser && (
+                        <div className='space-y-4'>
+                            <Card className="border-blue-200 bg-blue-50">
+                                <CardContent className="pt-6 flex justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-green-100 rounded-full">
-                                            <Store className="h-5 w-5 text-green-600" />
+                                        <div className="p-2 bg-blue-100 rounded-full">
+                                            <Crown className="h-5 w-5 text-blue-600" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-green-900">Apply for Physical Store</h3>
-                                            <p className="text-sm text-green-700">
-                                                {hasPhysicalSellerPending
-                                                    ? "Your physical seller application is under review."
-                                                    : "Apply to become a Physical Seller and manage physical store locations."
-                                                }
+                                            <h3 className="font-semibold text-blue-900">Upgrade Your Account</h3>
+                                            <p className="text-sm text-blue-700">
+                                                Become a Virtual Seller to start selling products and managing your online store.
                                             </p>
                                         </div>
                                     </div>
+                                    <Button
+                                        variant="secondary"
+                                        type='button'
+                                        size="sm"
+                                        disabled={isLoading}
+                                        onClick={handleUpgradeToVirtualSeller}
+                                    >
+                                        <ArrowUp className="h-4 w-4 mr-2" />
+                                        Upgrade to Virtual Seller
+                                    </Button>
+                                </CardContent>
+                            </Card>
 
-                                    {!hasPhysicalSellerPending && (
-                                        <Drawer>
-                                            <DrawerTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={isLoading}
-                                                    className="bg-white hover:bg-green-50 border-green-300"
-                                                >
-                                                    <FileText className="h-4 w-4 mr-2" />
-                                                    Apply Now
-                                                </Button>
-                                            </DrawerTrigger>
-                                            <DrawerContent className='py-5'>
-                                                <Card className="border-2 border-green-200 mx-auto">
-                                                    <DrawerHeader>
-                                                        <DrawerTitle className="flex items-center gap-2">
-                                                            <Store className="h-5 w-5" />
-                                                            Physical Seller Application
-                                                        </DrawerTitle>
-                                                        <DrawerDescription className="flex items-center gap-2">
-                                                            Complete this form to apply for physical seller status. All information will be reviewed by our team.
-                                                        </DrawerDescription>
-                                                    </DrawerHeader>
-                                                    <CardContent>
-                                                        <Form {...physicalSellerForm}>
-                                                            <form onSubmit={physicalSellerForm.handleSubmit(onPhysicalSellerApplicationSubmit)} className="space-y-6">
-                                                                <div className="space-y-4">
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Card className="border-green-200 bg-green-50">
+                                <CardContent className="pt-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-green-100 rounded-full">
+                                                <Store className="h-5 w-5 text-green-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-green-900">Apply for Physical Store</h3>
+                                                <p className="text-sm text-green-700">
+                                                    {hasPhysicalSellerPending
+                                                        ? "Your physical seller application is under review."
+                                                        : "Apply to become a Physical Seller and manage physical store locations."
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {!hasPhysicalSellerPending && (
+                                            <Drawer>
+                                                <DrawerTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={isLoading}
+                                                        className="bg-white hover:bg-green-50 border-green-300"
+                                                    >
+                                                        <FileText className="h-4 w-4 mr-2" />
+                                                        Apply Now
+                                                    </Button>
+                                                </DrawerTrigger>
+                                                <DrawerContent className='py-5'>
+                                                    <Card className="border-2 border-green-200 mx-auto">
+                                                        <DrawerHeader>
+                                                            <DrawerTitle className="flex items-center gap-2">
+                                                                <Store className="h-5 w-5" />
+                                                                Physical Seller Application
+                                                            </DrawerTitle>
+                                                            <DrawerDescription className="flex items-center gap-2">
+                                                                Complete this form to apply for physical seller status. All information will be reviewed by our team.
+                                                            </DrawerDescription>
+                                                        </DrawerHeader>
+                                                        <CardContent>
+                                                            <Form {...physicalSellerForm}>
+                                                                <form onSubmit={physicalSellerForm.handleSubmit(onPhysicalSellerApplicationSubmit)} className="space-y-6">
+                                                                    <div className="space-y-4">
+                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                            <FormField
+                                                                                control={physicalSellerForm.control}
+                                                                                name="businessName"
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Business Name *</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input {...field} placeholder="Enter your business name" />
+                                                                                        </FormControl>
+                                                                                        <FormMessage />
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={physicalSellerForm.control}
+                                                                                name="businessPhone"
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Business Phone *</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input {...field} placeholder="+250 xxx xxx xxx" />
+                                                                                        </FormControl>
+                                                                                        <FormMessage />
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
                                                                         <FormField
                                                                             control={physicalSellerForm.control}
-                                                                            name="businessName"
+                                                                            name="businessAddress"
                                                                             render={({ field }) => (
                                                                                 <FormItem>
-                                                                                    <FormLabel>Business Name *</FormLabel>
+                                                                                    <FormLabel>Business Address *</FormLabel>
                                                                                     <FormControl>
-                                                                                        <Input {...field} placeholder="Enter your business name" />
+                                                                                        <Textarea {...field} placeholder="Enter your complete business address" rows={2} />
                                                                                     </FormControl>
                                                                                     <FormMessage />
                                                                                 </FormItem>
@@ -578,138 +633,155 @@ export const ProfilePage = ({
                                                                         />
                                                                         <FormField
                                                                             control={physicalSellerForm.control}
-                                                                            name="businessPhone"
+                                                                            name="reason"
                                                                             render={({ field }) => (
                                                                                 <FormItem>
-                                                                                    <FormLabel>Business Phone *</FormLabel>
+                                                                                    <FormLabel>Why do you want to become a Physical Seller? *</FormLabel>
                                                                                     <FormControl>
-                                                                                        <Input {...field} placeholder="+250 xxx xxx xxx" />
+                                                                                        <Textarea {...field} placeholder="Explain your motivation and plans for physical selling" rows={3} />
                                                                                     </FormControl>
                                                                                     <FormMessage />
                                                                                 </FormItem>
                                                                             )}
                                                                         />
+                                                                        <div className="flex gap-3 pt-4">
+                                                                            <Button
+                                                                                type="submit"
+                                                                                disabled={isLoading}
+                                                                                className="flex-1 max-w-xs mx-auto"
+                                                                            >
+                                                                                {isLoading ? (
+                                                                                    <>
+                                                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                                        Submitting Application...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <FileText className="h-4 w-4 mr-2" />
+                                                                                        Submit Application
+                                                                                    </>
+                                                                                )}
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
-                                                                    <FormField
-                                                                        control={physicalSellerForm.control}
-                                                                        name="businessAddress"
-                                                                        render={({ field }) => (
-                                                                            <FormItem>
-                                                                                <FormLabel>Business Address *</FormLabel>
-                                                                                <FormControl>
-                                                                                    <Textarea {...field} placeholder="Enter your complete business address" rows={2} />
-                                                                                </FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )}
-                                                                    />
-                                                                    <FormField
-                                                                        control={physicalSellerForm.control}
-                                                                        name="reason"
-                                                                        render={({ field }) => (
-                                                                            <FormItem>
-                                                                                <FormLabel>Why do you want to become a Physical Seller? *</FormLabel>
-                                                                                <FormControl>
-                                                                                    <Textarea {...field} placeholder="Explain your motivation and plans for physical selling" rows={3} />
-                                                                                </FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )}
-                                                                    />
-                                                                    <div className="flex gap-3 pt-4">
-                                                                        <Button
-                                                                            type="submit"
-                                                                            disabled={isLoading}
-                                                                            className="flex-1 max-w-xs mx-auto"
-                                                                        >
-                                                                            {isLoading ? (
-                                                                                <>
-                                                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                                    Submitting Application...
-                                                                                </>
-                                                                            ) : (
-                                                                                <>
-                                                                                    <FileText className="h-4 w-4 mr-2" />
-                                                                                    Submit Application
-                                                                                </>
-                                                                            )}
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            </form>
-                                                        </Form>
-                                                    </CardContent>
-                                                </Card>
-                                            </DrawerContent>
-                                        </Drawer>
-                                    )}
+                                                                </form>
+                                                            </Form>
+                                                        </CardContent>
+                                                    </Card>
+                                                </DrawerContent>
+                                            </Drawer>
+                                        )}
 
-                                    {hasPhysicalSellerPending && (
-                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                                            <Clock className="h-3 w-3 mr-1" />
-                                            Pending Review
-                                        </Badge>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className='space-y-4'>
-                    <Form {...profileForm}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Personal Information</CardTitle>
-                                <CardDescription>
-                                    Update your personal details and contact information
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={profileForm.control}
-                                            name="name"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Full Name</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} disabled={!isEditing || isUpdating} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={profileForm.control}
-                                            name="email"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Email</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} type="email" disabled />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                        {hasPhysicalSellerPending && (
+                                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                                                <Clock className="h-3 w-3 mr-1" />
+                                                Pending Review
+                                            </Badge>
+                                        )}
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={profileForm.control}
-                                            name="phone"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Phone Number</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} disabled={!isEditing || isUpdating} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
 
+                    {/* Account Statistics */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Settings className="h-5 w-5" />
+                                Account Statistics
+                            </CardTitle>
+                            <CardDescription>
+                                Overview of your account activity and data
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center p-4 border rounded-lg">
+                                    <div className="text-2xl font-bold text-blue-600">
+                                        {user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString() : 'N/A'}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">Member Since</div>
+                                </div>
+                                <div className="text-center p-4 border rounded-lg">
+                                    <div className="text-2xl font-bold text-green-600">
+                                        {user?.emailVerification ? 'Yes' : 'No'}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">Email Verified</div>
+                                </div>
+                                <div className="text-center p-4 border rounded-lg">
+                                    <div className="text-2xl font-bold text-purple-600">
+                                        {user?.phoneVerification ? 'Yes' : 'No'}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">Phone Verified</div>
+                                </div>
+                                <div className="text-center p-4 border rounded-lg">
+                                    <div className="text-2xl font-bold text-orange-600">
+                                        {user?.labels?.length || 0}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">Account Roles</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Profile Edit Tab */}
+                <TabsContent value="profile" className="space-y-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-2xl font-bold">Edit Profile</h2>
+                            <p className="text-muted-foreground">Update your personal information and social links</p>
+                        </div>
+                        <Button
+                            onClick={() => setIsEditing(!isEditing)}
+                            variant={isEditing ? "outline" : "teritary"}
+                            disabled={updatingProfile}
+                        >
+                            <Edit className="h-4 w-4 mr-2" />
+                            {isEditing ? 'Cancel Editing' : 'Start Editing'}
+                        </Button>
+                    </div>
+
+                    <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className='space-y-6'>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Personal Information</CardTitle>
+                                    <CardDescription>
+                                        Update your personal details and contact information
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="fullName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Full Name</FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} disabled={!isEditing || updatingProfile} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="phoneNumber"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Phone Number</FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} disabled={!isEditing || updatingProfile} placeholder="+250 xxx xxx xxx" />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                         <FormField
                                             control={profileForm.control}
                                             name="website"
@@ -717,129 +789,134 @@ export const ProfilePage = ({
                                                 <FormItem>
                                                     <FormLabel>Website</FormLabel>
                                                     <FormControl>
-                                                        <Input {...field} placeholder="https://example.com" disabled={!isEditing || isUpdating} />
+                                                        <Input {...field} placeholder="https://example.com" disabled={!isEditing || updatingProfile} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="bio"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Bio</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            {...field}
+                                                            placeholder="Tell us about yourself..."
+                                                            disabled={!isEditing || updatingProfile}
+                                                            rows={3}
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                     </div>
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="bio"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Bio</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        {...field}
-                                                        placeholder="Tell us about yourself..."
-                                                        disabled={!isEditing || isUpdating}
-                                                        rows={3}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Social Links</CardTitle>
-                                <CardDescription>
-                                    Connect your social media accounts
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="instagram"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="flex items-center gap-2">
-                                                    <Instagram className="h-4 w-4" />
-                                                    Instagram
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} placeholder="username" disabled={!isEditing} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Social Links</CardTitle>
+                                    <CardDescription>
+                                        Connect your social media accounts
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="instagram"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="flex items-center gap-2">
+                                                        <Instagram className="h-4 w-4" />
+                                                        Instagram
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="username" disabled={!isEditing || updatingProfile} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="twitter"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="flex items-center gap-2">
-                                                    <Twitter className="h-4 w-4" />
-                                                    Twitter
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} placeholder="@username" disabled={!isEditing} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="twitter"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="flex items-center gap-2">
+                                                        <Twitter className="h-4 w-4" />
+                                                        Twitter
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="@username" disabled={!isEditing || updatingProfile} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="facebook"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="flex items-center gap-2">
-                                                    <Facebook className="h-4 w-4" />
-                                                    Facebook
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} placeholder="username" disabled={!isEditing} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="facebook"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="flex items-center gap-2">
+                                                        <Facebook className="h-4 w-4" />
+                                                        Facebook
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="username" disabled={!isEditing || updatingProfile} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="linkedin"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="flex items-center gap-2">
-                                                    <Linkedin className="h-4 w-4" />
-                                                    LinkedIn
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} placeholder="username" disabled={!isEditing} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="linkedin"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="flex items-center gap-2">
+                                                        <Linkedin className="h-4 w-4" />
+                                                        LinkedIn
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="username" disabled={!isEditing || updatingProfile} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                        {isEditing && (
-                            <Button type="submit" className="w-full mt-3" disabled={isUpdating}>
-                                {isUpdating ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4 mr-2" />
-                                        Save Changes
-                                    </>
-                                )}
-                            </Button>
-                        )}
+                            {isEditing && (
+                                <Button type="submit" className="w-full" disabled={updatingProfile}>
+                                    {updatingProfile ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            Saving Changes...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-4 w-4 mr-2" />
+                                            Save Changes
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        </form>
                     </Form>
-                </form>
-            </div>
-        </div >
+                </TabsContent>
+
+                {/* Security Tab */}
+                <TabsContent value="security">
+                    <SecuritySettings user={user} />
+                </TabsContent>
+            </Tabs>
+        </div>
     );
-}
+};

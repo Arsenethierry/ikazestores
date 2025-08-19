@@ -21,17 +21,22 @@ import { createSafeActionClient } from "next-safe-action";
 import { authMiddleware } from "./middlewares";
 import {
   AddNewUserLabels,
+  changePasswordSchema,
   CompletePasswordRecoverySchema,
   createUserDataSchema,
   DeleteUserAccount,
   InitiatePasswordRecoverySchema,
   loginSchema,
   signupSchema,
+  updateEmailSchema,
+  updatePhoneSchema,
+  updateProfileSchema,
   verifyEmilSchema,
 } from "../schemas/user-schema";
 import countriesData from "@/data/countries.json";
 import { UserDataTypes } from "../types";
 import { updateUserLabels } from "./user-labels";
+import z from "zod";
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -221,6 +226,260 @@ export const createUserData = action
         error:
           error instanceof Error ? error.message : "Failed to create profile",
       };
+    }
+  });
+
+export const changePasswordAction = action
+  .schema(changePasswordSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { currentPassword, newPassword }, ctx }) => {
+    const { account } = ctx;
+    try {
+      await account.updatePassword(newPassword, currentPassword);
+
+      return { success: "Password updated successfully" };
+    } catch (error) {
+      console.error("Change Password Error:", error);
+
+      if (error instanceof Error) {
+        if (error.message.includes("Invalid credentials")) {
+          return { error: "Current password is incorrect" };
+        }
+        if (error.message.includes("Password must be")) {
+          return { error: "New password does not meet requirements" };
+        }
+      }
+
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update password",
+      };
+    }
+  });
+
+export const updateEmailAction = action
+  .schema(updateEmailSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { newEmail, password }, ctx }) => {
+    const { account, user, databases } = ctx;
+
+    try {
+      await account.updateEmail(newEmail, password);
+
+      try {
+        await databases.updateDocument(DATABASE_ID, USER_DATA_ID, user.$id, {
+          email: newEmail,
+        });
+      } catch (dbError) {
+        console.warn("Failed to update email in user data:", dbError);
+        // Account email was updated, but database sync failed
+        // You might want to implement a retry mechanism or manual sync
+      }
+      return {
+        success:
+          "Email update initiated. Please check your new email for verification.",
+      };
+    } catch (error) {
+      console.error("Update Email Error:", error);
+
+      if (error instanceof Error) {
+        if (error.message.includes("Invalid credentials")) {
+          return { error: "Password is incorrect" };
+        }
+        if (error.message.includes("already exists")) {
+          return { error: "This email is already in use by another account" };
+        }
+      }
+
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update email",
+      };
+    }
+  });
+
+export const updatePhoneAction = action
+  .schema(updatePhoneSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { phoneNumber, password }, ctx }) => {
+    const { account, databases, user } = ctx;
+
+    try {
+      const cleanedPhone = phoneNumber.replace(/[^\d+]/g, "");
+      if (!cleanedPhone.startsWith("+") || cleanedPhone.length > 16) {
+        return {
+          error:
+            "Invalid phone number format. Please include country code (e.g., +250)",
+        };
+      }
+
+      await account.updatePhone(cleanedPhone, password);
+
+      try {
+        await databases.updateDocument(DATABASE_ID, USER_DATA_ID, user.$id, {
+          phoneNumber: cleanedPhone,
+        });
+      } catch (dbError) {
+        console.warn("Failed to update phone in user data:", dbError);
+        // Account phone was updated, but database sync failed
+      }
+
+      return { success: "Phone number updated successfully" };
+    } catch (error) {
+      console.error("Update Phone Error:", error);
+
+      if (error instanceof Error) {
+        if (error.message.includes("Invalid credentials")) {
+          return { error: "Password is incorrect" };
+        }
+        if (error.message.includes("already exists")) {
+          return { error: "This phone number is already in use" };
+        }
+      }
+
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update phone number",
+      };
+    }
+  });
+
+export const updateAccountNameAction = action
+  .schema(
+    z.object({
+      fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { fullName }, ctx }) => {
+    const { account, databases, user } = ctx;
+
+    try {
+      await account.updateName(fullName);
+
+      try {
+        await databases.updateDocument(DATABASE_ID, USER_DATA_ID, user.$id, {
+          fullName: fullName,
+        });
+      } catch (dbError) {
+        console.warn("Failed to update name in user data:", dbError);
+      }
+
+      return { success: "Name updated successfully" };
+    } catch (error) {
+      console.error("Update Name Error:", error);
+      return {
+        error: error instanceof Error ? error.message : "Failed to update name",
+      };
+    }
+  });
+
+export const updateProfileAction = action
+  .schema(updateProfileSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { databases, user, account } = ctx;
+
+    try {
+      if (parsedInput.fullName) {
+        try {
+          await account.updateName(parsedInput.fullName);
+        } catch (nameError) {
+          console.warn("Failed to update account name:", nameError);
+          // Continue with database update even if account name update fails
+        }
+      }
+
+      const updatedDocument = await databases.updateDocument(
+        DATABASE_ID,
+        USER_DATA_ID,
+        user.$id,
+        {
+          fullName: parsedInput.fullName,
+          bio: parsedInput.bio || "",
+          website: parsedInput.website || "",
+          phoneNumber: parsedInput.phoneNumber || "",
+          // Social links
+          instagram: parsedInput.instagram || "",
+          twitter: parsedInput.twitter || "",
+          facebook: parsedInput.facebook || "",
+          linkedin: parsedInput.linkedin || "",
+        }
+      );
+
+      return {
+        success: "Profile updated successfully",
+        document: updatedDocument,
+      };
+    } catch (error) {
+      console.error("Update Profile Error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update profile",
+      };
+    }
+  });
+
+export const getAccountSessions = async () => {
+  try {
+    const { account } = await createSessionClient();
+
+    const sessions = await account.listSessions();
+
+    return sessions;
+  } catch (error) {
+    console.error("Get Sessions Error:", error);
+    return null;
+  }
+};
+
+export const deleteSessionAction = action
+  .schema(z.object({ sessionId: z.string() }))
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { sessionId }, ctx }) => {
+    const { account } = ctx;
+
+    try {
+      await account.deleteSession(sessionId);
+
+      return { success: "Session terminated successfully" };
+    } catch (error) {
+      console.error("Delete Session Error:", error);
+      return { error: "Failed to terminate session" };
+    }
+  });
+
+export const deleteOtherSessionsAction = action
+  .use(authMiddleware)
+  .action(async ({ ctx }) => {
+    const { account } = ctx;
+
+    try {
+      const sessions = await account.listSessions();
+      const currentSession = await account.getSession("current");
+
+      const otherSessions = sessions.sessions.filter(
+        (session) => session.$id !== currentSession.$id
+      );
+
+      // Delete other sessions one by one
+      for (const session of otherSessions) {
+        try {
+          await account.deleteSession(session.$id);
+        } catch (error) {
+          console.warn(`Failed to delete session ${session.$id}:`, error);
+        }
+      }
+
+      return {
+        success: `Terminated ${otherSessions.length} other session(s)`,
+        terminatedCount: otherSessions.length,
+      };
+    } catch (error) {
+      console.error("Delete Other Sessions Error:", error);
+      return { error: "Failed to terminate other sessions" };
     }
   });
 

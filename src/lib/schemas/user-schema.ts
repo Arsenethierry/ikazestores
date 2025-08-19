@@ -30,6 +30,51 @@ export const signupSchema = z
     }
   });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+export const updateEmailSchema = z.object({
+  newEmail: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required for email changes"),
+});
+
+export const updatePhoneSchema = z.object({
+  phoneNumber: z
+    .string()
+    .min(1, "Phone number is required")
+    .regex(
+      /^\+[1-9]\d{1,14}$/,
+      "Phone number must include country code (e.g., +250123456789)"
+    ),
+  password: z.string().min(1, "Password is required for phone changes"),
+});
+
+export const updateProfileSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  phoneNumber: z.string().optional(),
+  // Social media handles
+  instagram: z.string().optional(),
+  twitter: z.string().optional(),
+  facebook: z.string().optional(),
+  linkedin: z.string().optional(),
+});
+
 export const verifyEmilSchema = z.object({
   secret: z.string().min(1, "Required"),
   userId: z.string().min(1, "Required"),
