@@ -7,7 +7,7 @@ import {
 } from "@/lib/appwrite";
 import { cookies, headers } from "next/headers";
 import { AUTH_COOKIE, UserAccountType, UserRole } from "../constants";
-import { DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
+import { APP_URL, DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
 import {
   ID,
   OAuthProvider,
@@ -490,7 +490,7 @@ export const createEmailVerification = action
 
     try {
       const verification = await account.createVerification(
-        `ikazestores.com/verify-email`
+        `${APP_URL}/verify-email`
       );
       return {
         success: "Account created. Please verify your email.",
@@ -587,7 +587,7 @@ export const initiatePasswordRecovery = action
       const { account } = await createSessionClient();
       const recoveryResponse = await account.createRecovery(
         email,
-        `${MAIN_DOMAIN}/forgot-password`
+        `${APP_URL}/recovery`
       );
 
       return {

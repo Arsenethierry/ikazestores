@@ -171,7 +171,7 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
             </Card>
             <div className="mt-6 space-y-3 text-center">
                 <Link
-                    href="#"
+                    href="/forgot-password"
                     className="text-xs sm:text-sm underline text-muted-foreground hover:text-foreground transition-colors"
                 >
                     Forgot your password?

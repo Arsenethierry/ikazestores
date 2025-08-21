@@ -76,19 +76,31 @@ export const updateProfileSchema = z.object({
 });
 
 export const verifyEmilSchema = z.object({
-  secret: z.string().min(1, "Required"),
-  userId: z.string().min(1, "Required"),
+  userId: z.string().min(1, "User ID is required"),
+  secret: z.string().min(1, "Verification code is required"),
 });
 
 export const InitiatePasswordRecoverySchema = z.object({
-  email: z.string().email(),
+  email: z.string().email("Please enter a valid email address"),
 });
 
-export const CompletePasswordRecoverySchema = z.object({
-  secret: z.string(),
-  userId: z.string(),
-  newPassword: z.string(),
-});
+export const CompletePasswordRecoverySchema = z
+  .object({
+    userId: z.string().min(1, "User ID is required"),
+    secret: z.string().min(1, "Recovery code is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),

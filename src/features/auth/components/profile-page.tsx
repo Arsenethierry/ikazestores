@@ -47,6 +47,8 @@ import {
     MapPin,
     Settings,
     Shield,
+    CheckCircle,
+    AlertTriangle,
 } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import Link from 'next/link';
@@ -56,6 +58,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { SecuritySettings } from './security-settings';
+import { ProfileEmailVerificationBanner } from './profile-email-verification-banner';
 
 type UpdateProfileData = z.infer<typeof updateProfileSchema>
 type PhysicalSellerApplicationDataTypes = z.infer<typeof physicalSellerApplicationData>
@@ -417,6 +420,19 @@ export const ProfilePage = ({
                             {getRoleIcon(userData.labels || [], user?.labels)}
                             <span className="ml-1">{getRoleDisplayName(userData.accountType, user?.labels)}</span>
                         </Badge>
+                        <Badge variant={user?.emailVerification ? 'default' : 'destructive'} className='w-fit'>
+                            {user?.emailVerification ? (
+                                <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Verified
+                                </>
+                            ) : (
+                                <>
+                                    <AlertTriangle className="h-3 w-3 mr-1" />
+                                    Unverified
+                                </>
+                            )}
+                        </Badge>
                     </div>
                     <p className="text-muted-foreground mb-2">{userData.email}</p>
                     {userData.bio && <p className="text-sm text-muted-foreground">{userData.bio}</p>}
@@ -436,7 +452,8 @@ export const ProfilePage = ({
                 </div>
             </div>
 
-            {/* Tabs for different sections */}
+            <ProfileEmailVerificationBanner user={user} />
+
             <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview" className="flex items-center gap-2">

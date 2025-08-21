@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/password-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useConfirm } from "@/hooks/use-confirm";
-import { changePasswordAction, deleteOtherSessionsAction, deleteSessionAction, getAccountSessions, updateEmailAction, updatePhoneAction } from "@/lib/actions/auth.action";
-import { changePasswordSchema, updateEmailSchema, updatePhoneSchema } from "@/lib/schemas/user-schema";
+import { changePasswordAction, createEmailVerification, deleteOtherSessionsAction, deleteSessionAction, getAccountSessions, updateEmailAction, updatePhoneAction, verifyEmailAction } from "@/lib/actions/auth.action";
+import { changePasswordSchema, updateEmailSchema, updatePhoneSchema, verifyEmilSchema } from "@/lib/schemas/user-schema";
 import { CurrentUserType } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Calendar, CheckCircle, Eye, EyeOff, Key, Loader2, LogOut, Mail, MapPin, Monitor, Phone, Shield, Smartphone, Trash2 } from "lucide-react";
+import { AlertTriangle, Calendar, CheckCircle, Eye, EyeOff, Key, Loader2, Lock, LogOut, Mail, MapPin, Monitor, Phone, RefreshCw, Shield, Smartphone, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { Models } from "node-appwrite";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -43,8 +45,6 @@ const SessionCard = ({ session, onDelete }: {
             minute: '2-digit'
         });
     };
-
-    console.log("sssss: ", session)
 
     const getDeviceIcon = (clientName: string) => {
         if (clientName.toLowerCase().includes('mobile')) return <Smartphone className="h-4 w-4" />;
@@ -100,6 +100,10 @@ const SessionCard = ({ session, onDelete }: {
 export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showVerificationInput, setShowVerificationInput] = useState(false);
+    const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+
+    const router = useRouter();
     const queryClient = useQueryClient();
 
     const [TerminateAllDialog, confirmTerminateAll] = useConfirm(
@@ -134,8 +138,17 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
         },
     });
 
+    const verificationForm = useForm<z.infer<typeof verifyEmilSchema>>({
+        resolver: zodResolver(verifyEmilSchema),
+        defaultValues: {
+            userId: user.$id,
+            secret: ''
+        },
+        mode: "onChange"
+    });
+
     // Actions
-    const { execute: changePassword, isPending: changingPassword } = useAction(changePasswordAction, {
+    const { execute: changePassword, isPending: isChangingPassword } = useAction(changePasswordAction, {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data.success);
@@ -160,6 +173,38 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
         },
         onError: ({ error }) => {
             toast.error(error.serverError || "Failed to update email");
+        }
+    });
+
+    const { execute: sendVerification, isPending: isSendingVerification } = useAction(createEmailVerification, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success('Verification email sent successfully');
+                setEmailVerificationSent(true);
+                setShowVerificationInput(true);
+            } else if (data?.error) {
+                toast.error(data.error);
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError || 'Failed to send verification email');
+        }
+    });
+
+    const { execute: verifyEmail, isPending: isVerifyingEmail } = useAction(verifyEmailAction, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success('Email verified successfully');
+                setShowVerificationInput(false);
+                setEmailVerificationSent(false);
+                verificationForm.reset();
+                router.refresh();
+            } else if (data?.error) {
+                toast.error(data.error);
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError || 'Email verification failed');
         }
     });
 
@@ -189,7 +234,7 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
         staleTime: 1000 * 60 * 5,
     });
 
-    const { execute: deleteSession } = useAction(deleteSessionAction, {
+    const { execute: deleteSession, isPending: isDeletingSession } = useAction(deleteSessionAction, {
         onSuccess: ({ data }) => {
             if (data?.success) {
                 toast.success(data.success);
@@ -218,17 +263,131 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
         }
     };
 
+    const onPasswordSubmit = (data: z.infer<typeof changePasswordSchema>) => {
+        changePassword(data);
+    };
+
+    const onEmailSubmit = (data: z.infer<typeof updateEmailSchema>) => {
+        updateEmail(data);
+    };
+
+    const onVerificationSubmit = (data: z.infer<typeof verifyEmilSchema>) => {
+        verifyEmail(data);
+    };
+
+    const handleSendVerification = () => {
+        sendVerification();
+    };
+
     const otherSessions = sessions && sessions.sessions.filter((session: Models.Session) => !session.current);
+
+    const isLoading = isChangingPassword || updatingEmail || isSendingVerification || isVerifyingEmail || isDeletingSession || terminatingOthers;
 
     return (
         <div className="space-y-6">
             <TerminateAllDialog />
 
-            {/* Password Change */}
+            <Card className={user.emailVerification ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Email Verification
+                    </CardTitle>
+                    <CardDescription>
+                        {user.emailVerification
+                            ? "Your email address is verified and secure"
+                            : "Verify your email address to secure your account"
+                        }
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {user.emailVerification ? (
+                                <div className="flex items-center gap-2 text-green-700">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span className="font-medium">Email Verified</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 text-orange-700">
+                                    <AlertTriangle className="h-5 w-5" />
+                                    <span className="font-medium">Email Not Verified</span>
+                                </div>
+                            )}
+                            <Badge variant={user.emailVerification ? "default" : "destructive"}>
+                                {user.email}
+                            </Badge>
+                        </div>
+
+                        {!user.emailVerification && (
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={handleSendVerification}
+                                    disabled={isLoading}
+                                    size="sm"
+                                    variant="outline"
+                                >
+                                    {isSendingVerification ? (
+                                        <>
+                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Mail className="h-4 w-4 mr-2" />
+                                            Send Verification
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {showVerificationInput && !user.emailVerification && (
+                        <div className="mt-4 p-4 border rounded-lg bg-white">
+                            <p className="text-sm text-muted-foreground mb-3">
+                                We've sent a verification code to your email. Enter it below:
+                            </p>
+
+                            <Form {...verificationForm}>
+                                <form onSubmit={verificationForm.handleSubmit(onVerificationSubmit)} className="flex gap-2">
+                                    <FormField
+                                        control={verificationForm.control}
+                                        name="secret"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder="Enter verification code"
+                                                        disabled={isLoading}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <Button type="submit" disabled={isLoading}>
+                                        {isVerifyingEmail ? (
+                                            <>
+                                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                                Verifying...
+                                            </>
+                                        ) : (
+                                            'Verify'
+                                        )}
+                                    </Button>
+                                </form>
+                            </Form>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Key className="h-5 w-5" />
+                        <Lock className="h-5 w-5" />
                         Change Password
                     </CardTitle>
                     <CardDescription>
@@ -237,7 +396,7 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
                 </CardHeader>
                 <CardContent>
                     <Form {...passwordForm}>
-                        <form onSubmit={passwordForm.handleSubmit((data: ChangePasswordData) => changePassword(data))} className="space-y-4">
+                        <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
                             <FormField
                                 control={passwordForm.control}
                                 name="currentPassword"
@@ -245,27 +404,17 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
                                     <FormItem>
                                         <FormLabel>Current Password</FormLabel>
                                         <FormControl>
-                                            <div className="relative">
-                                                <Input
-                                                    {...field}
-                                                    type={showCurrentPassword ? "text" : "password"}
-                                                    disabled={changingPassword}
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                                >
-                                                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                </Button>
-                                            </div>
+                                            <PasswordInput
+                                                {...field}
+                                                placeholder="Enter current password"
+                                                disabled={isLoading}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField
                                     control={passwordForm.control}
@@ -274,27 +423,17 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
                                         <FormItem>
                                             <FormLabel>New Password</FormLabel>
                                             <FormControl>
-                                                <div className="relative">
-                                                    <Input
-                                                        {...field}
-                                                        type={showNewPassword ? "text" : "password"}
-                                                        disabled={changingPassword}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                                        onClick={() => setShowNewPassword(!showNewPassword)}
-                                                    >
-                                                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                    </Button>
-                                                </div>
+                                                <PasswordInput
+                                                    {...field}
+                                                    placeholder="Enter new password"
+                                                    disabled={isLoading}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     control={passwordForm.control}
                                     name="confirmPassword"
@@ -302,10 +441,10 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
                                         <FormItem>
                                             <FormLabel>Confirm New Password</FormLabel>
                                             <FormControl>
-                                                <Input
+                                                <PasswordInput
                                                     {...field}
-                                                    type="password"
-                                                    disabled={changingPassword}
+                                                    placeholder="Confirm new password"
+                                                    disabled={isLoading}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -313,15 +452,16 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
                                     )}
                                 />
                             </div>
-                            <Button type="submit" disabled={changingPassword}>
-                                {changingPassword ? (
+
+                            <Button type="submit" disabled={isLoading}>
+                                {isChangingPassword ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                                         Changing Password...
                                     </>
                                 ) : (
                                     <>
-                                        <Key className="h-4 w-4 mr-2" />
+                                        <Lock className="h-4 w-4 mr-2" />
                                         Change Password
                                     </>
                                 )}
