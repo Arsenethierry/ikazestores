@@ -41,4 +41,5 @@ yarn-error.log*
 next-env.d.ts
 
 appwrite.json
+appwrite copy.json
 /src/lib/core/appwrite-collection-setup.ts

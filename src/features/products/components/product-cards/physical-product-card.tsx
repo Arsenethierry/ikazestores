@@ -6,12 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CurrentUserType, OriginalProductTypes } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Heart, StarIcon} from 'lucide-react';
+import { Heart, StarIcon } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PhysicalProductMenuActions } from '../physical-product-actions';
 import { CloneProductModal } from '../clone-products/clone-product-modal';
+import { ProductPriceDisplay } from '../../currency/converted-price-component';
 
 export const PhysicalProductCard = ({
     product,
@@ -33,7 +34,7 @@ export const PhysicalProductCard = ({
 
     let discount;
     const originalPrice = product?.basePrice ?? product?.sellingPrice;
-    const price = (product.basePrice ?? product.sellingPrice) - 5;
+    const price = (product.basePrice ?? product.sellingPrice) - 0;
 
     const rating = 3;
     const reviews = 135
@@ -72,7 +73,6 @@ export const PhysicalProductCard = ({
                         'flex gap-1 items-center',
                         (isSystemAdmin || isPhysicalStoreOwner || isVirtualStoreOwner) && 'hidden'
                     )}>
-                        {/* <AddToCartButton productId={product.$id} /> */}
                         <TooltipProvider delayDuration={0}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -109,9 +109,19 @@ export const PhysicalProductCard = ({
 
                 <div className='flex justify-between items-center'>
                     <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out group-hover:translate-x-1">
-                        <span className="font-semibold transition-colors duration-300 group-hover:text-gray-900">${price.toFixed(2)}</span>
+                        <span className="font-semibold transition-colors duration-300 group-hover:text-gray-900">
+                            <ProductPriceDisplay
+                                productCurrency={product.currency}
+                                productPrice={price}
+                            />
+                        </span>
                         {originalPrice && (
-                            <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">${originalPrice.toFixed(2)}</span>
+                            <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">
+                                <ProductPriceDisplay
+                                    productCurrency={product.currency}
+                                    productPrice={originalPrice}
+                                />
+                            </span>
                         )}
                     </div>
                     {isVirtualStoreOwner ? (

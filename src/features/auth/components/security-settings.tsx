@@ -213,6 +213,7 @@ export const SecuritySettings = ({ user }: SecuritySettingsProps) => {
             if (data?.success) {
                 toast.success(data.success);
                 phoneForm.reset();
+                router.refresh()
             } else if (data?.error) {
                 toast.error(data.error);
             }

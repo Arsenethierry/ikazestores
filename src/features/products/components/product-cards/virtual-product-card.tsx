@@ -11,7 +11,6 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { VirtualProductMenuActions } from '../virtual-product-actions';
 import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
-import { getStoreSubdomainUrl } from '@/lib/domain-utils';
 import { SaveItemButton } from '../save-item-button';
 import { Button } from '@/components/ui/button';
 import { useInView } from 'react-intersection-observer';
@@ -253,7 +252,6 @@ const VirtualProductCard = memo(({
         );
     }
 
-    // Grid view (default)
     return (
         <Card
             ref={cardRef}

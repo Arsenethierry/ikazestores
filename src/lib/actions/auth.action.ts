@@ -587,7 +587,7 @@ export const initiatePasswordRecovery = action
       const { account } = await createSessionClient();
       const recoveryResponse = await account.createRecovery(
         email,
-        `${APP_URL}/recovery`
+        `${APP_URL}/reset-password`
       );
 
       return {

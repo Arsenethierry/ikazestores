@@ -8,6 +8,7 @@ import {
 import {
     Skeleton
 } from "@/components/ui/skeleton";
+import { AdminVirtualProductCard } from "@/features/products/components/product-cards/admin-virtual-product-card";
 import { VirtualProductCard } from "@/features/products/components/product-cards/virtual-product-card";
 import { ProductSekeleton } from "@/features/products/components/products-list-sekeleton";
 import { ProductsDataTable } from "@/features/products/components/products-list-table/products-data-table";
@@ -79,7 +80,8 @@ async function StoreProductsContent({ storeId }: { storeId: string }) {
                 storeId,
                 {
                     limit: 20,
-                }
+                },
+                true
             );
         }
     } catch (err) {
@@ -424,10 +426,9 @@ function VirtualProductsGrid({
                 {products.map((product) => (
                     <div key={product.$id}>
                         <Suspense fallback={<ProductSekeleton />}>
-                            <VirtualProductCard
+                            <AdminVirtualProductCard
                                 product={product}
                                 storeId={storeId}
-                                isMyProduct={true}
                             />
                         </Suspense>
                     </div>

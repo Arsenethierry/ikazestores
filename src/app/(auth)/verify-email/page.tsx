@@ -4,21 +4,19 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 interface VerifyEmailPageProps {
-    searchParams: {
+    searchParams: Promise<{
         userId?: string;
         secret?: string;
-    };
+    }>;
 }
 
 async function VerifyEmailContent({ searchParams }: VerifyEmailPageProps) {
     const user = await getLoggedInUser();
 
-    // If user is not logged in, redirect to sign in
-    if (!user) redirect("/sign-in");
+    if (!user || user.emailVerification) redirect("/sign-in");
 
-    const { userId, secret } = searchParams;
+    const { userId, secret } = await searchParams;
 
-    // Use the logged-in user's ID if userId is not provided in search params
     const verificationUserId = userId || user.$id;
 
     return (

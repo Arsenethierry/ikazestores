@@ -22,7 +22,9 @@ export const AccountDropdown = ({ isAuthenticated, isPhysicalStoreOwner, isVirtu
             </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>
+                My Account
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
                 <>

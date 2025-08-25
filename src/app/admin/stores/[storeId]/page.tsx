@@ -36,6 +36,7 @@ export default async function StoreAdminPage({
 
     return (
         <div>
+            <h5 className='text-3xl text-red-500'>Store overview + analytics to be implemented</h5>
             {isPhysicalStoreOwner ? (
                 <PhyscalStoreCard
                     store={currentStore as PhysicalStoreTypes}

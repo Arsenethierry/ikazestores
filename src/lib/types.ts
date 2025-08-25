@@ -1,23 +1,36 @@
 import { Models } from "node-appwrite";
 import { UserAccountType, UserRole } from "./constants";
 import { ProductCombination } from "./schemas/product-variants-schema";
-import { AffiliateProductImports, ProductCollectionGroups, ProductCollections, ProductColors, Products, Status, VirtualProducts, VirtualStore } from "./types/appwrite/appwrite";
+import {
+  AffiliateProductImports,
+  ProductCollectionGroups,
+  ProductCollections,
+  ProductColors,
+  Products,
+  Status,
+  VirtualProducts,
+  VirtualStore,
+} from "./types/appwrite/appwrite";
 import z from "zod";
-import { createPhysicalStoreFormSchema, createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "./schemas/stores-schema";
-import { PhysicalStore } from "@/lib/types/appwrite/appwrite"
+import {
+  createPhysicalStoreFormSchema,
+  createVirtualStoreFormSchema,
+  updateVirtualStoreFormSchema,
+} from "./schemas/stores-schema";
+import { PhysicalStore } from "@/lib/types/appwrite/appwrite";
 import { VirtualProductSchema } from "./schemas/products-schems";
 
 export type SignInParams = {
-    email: string;
-    password: string;
-}
+  email: string;
+  password: string;
+};
 
 export type SignUpParams = {
-    username: string;
-    phoneNumber: string;
-    email: string;
-    password: string;
-}
+  username: string;
+  phoneNumber: string;
+  email: string;
+  password: string;
+};
 
 // type SocialLinks = {
 //     instagram?: string;
@@ -29,207 +42,224 @@ export type SignUpParams = {
 export type CurrentUserType = Models.User<Models.Preferences> | null;
 
 export type ImageDimensionConstraints = {
-    width?: number;
-    height?: number;
-    ratio?: number;
-    tolerance?: number;
+  width?: number;
+  height?: number;
+  ratio?: number;
+  tolerance?: number;
 };
 
 export type UserRoleType =
-    | UserRole.SYS_ADMIN
-    | UserRole.SYS_AGENT
-    | UserRole.PHYSICAL_STORE_OWNER
-    | UserRole.VIRTUAL_STORE_OWNER
-    | UserRole.STORE_ADMIN
-    | UserRole.STORE_STAFF
+  | UserRole.SYS_ADMIN
+  | UserRole.SYS_AGENT
+  | UserRole.PHYSICAL_STORE_OWNER
+  | UserRole.VIRTUAL_STORE_OWNER
+  | UserRole.STORE_ADMIN
+  | UserRole.STORE_STAFF;
 
 export type AppwriteDocumentResponse = {
-    total: number;
-    documents: Models.Document;
+  total: number;
+  documents: Models.Document;
 };
 
-export type AdminDashboardType = 'systemAdmin' | 'virtualStoreAdmin' | 'physicalStoreAdmin' | undefined;
+export type AdminDashboardType =
+  | "systemAdmin"
+  | "virtualStoreAdmin"
+  | "physicalStoreAdmin"
+  | undefined;
 
 export type CartItem = {
-    id: string;
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    image: string;
-    productCurrency: string;
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  productCurrency: string;
 };
 
 export interface Cart {
-    items: CartItem[];
-    totalItems: number;
-    totalPrice: number;
-};
+  items: CartItem[];
+  totalItems: number;
+  totalPrice: number;
+}
 
 export interface AuthState {
-    isAuthenticated: boolean;
-    user: Models.User<Models.Preferences> | null;
-    roles: UserRoleType[];
-    teams: Models.Team<Models.Preferences>[];
-    memberships: Models.Membership[];
-    isSystemAdmin: boolean;
-    isSystemAgent: boolean;
-    isVirtualStoreOwner: boolean;
-    isPhysicalStoreOwner: boolean;
-    isStoreOwner: boolean;
-    isStoreAdmin: boolean;
-    isStoreStaff: boolean;
-    ownedStores: string[];
-    adminStores: string[];
-    staffStores: string[];
-    hasSystemAccess: () => boolean;
-    canAccessStore: (storeId: string) => boolean;
-    getStoreRole: (storeId: string) => 'owner' | 'admin' | 'staff' | null;
-    hasStorePermission: (storeId: string, permission: 'read' | 'write' | 'delete') => boolean;
-    canAccessResource: (resource: string, permission: 'read' | 'write' | 'delete') => boolean;
+  isAuthenticated: boolean;
+  user: Models.User<Models.Preferences> | null;
+  roles: UserRoleType[];
+  teams: Models.Team<Models.Preferences>[];
+  memberships: Models.Membership[];
+  isSystemAdmin: boolean;
+  isSystemAgent: boolean;
+  isVirtualStoreOwner: boolean;
+  isPhysicalStoreOwner: boolean;
+  isStoreOwner: boolean;
+  isStoreAdmin: boolean;
+  isStoreStaff: boolean;
+  ownedStores: string[];
+  adminStores: string[];
+  staffStores: string[];
+  hasSystemAccess: () => boolean;
+  canAccessStore: (storeId: string) => boolean;
+  getStoreRole: (storeId: string) => "owner" | "admin" | "staff" | null;
+  hasStorePermission: (
+    storeId: string,
+    permission: "read" | "write" | "delete"
+  ) => boolean;
+  canAccessResource: (
+    resource: string,
+    permission: "read" | "write" | "delete"
+  ) => boolean;
 }
-export type OriginalProductTypes = Products
-export interface OriginalProductWithVirtualProducts extends OriginalProductTypes {
-    combinations?: ProductCombinationTypes[];
-    virtualProducts: VirtualProductTypes[];
-    priceRange: {
-        min: number;
-        max: number;
-    };
+export type OriginalProductTypes = Products;
+export interface OriginalProductWithVirtualProducts
+  extends OriginalProductTypes {
+  combinations?: ProductCombinationTypes[];
+  virtualProducts: VirtualProductTypes[];
+  priceRange: {
+    min: number;
+    max: number;
+  };
 }
 
 export interface ProductCombinationTypes extends Models.Document {
-    productId: string;
-    variantStrings?: string[];
-    sku: string;
-    price: number;
-    stockQuantity: number;
-    isActive: boolean;
-    weight?: number;
-    dimensions?: string;
-    images?: string[]
+  productId: string;
+  variantStrings?: string[];
+  sku: string;
+  price: number;
+  stockQuantity: number;
+  isActive: boolean;
+  weight?: number;
+  dimensions?: string;
+  images?: string[];
 }
 export interface VirtualProductTypes extends AffiliateProductImports {
-    name: string;
-    description: string;
-    sku: string;
-    price: number;
-    currency: string;
-    status: Status;
-    hasVariants: boolean;
-    categoryId: string;
-    subcategoryId: string;
-    productTypeId: string;
-    tags: string[] | null;
-    images: string[] | null;
-    colors: ProductColors[] | null,
-    physicalStoreLatitude: number;
-    physicalStoreLongitude: number;
-    physicalStoreCountry: string;
-    shortDescription?: string;
-    physicalStoreId: string
+  name: string;
+  description: string;
+  sku: string;
+  price: number;
+  basePrice: number;
+  currency: string;
+  status: Status;
+  hasVariants: boolean;
+  categoryId: string;
+  subcategoryId: string;
+  productTypeId: string;
+  tags: string[] | null;
+  images: string[] | null;
+  colors: ProductColors[] | null;
+  physicalStoreLatitude: number;
+  physicalStoreLongitude: number;
+  physicalStoreCountry: string;
+  shortDescription?: string;
+  physicalStoreId: string;
 }
 
-export type VirtualStoreTypes = VirtualStore
+export type VirtualStoreTypes = VirtualStore;
 export interface ColorImagesTypes extends Models.Document {
-    colorName: string,
-    imageId: string,
-    imageUrl: string,
-    colorHex?: string
+  colorName: string;
+  imageId: string;
+  imageUrl: string;
+  colorHex?: string;
 }
 
 enum OrderStatus {
-    pending = 'pending',
-    shipped = 'shipped',
-    delivered = 'delivered',
-    cancelled = 'cancelled'
+  pending = "pending",
+  shipped = "shipped",
+  delivered = "delivered",
+  cancelled = "cancelled",
 }
-
 
 export interface OrderItem {
-    quantity: number;
-    price: number;
-    order: OrderTypes;
-    productId: string
+  quantity: number;
+  price: number;
+  order: OrderTypes;
+  productId: string;
 }
 export interface OrderTypes extends Models.Document {
-    customerId: string;
-    orderDate: Date;
-    status: OrderStatus;
-    totalAmount: number;
-    notes: string;
-    orderItems: OrderItem[];
-    deliveryAddressId: string;
+  customerId: string;
+  orderDate: Date;
+  status: OrderStatus;
+  totalAmount: number;
+  notes: string;
+  orderItems: OrderItem[];
+  deliveryAddressId: string;
 }
 
 export interface FilterState {
-    storeId?: string;
-    productType?: string;
-    category?: string;
-    page: number;
-    limit: number;
-    sortBy?: string;
-    variants?: { templateId: string; values: string[] }[];
-    priceRange?: { min?: number; max?: number };
-    search?: string;
+  storeId?: string;
+  productType?: string;
+  category?: string;
+  page: number;
+  limit: number;
+  sortBy?: string;
+  variants?: { templateId: string; values: string[] }[];
+  priceRange?: { min?: number; max?: number };
+  search?: string;
 }
 
 export enum SortBy {
-    newestFirst = 'newest',
-    priceLowToHigh = 'price_asc',
-    priceHighToLow = 'price_desc',
+  newestFirst = "newest",
+  priceLowToHigh = "price_asc",
+  priceHighToLow = "price_desc",
 }
 
 export type VirtualProductsSearchParams = {
-    category?: string,
-    subcategory?: string,
-    sortBy?: SortBy | undefined | string,
-    lastId?: string;
-    firstId?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    query?: string;
-}
+  category?: string;
+  subcategory?: string;
+  sortBy?: SortBy | undefined | string;
+  lastId?: string;
+  firstId?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  query?: string;
+};
 
-export type CollectionTypes = ProductCollections
-export type CollectionGroupsTypes = ProductCollectionGroups
+export type CollectionTypes = ProductCollections;
+export type CollectionGroupsTypes = ProductCollectionGroups;
 export interface SavedItemType extends Models.Document {
-    userId: string;
-    productId: string;
-    productData?: VirtualProductTypes
+  userId: string;
+  productId: string;
+  productData?: VirtualProductTypes;
 }
 
 export interface UserDataTypes extends Models.Document {
-    fullName: string;
-    email: string;
-    phoneNumber?: string;
-    accountType: UserAccountType
-    // bio?: string;
-    // website?: string;
-    // socialLinks?: SocialLinks;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  accountType: UserAccountType;
+  // bio?: string;
+  // website?: string;
+  // socialLinks?: SocialLinks;
 }
 
 export interface ProductFilters {
-    storeId?: string;
-    categoryId?: string;
-    subcategoryId?: string;
-    productTypeId?: string;
-    status?: "active" | "inactive" | "draft" | 'all';
-    featured?: boolean;
-    search?: string;
-    tags?: string[];
-    minPrice?: number;
-    maxPrice?: number;
-    sortBy?: 'name' | 'price' | 'created' | 'updated';
-    sortOrder?: 'asc' | 'desc';
-    userLat?: number;
-    userLng?: number;
-    radiusKm?: number;
-    combinations?: ProductCombination[]
+  storeId?: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  productTypeId?: string;
+  status?: "active" | "inactive" | "draft" | "all";
+  featured?: boolean;
+  search?: string;
+  tags?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: "name" | "price" | "created" | "updated";
+  sortOrder?: "asc" | "desc";
+  userLat?: number;
+  userLng?: number;
+  radiusKm?: number;
+  combinations?: ProductCombination[];
 }
 
-export type CreateVirtualStoreTypes = z.infer<typeof createVirtualStoreFormSchema>
-export type UpdateVirtualStoreTypes = z.infer<typeof updateVirtualStoreFormSchema>
-export type CreatePhysicalStoreTypes = z.infer<typeof createPhysicalStoreFormSchema>
-export type PhysicalStoreTypes = PhysicalStore
-export type CreateVirtualProductTypes = z.infer<typeof VirtualProductSchema>
+export type CreateVirtualStoreTypes = z.infer<
+  typeof createVirtualStoreFormSchema
+>;
+export type UpdateVirtualStoreTypes = z.infer<
+  typeof updateVirtualStoreFormSchema
+>;
+export type CreatePhysicalStoreTypes = z.infer<
+  typeof createPhysicalStoreFormSchema
+>;
+export type PhysicalStoreTypes = PhysicalStore;
+export type CreateVirtualProductTypes = z.infer<typeof VirtualProductSchema>;
