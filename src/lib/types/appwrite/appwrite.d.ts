@@ -69,6 +69,79 @@ export enum Status {
     CANCELLED = "cancelled"
 }
 
+export enum CommissionStatus {
+    PENDING = "pending"
+}
+
+export enum PhysicalStoreFulfillmentOrderStatus {
+    PENDING_FULFILLMENT = "pending_fulfillment",
+    PROCESSING = "processing",
+    SHIPPED = "shipped",
+    COMPLETED = "completed",
+    CANCELLED = "cancelled"
+}
+
+export enum Status {
+    PENDING = "pending",
+    APPROVED = "approved",
+    REJECTED = "rejected",
+    FLAGGED = "flagged"
+}
+
+export enum VirtualStoreReviewStatus {
+    PENDING = "pending",
+    APPROVED = "approved",
+    REJECTED = "rejected"
+}
+
+export enum ReviewType {
+    PRODUCT = "product",
+    STORE = "store"
+}
+
+export enum UserType {
+    CUSTOMER = "customer",
+    STORE_OWNER = "store_owner",
+    ADMIN = "admin"
+}
+
+export enum Status {
+    PENDING = "pending",
+    APPROVED = "approved",
+    REJECTED = "rejected"
+}
+
+export enum ReviewType {
+    PRODUCT = "product",
+    STORE = "store",
+    REPLY = "reply"
+}
+
+export enum VoteType {
+    HELPFUL = "helpful",
+    UNHELPFUL = "unhelpful"
+}
+
+export enum ReviewType {
+    PRODUCT = "product",
+    STORE = "store",
+    REPLY = "reply"
+}
+
+export enum Reason {
+    SPAM = "spam",
+    INAPPROPRIATE = "inappropriate",
+    FAKE = "fake",
+    OFFENSIVE = "offensive",
+    OTHER = "other"
+}
+
+export enum Status {
+    PENDING = "pending",
+    RESOLVED = "resolved",
+    DISMISSED = "dismissed"
+}
+
 export type UsersData = Models.Document & {
     fullName: string;
     email: string;
@@ -428,13 +501,112 @@ export type Orders = Models.Document & {
     estimatedDeliveryDate: string | null;
     itemCount: number | null;
     exchangeRatesSnapshot: string | null;
+    deliveredAt: string | null;
 }
 
 export type OrderItems = Models.Document & {
+    orderId: string;
+    virtualProductId: string;
+    originalProductId: string;
+    productName: string;
+    productImage: string | null;
+    sku: string;
+    basePrice: number;
+    sellingPrice: number;
+    commission: number;
+    quantity: number | null;
+    subtotal: number;
+    virtualStoreId: string;
+    physicalStoreId: string;
 }
 
 export type CommissionRecord = Models.Document & {
+    orderId: string;
+    virtualStoreId: string;
+    totalCommission: number;
+    commissionStatus: CommissionStatus;
 }
 
 export type OrderFullfilmentRecords = Models.Document & {
+    orderId: string;
+    physicalStoreId: string;
+    itemCount: number | null;
+    totalValue: number | null;
+    physicalStoreFulfillmentOrderStatus: PhysicalStoreFulfillmentOrderStatus;
+}
+
+export type ProductReview = Models.Document & {
+    productId: string;
+    virtualStoreId: string;
+    userId: string;
+    rating: number;
+    title: string | null;
+    comment: string | null;
+    pros: string[] | null;
+    cons: string[] | null;
+    isVerifiedPurchase: boolean | null;
+    orderId: string | null;
+    images: string[] | null;
+    videos: string[] | null;
+    status: Status;
+    moderatedBy: string | null;
+    moderatedAt: string | null;
+    moderationNotes: string | null;
+    replies: number | null;
+    lastReplyAt: string | null;
+    viewCount: number | null;
+    shareCount: number | null;
+    userName: string;
+    helpfulVotes: number | null;
+    unhelpfulVotes: number | null;
+    orderAmount: number | null;
+    orderCurrency: string | null;
+    purchaseDate: string | null;
+}
+
+export type VirtualstoreReviews = Models.Document & {
+    virtualStoreId: string;
+    overallRating: number;
+    title: string | null;
+    comment: string | null;
+    customerServiceRating: number | null;
+    isVerifiedCustomer: boolean;
+    orderCount: number | null;
+    virtualStoreReviewStatus: VirtualStoreReviewStatus | null;
+    moderatedBy: string | null;
+    moderatedAt: string | null;
+    userId: string;
+    userName: string;
+}
+
+export type ReviewReply = Models.Document & {
+    reviewId: string;
+    reviewType: ReviewType;
+    replyingUserId: string;
+    userName: string;
+    userType: UserType;
+    comment: string | null;
+    helpfulVotes: number | null;
+    unhelpfulVotes: number | null;
+    status: Status;
+    moderatedBy: string | null;
+    moderatedAt: string | null;
+}
+
+export type ReviewVote = Models.Document & {
+    reviewId: string;
+    reviewType: ReviewType;
+    userId: string;
+    voteType: VoteType;
+}
+
+export type ReviewReport = Models.Document & {
+    reviewId: string;
+    reviewType: ReviewType;
+    reportedBy: string;
+    reason: Reason;
+    description: string | null;
+    status: Status;
+    resolvedBy: string | null;
+    resolvedAt: string | null;
 }

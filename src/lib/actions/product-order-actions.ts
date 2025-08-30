@@ -10,6 +10,7 @@ import { OrderStatus, PhysicalStoreFulfillmentOrderStatus } from "../constants";
 import { createAdminClient, createDocumentPermissions, createSessionClient } from "../appwrite";
 import { COMMISSION_RECORDS_COLLECTION_ID, DATABASE_ID, ORDER_FULFILLMENT_RECORDS_COLLECTION_ID, ORDER_ITEMS_COLLECTION_ID, ORDERS_COLLECTION_ID } from "../env-config";
 import { convertCurrency } from "@/hooks/use-currency";
+import { OrderItems, Orders } from "../types/appwrite/appwrite";
 
 type OrderFormData = z.infer<typeof OrderFormSchema>;
 type OrderData = z.infer<typeof OrderSchema>;
@@ -429,7 +430,7 @@ async function createCommissionRecord(
             orderId,
             virtualStoreId,
             totalCommission,
-            status: 'pending',
+            commissionStatus: 'pending',
         }
     )
 }
@@ -456,7 +457,7 @@ async function createPhysicalStoreFulfillmentRecords(
                 physicalStoreId: breakdown.physicalStoreId,
                 itemCount: breakdown.itemCount,
                 totalValue: breakdown.baseValue,
-                status: PhysicalStoreFulfillmentOrderStatus.PENDING,
+                physicalStoreFulfillmentOrderStatus: PhysicalStoreFulfillmentOrderStatus.PENDING,
             }
         )
     });
@@ -544,7 +545,7 @@ export async function getOrderById(orderId: string) {
         }
 
         // Get order items
-        const orderItems = await databases.listDocuments(
+        const orderItems = await databases.listDocuments<OrderItems>(
             DATABASE_ID,
             ORDER_ITEMS_COLLECTION_ID,
             [Query.equal("orderId", orderId)]
@@ -589,7 +590,7 @@ export async function getLogedInUserOrders(
             queries.push(Query.equal("status", options.status));
         }
 
-        const orders = await databases.listDocuments(
+        const orders = await databases.listDocuments<Orders>(
             DATABASE_ID,
             ORDERS_COLLECTION_ID,
             queries
