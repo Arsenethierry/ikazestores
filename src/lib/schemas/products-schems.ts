@@ -2,7 +2,9 @@ import { z } from "zod";
 import {
   CardProvider,
   OnlinePaymentProvider,
+  OrderStatus,
   PaymentMethodType,
+  PhysicalStoreFulfillmentOrderStatus,
 } from "../constants";
 // import { VariantCombinationSchema } from "./product-variants-schema";
 import {
@@ -329,6 +331,66 @@ export const OrderSchema = OrderFormSchema.extend({
   customerCurrency: z.string(),
   exchangeRatesSnapshot: z.record(z.string(), z.number()),
   exchangeRatesTimestamp: z.string(),
+});
+
+export const GetOrdersSchema = z.object({
+  storeId: z.string().optional(),
+  storeType: z.enum(["physical", "virtual"]).optional(),
+  filters: z
+    .object({
+      status: z.array(z.nativeEnum(OrderStatus)).optional(),
+      fulfillmentStatus: z
+        .array(z.nativeEnum(PhysicalStoreFulfillmentOrderStatus))
+        .optional(),
+      commissionStatus: z.array(z.string()).optional(),
+      dateRange: z
+        .object({
+          from: z.date(),
+          to: z.date(),
+        })
+        .optional(),
+      search: z.string().optional(),
+      virtualStoreId: z.string().optional(),
+      physicalStoreId: z.string().optional(),
+      customerId: z.string().optional(),
+      customerEmail: z.string().optional(),
+    })
+    .optional(),
+  sorting: z
+    .object({
+      field: z.string(),
+      direction: z.enum(["asc", "desc"]),
+    })
+    .optional(),
+  pagination: z
+    .object({
+      page: z.number().min(1),
+      limit: z.number().min(1).max(100),
+    })
+    .optional(),
+});
+
+export const UpdateOrderStatusSchema = z.object({
+  orderId: z.string().min(1),
+  status: z.nativeEnum(OrderStatus),
+  notes: z.string().optional(),
+});
+
+export const UpdateFulfillmentStatusSchema = z.object({
+  fulfillmentRecordId: z.string().min(1),
+  status: z.nativeEnum(PhysicalStoreFulfillmentOrderStatus),
+  notes: z.string().optional(),
+});
+
+export const BulkUpdateOrdersSchema = z.object({
+  orderIds: z.array(z.string().min(1)),
+  updates: z.object({
+    orderStatus: z.nativeEnum(OrderStatus).optional(),
+    fulfillmentStatus: z
+      .nativeEnum(PhysicalStoreFulfillmentOrderStatus)
+      .optional(),
+    notes: z.string().optional(),
+  }),
 });
 export interface CreateColorVariantData
   extends z.infer<typeof ColorVariantSchema> {

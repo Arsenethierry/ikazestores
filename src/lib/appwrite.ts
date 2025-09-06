@@ -1,89 +1,102 @@
 import 'server-only'
 
 import {
-    Account,
-    Client,
-    Databases,
-    Locale,
-    Permission,
-    Role,
-    Storage,
-    Teams,
-    Users
+  Account,
+  Client,
+  Databases,
+  Locale,
+  Permission,
+  Role,
+  Storage,
+  Teams,
+  Users
 } from "node-appwrite";
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE, UserRole } from './constants';
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, SYSTEM_OPERATIONS_TEAM } from './env-config';
 
+let adminClientInstance: Client | null = null;
+let sessionClientInstance: Client | null = null;
+
 export async function createSessionClient() {
-    const cookieStore = await cookies()
+  if (!sessionClientInstance) {
+    const cookieStore = await cookies();
 
     const client = new Client()
-        .setEndpoint(APPWRITE_ENDPOINT)
-        .setProject(APPWRITE_PROJECT_ID)
+      .setEndpoint(APPWRITE_ENDPOINT)
+      .setProject(APPWRITE_PROJECT_ID);
 
-    const session = await cookieStore.get(AUTH_COOKIE)
-
+    const session = await cookieStore.get(AUTH_COOKIE);
     if (session) {
-        client.setSession(session.value);
+      client.setSession(session.value);
     }
 
+    sessionClientInstance = client;
+  }
 
-    return {
-        get account() {
-            return new Account(client);
-        },
-        get databases() {
-            return new Databases(client);
-        },
-        get storage() {
-            return new Storage(client);
-        },
-        get teams() {
-            return new Teams(client);
-        },
-        get locale() {
-            return new Locale(client);
-        }
-    };
+  const client = sessionClientInstance;
+
+  return {
+    get account() {
+      return new Account(client);
+    },
+    get databases() {
+      return new Databases(client);
+    },
+    get storage() {
+      return new Storage(client);
+    },
+    get teams() {
+      return new Teams(client);
+    },
+    get locale() {
+      return new Locale(client);
+    }
+  };
 }
 
 export async function createAdminClient() {
+  if (!adminClientInstance) {
     const client = new Client()
-        .setEndpoint(APPWRITE_ENDPOINT)
-        .setProject(APPWRITE_PROJECT_ID)
-        .setKey(process.env.NEXT_APPWRITE_KEY!);
+      .setEndpoint(APPWRITE_ENDPOINT)
+      .setProject(APPWRITE_PROJECT_ID)
+      .setKey(process.env.NEXT_APPWRITE_KEY!);
 
-    return {
-        get account() {
-            return new Account(client);
-        },
-        get users() {
-            return new Users(client);
-        },
-        get databases() {
-            return new Databases(client);
-        },
-    };
-};
+    adminClientInstance = client;
+  }
+
+  const client = adminClientInstance;
+
+  return {
+    get account() {
+      return new Account(client);
+    },
+    get users() {
+      return new Users(client);
+    },
+    get databases() {
+      return new Databases(client);
+    },
+  };
+}
 
 export const createDocumentPermissions = ({ userId }: { userId: string }) => {
-    return [
-        Permission.read(Role.user(userId)),
-        Permission.update(Role.user(userId)),
-        Permission.delete(Role.user(userId)),
+  return [
+    Permission.read(Role.user(userId)),
+    Permission.update(Role.user(userId)),
+    Permission.delete(Role.user(userId)),
 
-        Permission.read(Role.team(SYSTEM_OPERATIONS_TEAM)),
-        Permission.update(Role.team(SYSTEM_OPERATIONS_TEAM)),
-        Permission.update(Role.team(SYSTEM_OPERATIONS_TEAM)),
-        Permission.delete(Role.team(SYSTEM_OPERATIONS_TEAM, 'admin')),
+    Permission.read(Role.team(SYSTEM_OPERATIONS_TEAM)),
+    Permission.update(Role.team(SYSTEM_OPERATIONS_TEAM)),
+    Permission.update(Role.team(SYSTEM_OPERATIONS_TEAM)),
+    Permission.delete(Role.team(SYSTEM_OPERATIONS_TEAM, 'admin')),
 
-        Permission.update(Role.label(UserRole.SYS_ADMIN)),
-        Permission.delete(Role.label(UserRole.SYS_ADMIN)),
+    Permission.update(Role.label(UserRole.SYS_ADMIN)),
+    Permission.delete(Role.label(UserRole.SYS_ADMIN)),
 
-        // Permission.read(Role.label(UserRole.SYS_AGENT)),
-        // Permission.update(Role.label(UserRole.SYS_AGENT)),
+    // Permission.read(Role.label(UserRole.SYS_AGENT)),
+    // Permission.update(Role.label(UserRole.SYS_AGENT)),
 
-        Permission.read(Role.users()),
-    ]
-}
+    Permission.read(Role.users()),
+  ];
+};

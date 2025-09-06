@@ -1,768 +1,512 @@
 "use server";
 
-import z from "zod";
-import { AffiliateProductModel } from "../models/AffliateProductModel";
-import { ProductModel } from "../models/ProductModel";
-import { OrderFormSchema, OrderSchema } from "../schemas/products-schems";
+import { createSafeActionClient } from "next-safe-action";
+import { OrderFilters, OrderModel } from "../models/OrderModel";
+import {
+  BulkUpdateOrdersSchema,
+  GetOrdersSchema,
+  UpdateFulfillmentStatusSchema,
+  UpdateOrderStatusSchema,
+} from "../schemas/products-schems";
+import { authMiddleware } from "./middlewares";
+import { revalidatePath } from "next/cache";
 import { getAuthState } from "../user-permission";
-import { ID, Query } from "node-appwrite";
-import { OrderStatus, PhysicalStoreFulfillmentOrderStatus } from "../constants";
-import { createAdminClient, createDocumentPermissions, createSessionClient } from "../appwrite";
-import { COMMISSION_RECORDS_COLLECTION_ID, DATABASE_ID, ORDER_FULFILLMENT_RECORDS_COLLECTION_ID, ORDER_ITEMS_COLLECTION_ID, ORDERS_COLLECTION_ID } from "../env-config";
-import { convertCurrency } from "@/hooks/use-currency";
-import { OrderItems, Orders } from "../types/appwrite/appwrite";
+import z from "zod";
+import { OrderStatus } from "../constants";
 
-type OrderFormData = z.infer<typeof OrderFormSchema>;
-type OrderData = z.infer<typeof OrderSchema>;
+const orderModel = new OrderModel();
 
-interface OrderItemDetails {
-    id: string;
-    virtualProductId: string;
-    originalProductId: string;
-    name: string;
-    sellingPrice: number; // Price customer pays (base price + commission)
-    basePrice: number; // Original physical store price
-    quantity: number;
-    image: string;
-    commission: number;
-    virtualStoreId: string;
-    physicalStoreId: string;
-    sku: string;
-    productCurrency: string; // Original product currency
-    customerPrice: number; // Price customer saw in their currency
-    customerCurrency: string; // Currency customer is paying in
-    exchangeRate: number; // Rate used for conversion
-}
+const action = createSafeActionClient({
+  handleServerError: (error) => {
+    console.error("Server action error:", error);
+    return error.message;
+  },
+});
 
-interface ProcessedOrder {
-    orderId: string;
-    orderNumber: string;
-    totalAmount: number; // In customer currency
-    baseTotalAmount: number; // In base currency (USD)
-    customerCurrency: string;
-    baseCurrency: string;
-    exchangeRateToBase: number;
-    orderItems: OrderItemDetails[];
-    virtualStoreId: string;
-    estimatedDeliveryDate: Date;
-    commissionSummary: {
-        totalCommission: number; // In base currency
-        totalBasePrice: number; // In base currency
-        itemCount: number;
-    };
-    physicalStoreBreakdown: Array<{
-        physicalStoreId: string;
-        itemCount: number;
-        baseValue: number; // In base currency
-        commission: number; // In base currency
-        customerValue: number; // In customer currency
-    }>;
-}
-
-const productModel = new ProductModel();
-const affiliateProductModel = new AffiliateProductModel();
-
-export async function createOrder(orderData: OrderData): Promise<{ success?: string; error?: string; data?: ProcessedOrder }> {
-    const { databases } = await createAdminClient();
-
+export const getOrdersAction = action
+  .schema(GetOrdersSchema)
+  .action(async ({ parsedInput }) => {
+    const {
+      storeId,
+      storeType,
+      filters = {},
+      sorting = { field: "$createdAt", direction: "desc" },
+      pagination = { page: 1, limit: 25 },
+    } = parsedInput;
     try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
+      const orderFilters: OrderFilters = {
+        orderStatus: filters.status,
+        fulfillmentStatus: filters.fulfillmentStatus,
+        commissionStatus: filters.commissionStatus,
+        dateRange: filters.dateRange,
+        virtualStoreId:
+          storeId && storeType === "virtual" ? storeId : filters.virtualStoreId,
+        physicalStoreId:
+          storeId && storeType === "physical"
+            ? storeId
+            : filters.physicalStoreId,
+        customerId: filters.customerId,
+        customerEmail: filters.customerEmail,
+      };
 
-        const validatedData = OrderSchema.parse(orderData);
-        const customerCurrency = validatedData.customerCurrency || "USD";
-        const baseCurrency = "USD";
+      const offset = (pagination.page - 1) * pagination.limit;
 
-        const ratesTime = new Date(validatedData.exchangeRatesTimestamp);
-        const now = new Date();
-        const ageMinutes = (now.getTime() - ratesTime.getTime()) / (1000 * 60);
+      let ordersResult;
 
-        if (ageMinutes > 30) {
-            return { error: "Exchange rates are too old. Please refresh and try again." };
-        }
+      if (storeType === "physical" && storeId) {
+        ordersResult = await orderModel.findByPhysicalStore(storeId, {
+          filters: Object.entries(orderFilters)
+            .filter(([_, value]) => value !== undefined)
+            .map(([key, value]) => ({ field: key, operator: "equal", value })),
+          limit: pagination.limit,
+          offset,
+          orderBy: sorting.field,
+          orderType: sorting.direction,
+        });
+      } else if (storeType === "virtual" && storeId) {
+        ordersResult = await orderModel.findByVirtualStore(storeId, {
+          filters: Object.entries(orderFilters)
+            .filter(([_, value]) => value !== undefined)
+            .map(([key, value]) => ({ field: key, operator: "equal", value })),
+          limit: pagination.limit,
+          offset,
+          orderBy: sorting.field,
+          orderType: sorting.direction,
+        });
+      } else {
+        ordersResult = await orderModel.findWithFilters(orderFilters, {
+          limit: pagination.limit,
+          offset,
+          orderBy: sorting.field,
+          orderType: sorting.direction,
+        });
+      }
 
-        const processedItems = await processOrderItems(
-            validatedData.selectedItems,
-            customerCurrency,
-            validatedData.exchangeRatesSnapshot
-        );
+      const ordersWithRelations = await Promise.all(
+        ordersResult.documents.map(async (order) => {
+          return await orderModel.getOrderWithRelations(order.$id);
+        })
+      );
 
-        if (!processedItems.success || !processedItems.items) {
-            return { error: processedItems.error || "something went wrong!" };
-        }
-
-        const virtualStoreIds = [...new Set(processedItems.items.map(item => item.virtualStoreId))];
-        if (virtualStoreIds.length > 1) {
-            return { error: "All items must be from the same store" };
-        }
-
-        const virtualStoreId = virtualStoreIds[0];
-
-        const orderCalculations = calculateOrderTotals(
-            processedItems.items,
-            customerCurrency,
-            baseCurrency,
-            validatedData.exchangeRatesSnapshot
-        );
-
-        // Validate total matches what customer expects
-        if (Math.abs(orderCalculations.customerTotalAmount - validatedData.totalAmount) > 0.01) {
-            return { error: "Order total mismatch. Please refresh and try again." };
-        }
-
-        const orderId = ID.unique();
-        const orderNumber = generateOrderNumber();
-
-        const orderDocument = {
-            orderNumber,
-            customerId: user.$id,
-            customerEmail: user.email,
-            virtualStoreId,
-
-            // Customer currency amounts
-            customerCurrency,
-            customerSubtotal: orderCalculations.customerSubtotal,
-            customerTotalAmount: orderCalculations.customerTotalAmount,
-
-            // Base currency amounts (for business logic)
-            baseCurrency,
-            baseSubtotal: orderCalculations.baseSubtotal,
-            baseTotalAmount: orderCalculations.baseTotalAmount,
-
-            // Exchange rate information
-            exchangeRateToBase: orderCalculations.exchangeRateToBase,
-            exchangeRatesTimestamp: validatedData.exchangeRatesTimestamp,
-
-            // Business amounts (in base currency)
-            totalCommission: orderCalculations.totalCommission,
-            totalBasePrice: orderCalculations.totalBasePrice,
-
-            // Order details
-            deliveryAddress: JSON.stringify(validatedData.deliveryAddress),
-            notes: validatedData.notes || "",
-            isExpressDelivery: validatedData.isExpressDelivery,
-            paymentMethod: JSON.stringify(validatedData.preferredPaymentMethod),
-
-            status: OrderStatus.PENDING,
-            orderDate: validatedData.orderDate,
-            estimatedDeliveryDate: calculateEstimatedDelivery(validatedData.orderDate, validatedData.isExpressDelivery),
-            itemCount: processedItems.items.length,
-            exchangeRatesSnapshot: JSON.stringify({
-                orderId,
-                currency: validatedData.exchangeRatesSnapshot,
-                rate: validatedData.exchangeRatesSnapshot,
-                timestamp: validatedData.exchangeRatesTimestamp
-            })
-        };
-
-        const permissions = createDocumentPermissions({ userId: user.$id });
-        const newOrder = await databases.createDocument(
-            DATABASE_ID,
-            ORDERS_COLLECTION_ID,
-            orderId,
-            orderDocument,
-            permissions
-        );
-
-        // Create order items with currency information
-        await createOrderItems(orderId, processedItems.items, user.$id);
-
-        // Create commission record (in base currency)
-        await createCommissionRecord(orderId, virtualStoreId, orderCalculations.totalCommission);
-
-        // Create fulfillment records with both currencies
-        await createPhysicalStoreFulfillmentRecords(orderId, orderCalculations.physicalStoreBreakdown);
-
-        const response: ProcessedOrder = {
-            orderId: newOrder.$id,
-            orderNumber,
-            totalAmount: orderCalculations.customerTotalAmount,
-            baseTotalAmount: orderCalculations.baseTotalAmount,
-            customerCurrency,
-            baseCurrency,
-            exchangeRateToBase: orderCalculations.exchangeRateToBase,
-            orderItems: processedItems.items,
-            virtualStoreId,
-            estimatedDeliveryDate: new Date(orderDocument.estimatedDeliveryDate),
-            commissionSummary: {
-                totalCommission: orderCalculations.totalCommission,
-                totalBasePrice: orderCalculations.totalBasePrice,
-                itemCount: processedItems.items.length
-            },
-            physicalStoreBreakdown: orderCalculations.physicalStoreBreakdown
-        };
-
-        return {
-            success: "Order placed successfully!",
-            data: response
-        };
+      return {
+        success: true,
+        data: {
+          orders: ordersWithRelations.filter(Boolean),
+          total: ordersResult.total,
+          page: pagination.page,
+          limit: pagination.limit,
+        },
+      };
     } catch (error) {
-        console.error("createOrder error:", error);
-
-        if (error instanceof z.ZodError) {
-            return { error: "Invalid order data: " + error.errors.map(e => e.message).join(", ") };
-        }
-
-        if (error instanceof Error) {
-            return { error: error.message };
-        }
-
-        return { error: "Failed to place order. Please try again." };
-
+      console.error("Get orders error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch orders",
+      };
     }
-}
+  });
 
-async function processOrderItems(
-    items: Array<{
-        id: string;
-        productId: string;
-        name: string;
-        price: number;
-        quantity: number;
-        image: string;
-        productCurrency?: string;
-    }>,
-    customerCurrency: string,
-    exchangeRates: Record<string, number>
-): Promise<{ success: boolean; error?: string; items?: OrderItemDetails[] }> {
-    try {
-        const processedItems: OrderItemDetails[] = [];
-
-        for (const item of items) {
-            const virtualProduct = await affiliateProductModel.findVirtualProductById(item.productId);
-
-            if (!virtualProduct) {
-                return { success: false, error: `Product "${item.name}" not found or not available for purchase` };
-            }
-
-            if (!virtualProduct.isActive) {
-                return { success: false, error: `Product "${item.name}" is no longer available` };
-            }
-
-            const originalProduct = await productModel.findById(virtualProduct.productId, {});
-            if (!originalProduct || !originalProduct.isDropshippingEnabled || originalProduct.status !== "active") {
-                return { success: false, error: `Product "${item.name}" is no longer available for dropshipping` };
-            }
-
-            const basePrice = originalProduct.basePrice;
-            const commission = virtualProduct.commission;
-            const sellingPrice = basePrice + commission;
-            const productCurrency = originalProduct.currency || 'USD';
-
-            const customerPriceCalculated = convertCurrency(
-                sellingPrice,
-                productCurrency,
-                customerCurrency,
-                exchangeRates
-            );
-
-            if (Math.abs(customerPriceCalculated - item.price) > 0.01) {
-                return { success: false, error: `Price for "${item.name}" has changed. Please refresh and try again.` };
-            }
-
-            const exchangeRate = customerCurrency === productCurrency ? 1 :
-                (exchangeRates[customerCurrency] || 1) / (exchangeRates[productCurrency] || 1);
-
-            processedItems.push({
-                id: item.id,
-                virtualProductId: virtualProduct.$id,
-                originalProductId: originalProduct.$id,
-                name: item.name,
-                sellingPrice, // In original currency
-                basePrice,
-                quantity: item.quantity,
-                image: item.image,
-                commission,
-                virtualStoreId: virtualProduct.virtualStoreId,
-                physicalStoreId: originalProduct.physicalStoreId,
-                sku: originalProduct.sku,
-                productCurrency,
-                customerPrice: item.price, // What customer saw/pays
-                customerCurrency,
-                exchangeRate
-            });
-        }
-
-        return { success: true, items: processedItems };
-    } catch (error) {
-        console.error("processOrderItems error:", error);
-        return { success: false, error: "Failed to process order items" };
+export const getOrderById = async (orderId: string) => {
+  try {
+    const order = await orderModel.getOrderWithRelations(orderId);
+    if (!order) {
+      return { error: "Order not found" };
     }
-}
-
-function calculateOrderTotals(
-    items: OrderItemDetails[],
-    customerCurrency: string,
-    baseCurrency: string,
-    exchangeRates: Record<string, number>
-) {
-    const customerSubtotal = items.reduce((sum, item) => sum + (item.customerPrice * item.quantity), 0);
-    const customerTotalAmount = customerSubtotal;
-
-    const baseSubtotal = items.reduce((sum, item) => {
-        const itemTotal = item.sellingPrice * item.quantity;
-        const convertedAmount = convertCurrency(itemTotal, item.productCurrency, baseCurrency, exchangeRates);
-        return sum + convertedAmount;
-    }, 0);
-
-    const baseTotalAmount = baseSubtotal;
-
-    const totalCommission = items.reduce((sum, item) => {
-        const commissionAmount = item.commission * item.quantity;
-        return sum + convertCurrency(commissionAmount, item.productCurrency, baseCurrency, exchangeRates);
-    }, 0);
-
-    const totalBasePrice = items.reduce((sum, item) => {
-        const basePriceAmount = item.basePrice * item.quantity;
-        return sum + convertCurrency(basePriceAmount, item.productCurrency, baseCurrency, exchangeRates);
-    }, 0);
-
-    const physicalStoreGroups = items.reduce((groups, item) => {
-        const storeId = item.physicalStoreId;
-        if (!groups[storeId]) {
-            groups[storeId] = {
-                itemCount: 0,
-                baseValue: 0,
-                commission: 0,
-                customerValue: 0
-            };
-        }
-        groups[storeId].itemCount += item.quantity;
-
-        // Convert to base currency for business logic
-        const itemBaseValue = convertCurrency(item.basePrice * item.quantity, item.productCurrency, baseCurrency, exchangeRates);
-        const itemCommission = convertCurrency(item.commission * item.quantity, item.productCurrency, baseCurrency, exchangeRates);
-
-        groups[storeId].baseValue += itemBaseValue;
-        groups[storeId].commission += itemCommission;
-        groups[storeId].customerValue += item.customerPrice * item.quantity; // In customer currency
-
-        return groups;
-    }, {} as Record<string, { itemCount: number; baseValue: number; commission: number; customerValue: number }>);
-
-    const physicalStoreBreakdown = Object.entries(physicalStoreGroups).map(([physicalStoreId, data]) => ({
-        physicalStoreId,
-        itemCount: data.itemCount,
-        baseValue: data.baseValue,
-        commission: data.commission,
-        customerValue: data.customerValue
-    }));
-
-    const exchangeRateToBase = convertCurrency(1, customerCurrency, baseCurrency, exchangeRates);
 
     return {
-        customerSubtotal,
-        customerTotalAmount,
-        baseSubtotal,
-        baseTotalAmount,
-        totalCommission,
-        totalBasePrice,
-        physicalStoreBreakdown,
-        exchangeRateToBase
+      success: true,
+      data: order,
     };
+  } catch (error) {
+    console.error("Get order by ID error:", error);
+    return {
+      error: error instanceof Error ? error.message : "Failed to fetch order",
+    };
+  }
 };
 
-function generateOrderNumber(): string {
-    const timestamp = Date.now().toString();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `ORD-${timestamp.slice(-6)}${random}`;
-}
+export const updateOrderStatusAction = action
+  .schema(UpdateOrderStatusSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { orderId, status, notes } = parsedInput;
 
-function calculateEstimatedDelivery(orderDate: Date, isExpress: boolean): string {
-    const delivery = new Date(orderDate);
+    try {
+      const order = await orderModel.findById(orderId, {});
+      if (!order) {
+        return { error: "Order not found" };
+      }
 
-    const daysToAdd = isExpress ? 3 : 7;
-    delivery.setDate(delivery.getDate() + daysToAdd);
-    return delivery.toISOString();
-}
+      const updatedOrder = await orderModel.updateOrderStatus(
+        orderId,
+        status,
+        notes
+      );
 
-async function createOrderItems(
-    orderId: string,
-    items: OrderItemDetails[],
-    userId: string
-): Promise<void> {
-    const { databases } = await createAdminClient();
-    const permissions = createDocumentPermissions({ userId });
+      revalidatePath("/admin/orders");
+      revalidatePath(`/admin/stores/[storeId]/orders`, "page");
 
-    const itemPromises = items.map(async (item) => {
-        const itemId = ID.unique();
-        return databases.createDocument(
-            DATABASE_ID,
-            ORDER_ITEMS_COLLECTION_ID,
-            itemId,
-            {
-                orderId,
-                virtualProductId: item.virtualProductId,
-                originalProductId: item.originalProductId,
-                productName: item.name,
-                productImage: item.image,
-                sku: item.sku,
-                basePrice: item.basePrice, // What physical store gets
-                sellingPrice: item.sellingPrice, // What customer pays
-                commission: item.commission, // What virtual store earns
-                quantity: item.quantity,
-                subtotal: item.sellingPrice * item.quantity,
-                virtualStoreId: item.virtualStoreId,
-                physicalStoreId: item.physicalStoreId,
-            },
-            permissions
+      return {
+        success: true,
+        data: updatedOrder,
+        message: "Order status updated successfully",
+      };
+    } catch (error) {
+      console.error("Update order status error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update order status",
+      };
+    }
+  });
+
+export const updateFulfillmentStatusAction = action
+  .schema(UpdateFulfillmentStatusSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { fulfillmentRecordId, status, notes } = parsedInput;
+
+    try {
+      const fulfillmentRecord = await orderModel.findById(
+        fulfillmentRecordId,
+        {}
+      );
+      if (!fulfillmentRecord) {
+        return { error: "Fulfillment record not found" };
+      }
+
+      // For fulfillment, we need to check physical store permissions
+      const permissions = await checkOrderPermissions(
+        fulfillmentRecord.physicalStoreId,
+        "physical"
+      );
+      if (!permissions.canWrite) {
+        throw new Error(
+          "Access denied: Insufficient permissions to update fulfillment"
         );
-    });
+      }
 
-    await Promise.all(itemPromises);
-}
+      await orderModel.updateFulfillmentStatus(
+        fulfillmentRecordId,
+        status,
+        notes
+      );
 
-async function createCommissionRecord(
-    orderId: string,
-    virtualStoreId: string,
-    totalCommission: number
-): Promise<void> {
-    const { databases } = await createAdminClient();
+      revalidatePath("/admin/orders");
+      revalidatePath(`/admin/stores/[storeId]/orders`, "page");
 
-    const commissionId = ID.unique();
-    await databases.createDocument(
-        DATABASE_ID,
-        COMMISSION_RECORDS_COLLECTION_ID,
-        commissionId,
-        {
-            orderId,
-            virtualStoreId,
-            totalCommission,
-            commissionStatus: 'pending',
+      return {
+        success: true,
+        message: "Fulfillment status updated successfully",
+      };
+    } catch (error) {
+      console.error("Update fulfillment status error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update fulfillment status",
+      };
+    }
+  });
+
+export const bulkUpdateOrdersAction = action
+  .schema(BulkUpdateOrdersSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { orderIds, updates } = parsedInput;
+
+    try {
+      for (const orderId of orderIds) {
+        const order = await orderModel.findById(orderId, {});
+        if (!order) {
+          throw new Error(`Order not found: ${orderId}`);
         }
-    )
-}
 
-async function createPhysicalStoreFulfillmentRecords(
-    orderId: string,
-    physicalStoreBreakdown: Array<{
-        physicalStoreId: string;
-        itemCount: number;
-        baseValue: number;
-        commission: number;
-    }>
-): Promise<void> {
-    const { databases } = await createAdminClient();
+        const permissions = await checkOrderPermissions(
+          order.virtualStoreId,
+          "virtual"
+        );
+        if (!permissions.canWrite) {
+          throw new Error(
+            `Access denied: Insufficient permissions for order ${order.orderNumber}`
+          );
+        }
+      }
 
-    const fulfillmentPromises = physicalStoreBreakdown.map(async (breakdown) => {
-        const fulfillmentId = ID.unique();
-        return databases.createDocument(
-            DATABASE_ID,
-            ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-            fulfillmentId,
-            {
-                orderId,
-                physicalStoreId: breakdown.physicalStoreId,
-                itemCount: breakdown.itemCount,
-                totalValue: breakdown.baseValue,
-                physicalStoreFulfillmentOrderStatus: PhysicalStoreFulfillmentOrderStatus.PENDING,
-            }
+      const updatePromises = orderIds.map(async (orderId) => {
+        if (updates.orderStatus) {
+          return await orderModel.updateOrderStatus(
+            orderId,
+            updates.orderStatus,
+            updates.notes
+          );
+        }
+        return null;
+      });
+
+      const results = await Promise.all(updatePromises);
+
+      revalidatePath("/admin/orders");
+      revalidatePath(`/admin/stores/[storeId]/orders`, "page");
+
+      return {
+        success: true,
+        message: `Successfully updated ${orderIds.length} orders`,
+        data: results.filter(Boolean),
+      };
+    } catch (error) {
+      console.error("Bulk update orders error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update orders",
+      };
+    }
+  });
+
+export const getOrderStatsAction = async ({
+  storeId,
+  storeType,
+  dateRange,
+}: {
+  storeId?: string;
+  storeType?: "virtual" | "physical";
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+}) => {
+  try {
+    const permissions = await checkOrderPermissions(storeId, storeType);
+    if (!permissions.canRead) {
+      throw new Error("Access denied");
+    }
+
+    const filters: OrderFilters = {
+      dateRange,
+      virtualStoreId: storeType === "virtual" ? storeId : undefined,
+      physicalStoreId: storeType === "physical" ? storeId : undefined,
+    };
+
+    const stats = await orderModel.getOrderStats(filters, storeId, storeType);
+
+    return {
+      success: true,
+      data: stats,
+    };
+  } catch (error) {
+    console.error("Get order stats error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch order statistics",
+    };
+  }
+};
+
+export const cancelOrderAction = action
+  .schema(
+    z.object({
+      orderId: z.string().min(1),
+      reason: z.string().optional(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { orderId, reason } = parsedInput;
+
+    try {
+      const order = await orderModel.findById(orderId, {});
+      if (!order) {
+        return { error: "Order not found" };
+      }
+
+      // Check if order can be cancelled (only pending or processing orders)
+      if (
+        ![OrderStatus.PENDING, OrderStatus.PROCESSING].includes(
+          order.orderStatus as OrderStatus
         )
+      ) {
+        return { error: "Order cannot be cancelled in its current status" };
+      }
+
+      const permissions = await checkOrderPermissions(
+        order.virtualStoreId,
+        "virtual"
+      );
+      if (!permissions.canWrite) {
+        throw new Error(
+          "Access denied: Insufficient permissions to cancel orders"
+        );
+      }
+
+      const updatedOrder = await orderModel.updateOrderStatus(
+        orderId,
+        OrderStatus.CANCELLED,
+        reason ? `Cancelled: ${reason}` : "Order cancelled"
+      );
+
+      revalidatePath("/admin/orders");
+      revalidatePath(`/admin/stores/[storeId]/orders`, "page");
+
+      return {
+        success: true,
+        data: updatedOrder,
+        message: "Order cancelled successfully",
+      };
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to cancel order",
+      };
+    }
+  });
+
+export const getOverdueOrdersAction = async (
+  storeId?: string,
+  storeType?: "physical" | "virtual"
+) => {
+  try {
+    const overdueOrders = await orderModel.findOverdueOrders({
+      filters: [
+        ...(storeId && storeType === "virtual"
+          ? [
+              {
+                field: "virtualStoreId",
+                operator: "equal" as const,
+                value: storeId,
+              },
+            ]
+          : []),
+        // Note: Physical store filtering is handled within the model
+      ],
     });
 
-    await Promise.all(fulfillmentPromises);
-}
-
-export async function cancelOrder(orderId: string) {
-    try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
-
-        const { databases } = await createSessionClient();
-        const order = await databases.getDocument(
-            DATABASE_ID,
-            ORDERS_COLLECTION_ID,
-            orderId
-        );
-
-        if (order.customerId !== user.$id) {
-            return { error: "Access denied" };
-        }
-
-        if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.PROCESSING) {
-            return { error: "Order cannot be cancelled at this stage" };
-        }
-
-        const updatedOrder = await databases.updateDocument(
-            DATABASE_ID,
-            ORDERS_COLLECTION_ID,
-            orderId,
-            {
-                status: OrderStatus.CANCELLED,
-                cancelledAt: new Date().toISOString(),
-            }
-        );
-
-        await databases.listDocuments(
-            DATABASE_ID,
-            ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-            [Query.equal("orderId", orderId)]
-        ).then(fulfillments => {
-            return Promise.all(
-                fulfillments.documents.map(fulfillment =>
-                    databases.updateDocument(
-                        DATABASE_ID,
-                        ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-                        fulfillment.$id,
-                        { status: 'cancelled' }
-                    )
-                )
-            );
-        });
-
-        return {
-            success: "Order cancelled successfully",
-            data: updatedOrder
-        };
-    } catch (error) {
-        console.error("cancelOrder error:", error);
-        return { error: "Failed to cancel order" };
+    let filteredOrders = overdueOrders.documents;
+    if (storeId && storeType === "physical") {
+      const physicalStoreOrders = await orderModel.findByPhysicalStore(storeId);
+      const physicalStoreOrderIds = physicalStoreOrders.documents.map(
+        (o) => o.$id
+      );
+      filteredOrders = overdueOrders.documents.filter((o) =>
+        physicalStoreOrderIds.includes(o.$id)
+      );
     }
-}
 
-export async function getOrderById(orderId: string) {
+    return {
+      success: true,
+      data: {
+        orders: filteredOrders,
+        count: filteredOrders.length,
+      },
+    };
+  } catch (error) {
+    console.error("Get overdue orders error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch overdue orders",
+    };
+  }
+};
+
+export const getOrdersByCustomerAction = action
+  .schema(
+    z.object({
+      customerId: z.string().min(1),
+      pagination: z
+        .object({
+          page: z.number().min(1),
+          limit: z.number().min(1).max(100),
+        })
+        .optional(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput }) => {
+    const { customerId, pagination = { page: 1, limit: 25 } } = parsedInput;
+
     try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
+      const auth = await getAuthState();
 
-        const { databases } = await createSessionClient();
+      // Only allow system admins or the customer themselves to access this
+      if (!auth.isSystemAdmin && auth.user?.$id !== customerId) {
+        throw new Error("Access denied: Can only view your own orders");
+      }
 
-        const order = await databases.getDocument(
-            DATABASE_ID,
-            ORDERS_COLLECTION_ID,
-            orderId
-        );
+      const offset = (pagination.page - 1) * pagination.limit;
 
-        // Verify user owns this order
-        if (order.customerId !== user.$id) {
-            return { error: "Access denied" };
-        }
+      const ordersResult = await orderModel.findByCustomer(customerId, {
+        limit: pagination.limit,
+        offset,
+        orderBy: "$createdAt",
+        orderType: "desc",
+      });
 
-        // Get order items
-        const orderItems = await databases.listDocuments<OrderItems>(
-            DATABASE_ID,
-            ORDER_ITEMS_COLLECTION_ID,
-            [Query.equal("orderId", orderId)]
-        );
+      const ordersWithRelations = await Promise.all(
+        ordersResult.documents.map(async (order) => {
+          return await orderModel.getOrderWithRelations(order.$id);
+        })
+      );
 
-        return {
-            success: true,
-            data: {
-                ...order,
-                items: orderItems.documents
-            }
-        };
+      return {
+        success: true,
+        data: {
+          orders: ordersWithRelations.filter(Boolean),
+          total: ordersResult.total,
+          page: pagination.page,
+          limit: pagination.limit,
+        },
+      };
     } catch (error) {
-        console.error("getOrderById error:", error);
-        return { error: "Failed to fetch order" };
+      console.error("Get orders by customer error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch customer orders",
+      };
     }
-}
+  });
 
-export async function getLogedInUserOrders(
-    options: {
-        limit?: number;
-        offset?: number;
-        status?: OrderStatus;
-    } = {}
+async function checkOrderPermissions(
+  storeId?: string,
+  storeType?: "physical" | "virtual"
 ) {
-    try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
+  const auth = await getAuthState();
 
-        const { databases } = await createSessionClient();
+  if (!auth.isAuthenticated) {
+    throw new Error("Authentication required");
+  }
 
-        const queries = [
-            Query.equal("customerId", user.$id),
-            Query.orderDesc("$createdAt"),
-            Query.limit(options.limit || 25),
-            Query.offset(options.offset || 0)
-        ];
+  if (auth.isSystemAdmin) {
+    return { canRead: true, canWrite: true, canDelete: true };
+  }
 
-        if (options.status) {
-            queries.push(Query.equal("status", options.status));
-        }
-
-        const orders = await databases.listDocuments<Orders>(
-            DATABASE_ID,
-            ORDERS_COLLECTION_ID,
-            queries
-        );
-
-        return {
-            success: true,
-            data: orders
-        };
-    } catch (error) {
-        console.error("getUserOrders error:", error);
-        return { error: "Failed to fetch orders" };
+  if (storeId) {
+    const storeRole = auth.getStoreRole(storeId);
+    if (!storeRole) {
+      throw new Error(
+        "Access denied: You don't have permission to access this store"
+      );
     }
+
+    // Store owners and admins can manage orders, staff can only read
+    return {
+      canRead: true,
+      canWrite: storeRole === "owner" || storeRole === "admin",
+      canDelete: storeRole === "owner",
+    };
+  }
+
+  if (auth.isPhysicalStoreOwner || auth.isVirtualStoreOwner) {
+    return { canRead: true, canWrite: true, canDelete: true };
+  }
+
+  throw new Error("Access denied: Insufficient permissions");
 }
-
-export async function getPhysicalStoreFulfillmentOrders(
-    physicalStoreId: string,
-    options: {
-        status?: PhysicalStoreFulfillmentOrderStatus;
-        limit?: number;
-        offset?: number;
-    } = {}
-) {
-    try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
-
-        const { databases } = await createSessionClient();
-
-        const queries = [
-            Query.equal("physicalStoreId", physicalStoreId),
-            Query.orderDesc("$createdAt"),
-            Query.limit(options.limit || 25),
-            Query.offset(options.offset || 0)
-        ];
-
-        if (options.status) {
-            queries.push(Query.equal("status", options.status));
-        }
-
-        const fulfillmentOrders = await databases.listDocuments(
-            DATABASE_ID,
-            ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-            queries
-        );
-
-        const ordersWithDetails = await Promise.all(
-            fulfillmentOrders.documents.map(async (fulfillment) => {
-                const order = await databases.getDocument(
-                    DATABASE_ID,
-                    ORDERS_COLLECTION_ID,
-                    fulfillment.orderId
-                );
-
-                const orderItems = await databases.listDocuments(
-                    DATABASE_ID,
-                    ORDER_ITEMS_COLLECTION_ID,
-                    [
-                        Query.equal("orderId", fulfillment.orderId),
-                        Query.equal("physicalStoreId", physicalStoreId)
-                    ]
-                );
-
-                return {
-                    ...fulfillment,
-                    orderDetails: order,
-                    items: orderItems.documents
-                };
-            })
-        );
-
-        return {
-            success: true,
-            data: {
-                documents: ordersWithDetails,
-                total: fulfillmentOrders.total
-            }
-        };
-    } catch (error) {
-        console.error("getPhysicalStoreFulfillmentOrders error:", error);
-        return { error: "Failed to fetch fulfillment orders" };
-    }
-}
-
-export async function updateFulfillmentStatus(
-    fulfillmentId: string,
-    status: PhysicalStoreFulfillmentOrderStatus,
-    trackingNumber?: string
-) {
-    try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
-
-        const { databases } = await createSessionClient();
-
-        const updateData: any = {
-            status,
-        };
-
-        if (status === 'shipped' && trackingNumber) {
-            updateData.trackingNumber = trackingNumber;
-            updateData.shippedAt = new Date().toISOString();
-        }
-
-        if (status === 'completed') {
-            updateData.completedAt = new Date().toISOString();
-        }
-
-        const updatedFulfillment = await databases.updateDocument(
-            DATABASE_ID,
-            ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-            fulfillmentId,
-            updateData
-        );
-
-        return {
-            success: "Fulfillment status updated successfully",
-            data: updatedFulfillment
-        };
-    } catch (error) {
-        console.error("updateFulfillmentStatus error:", error);
-        return { error: "Failed to update fulfillment status" };
-    }
-}
-
-export async function getVirtualStoreOrders(
-    virtualStoreId: string,
-    options: {
-        status?: OrderStatus;
-        limit?: number;
-        offset?: number;
-    } = {}
-) {
-    try {
-        const { user } = await getAuthState();
-        if (!user) {
-            return { error: "Authentication required" };
-        }
-
-        const { databases } = await createSessionClient();
-
-        const queries = [
-            Query.equal("virtualStoreId", virtualStoreId),
-            Query.orderDesc("$createdAt"),
-            Query.limit(options.limit || 25),
-            Query.offset(options.offset || 0)
-        ];
-
-        if (options.status) {
-            queries.push(Query.equal("status", options.status));
-        }
-
-        const orders = await databases.listDocuments(
-            DATABASE_ID,
-            ORDERS_COLLECTION_ID,
-            queries
-        );
-
-        return {
-            success: true,
-            data: orders
-        };
-    } catch (error) {
-        console.error("getVirtualStoreOrders error:", error);
-        return { error: "Failed to fetch virtual store orders" };
-    }
-}
-// Send notifications to:
-// 1. Customer - order confirmation
-// 2. Virtual store owner - new sale notification with commission details
-// 3. Physical store owners - fulfillment requests

@@ -1,255 +1,462 @@
 "use client";
 
-import { cancelOrder, createOrder, getLogedInUserOrders, getOrderById, getPhysicalStoreFulfillmentOrders, getVirtualStoreOrders, updateFulfillmentStatus } from "@/lib/actions/product-order-actions";
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { OrderStatus, PhysicalStoreFulfillmentOrderStatus } from "@/lib/constants";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { 
+  CalendarIcon, 
+  Filter, 
+  X, 
+  Search,
+  RotateCcw 
+} from "lucide-react";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
-export const useGetOrderById = (orderId: string) => {
-    return useQuery({
-        queryKey: ["order", orderId],
-        queryFn: () => getOrderById(orderId),
-        enabled: !!orderId,
-        staleTime: 1000 * 60 * 5,
+export interface OrderFilters {
+  status?: OrderStatus[];
+  fulfillmentStatus?: PhysicalStoreFulfillmentOrderStatus[];
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  search?: string;
+}
+
+interface OrdersFiltersProps {
+  storeType: 'virtual' | 'physical';
+  permissions: {
+    canUpdateStatus: boolean;
+    canUpdateFulfillment: boolean;
+    canCancel: boolean;
+    canBulkUpdate: boolean;
+    canViewAll: boolean;
+  };
+  filters: OrderFilters;
+  onFiltersChange: (filters: OrderFilters) => void;
+  onClearFilters: () => void;
+}
+
+export function OrdersFilters({ 
+  storeType, 
+  permissions,
+  filters,
+  onFiltersChange,
+  onClearFilters
+}: OrdersFiltersProps) {
+  const [searchTerm, setSearchTerm] = useState(filters.search || "");
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    filters.dateRange ? {
+      from: filters.dateRange.from,
+      to: filters.dateRange.to
+    } : undefined
+  );
+
+  // Sync local search state with props when filters change externally
+  useEffect(() => {
+    if (filters.search !== searchTerm && !searchTimeout) {
+      setSearchTerm(filters.search || "");
+    }
+  }, [filters.search]);
+
+  // Sync date range with props when filters change externally  
+  useEffect(() => {
+    if (filters.dateRange) {
+      setDateRange({
+        from: filters.dateRange.from,
+        to: filters.dateRange.to
+      });
+    } else {
+      setDateRange(undefined);
+    }
+  }, [filters.dateRange]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Debounce search
+    const timeout = setTimeout(() => {
+      onFiltersChange({ ...filters, search: value || undefined });
+      setSearchTimeout(null);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+  };
+
+  const handleStatusFilter = (status: OrderStatus, checked: boolean) => {
+    const currentStatuses = filters.status || [];
+    const updatedStatuses = checked
+      ? [...currentStatuses, status]
+      : currentStatuses.filter((s: OrderStatus) => s !== status);
+    
+    onFiltersChange({ 
+      ...filters, 
+      status: updatedStatuses.length > 0 ? updatedStatuses : undefined 
     });
-};
+  };
 
-export const useCreateOrder = () => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: createOrder,
-        onSuccess: (result) => {
-            if (result.success && result.data) {
-                toast.success(result.success);
-                
-                queryClient.invalidateQueries({ queryKey: ["user-orders"] });
-                queryClient.invalidateQueries({ queryKey: ["virtual-store-orders", result.data.virtualStoreId] });
-                
-                if (result.data.physicalStoreBreakdown) {
-                    result.data.physicalStoreBreakdown.forEach(({ physicalStoreId }) => {
-                        queryClient.invalidateQueries({ queryKey: ["physical-store-order-fulfillment", physicalStoreId] });
-                    });
-                }
-                
-                queryClient.invalidateQueries({ queryKey: ["order-analytics"] });
-                queryClient.invalidateQueries({ queryKey: ["commission-records"] });
-                
-            } else if (result.error) {
-                toast.error(result.error);
-            }
-        },
-        onError: (error) => {
-            const errorMessage = error instanceof Error ? error.message : "Failed to place order";
-            toast.error(errorMessage);
-            console.error("Order creation error:", error);
-        }
+  const handleFulfillmentFilter = (status: PhysicalStoreFulfillmentOrderStatus, checked: boolean) => {
+    const currentStatuses = filters.fulfillmentStatus || [];
+    const updatedStatuses = checked
+      ? [...currentStatuses, status]
+      : currentStatuses.filter((s: PhysicalStoreFulfillmentOrderStatus) => s !== status);
+    
+    onFiltersChange({ 
+      ...filters, 
+      fulfillmentStatus: updatedStatuses.length > 0 ? updatedStatuses : undefined 
     });
-};
+  };
 
-export const useGetUserOrders = (options: {
-    limit?: number;
-    offset?: number;
-    status?: OrderStatus;
-} = {}) => {
-    return useQuery({
-        queryKey: ["user-orders", options],
-        queryFn: () => getLogedInUserOrders(options),
-        staleTime: 1000 * 60 * 2,
-    });
-};
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to) {
+      onFiltersChange({ 
+        ...filters,
+        dateRange: { 
+          from: range.from, 
+          to: range.to 
+        } 
+      });
+    } else {
+      onFiltersChange({ 
+        ...filters,
+        dateRange: undefined 
+      });
+    }
+  };
 
-export const useCancelOrder = () => {
-    const queryClient = useQueryClient();
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.status?.length) count++;
+    if (filters.fulfillmentStatus?.length) count++;
+    if (filters.dateRange) count++;
+    if (filters.search) count++;
+    return count;
+  };
 
-    return useMutation({
-        mutationFn: (orderId: string) => cancelOrder(orderId),
-        onSuccess: (result, orderId) => {
-            if (result.success) {
-                toast.success(result.success);
+  const handleClearAll = () => {
+    setSearchTerm("");
+    setDateRange(undefined);
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    onClearFilters();
+  };
 
-                queryClient.invalidateQueries({ queryKey: ["user-orders"] });
-                queryClient.invalidateQueries({ queryKey: ["order", orderId] });
-            } else if (result.error) {
-                toast.error(result.error);
-            }
-        },
-        onError: (error) => {
-            toast.error("Failed to cancel order");
-            console.error("Cancel order error:", error);
-        },
-    });
-};
+  const handleQuickFilter = (filterType: 'pending' | 'thisWeek') => {
+    if (filterType === 'pending') {
+      onFiltersChange({ 
+        ...filters,
+        status: [OrderStatus.PENDING] 
+      });
+    } else if (filterType === 'thisWeek') {
+      const today = new Date();
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      handleDateRangeChange({ from: weekAgo, to: today });
+    }
+  };
 
-export const useGetPhysicalStoreFulfillmentOrders = (
-    physicalStoreId: string,
-    options: {
-        status?: PhysicalStoreFulfillmentOrderStatus;
-        limit?: number;
-        offset?: number;
-    } = {}
-) => {
-    return useQuery({
-        queryKey: ["physical-store-orders-fulfillment", physicalStoreId, options],
-        queryFn: () => getPhysicalStoreFulfillmentOrders(physicalStoreId, options),
-        enabled: !!physicalStoreId,
-        staleTime: 1000 * 60 * 3, // 3 minutes
-        refetchInterval: 1000 * 60 * 5, // Auto-refresh every 5 minutes
-    });
-};
+  const activeFiltersCount = getActiveFiltersCount();
 
-export const useUpdateFulfillmentStatus = () => {
-    const queryClient = useQueryClient();
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
 
-    return useMutation({
-        mutationFn: ({
-            fulfillmentId,
-            status,
-            trackingNumber
-        }: {
-            fulfillmentId: string;
-            status: PhysicalStoreFulfillmentOrderStatus;
-            trackingNumber?: string;
-        }) => updateFulfillmentStatus(fulfillmentId, status, trackingNumber),
-        onSuccess: (result, variables) => {
-            if (result.success) {
-                toast.success(result.success);
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filters
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </CardTitle>
+          {activeFiltersCount > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleClearAll}
+            >
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Clear All
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Search */}
+        <div className="space-y-2">
+          <Label htmlFor="search">Search Orders</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="search"
+              placeholder="Search by order number, customer email..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
 
-                queryClient.invalidateQueries({ queryKey: ["physical-store-order-fulfillment"] });
+        {/* Quick Filters Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Order Status Filter */}
+          <div className="space-y-2">
+            <Label>Order Status</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  Status
+                  {filters.status?.length ? (
+                    <Badge variant="secondary" className="ml-auto">
+                      {filters.status.length}
+                    </Badge>
+                  ) : null}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-60" align="start">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Select Statuses</h4>
+                  <div className="space-y-2">
+                    {Object.values(OrderStatus).map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={status}
+                          checked={filters.status?.includes(status) || false}
+                          onCheckedChange={(checked) => 
+                            handleStatusFilter(status, !!checked)
+                          }
+                        />
+                        <Label 
+                          htmlFor={status} 
+                          className="text-sm capitalize cursor-pointer"
+                        >
+                          {status}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-                queryClient.setQueryData(
-                    ["physical-store-order-fulfillment"],
-                    (oldData: any) => {
-                        if (!oldData) return oldData;
-
-                        return {
-                            ...oldData,
-                            data: {
-                                ...oldData.data,
-                                documents: oldData.data.documents.map((doc: any) =>
-                                    doc.$id === variables.fulfillmentId
-                                        ? { ...doc, status: variables.status, trackingNumber: variables.trackingNumber }
-                                        : doc
-                                )
+          {/* Fulfillment Status Filter (Physical stores only) */}
+          {storeType === 'physical' && (
+            <div className="space-y-2">
+              <Label>Fulfillment Status</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    size="sm"
+                  >
+                    Fulfillment
+                    {filters.fulfillmentStatus?.length ? (
+                      <Badge variant="secondary" className="ml-auto">
+                        {filters.fulfillmentStatus.length}
+                      </Badge>
+                    ) : null}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-60" align="start">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Select Fulfillment Status</h4>
+                    <div className="space-y-2">
+                      {Object.values(PhysicalStoreFulfillmentOrderStatus).map((status) => (
+                        <div key={status} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`fulfillment-${status}`}
+                            checked={filters.fulfillmentStatus?.includes(status) || false}
+                            onCheckedChange={(checked) => 
+                              handleFulfillmentFilter(status, !!checked)
                             }
-                        };
-                    }
-                );
-            } else if (result.error) {
-                toast.error(result.error)
-            }
-        },
-        onError: (error) => {
-            toast.error("Failed to update fulfillment status");
-            console.error("Update fulfillment status error:", error);
-        },
-    })
-};
+                          />
+                          <Label 
+                            htmlFor={`fulfillment-${status}`} 
+                            className="text-sm capitalize cursor-pointer"
+                          >
+                            {status.replace('_', ' ')}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
-export const useGetVirtualStoreOrders = (
-    virtualStoreId: string,
-    options: {
-        status?: OrderStatus;
-        limit?: number;
-        offset?: number;
-    } = {}
-) => {
-    return useQuery({
-        queryKey: ["virtual-store-orders", virtualStoreId, options],
-        queryFn: () => getVirtualStoreOrders(virtualStoreId, options),
-        enabled: !!virtualStoreId,
-        staleTime: 1000 * 60 * 2,
-        refetchInterval: 1000 * 60 * 3,
-    });
-};
+          {/* Date Range Filter */}
+          <div className="space-y-2">
+            <Label>Date Range</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  size="sm"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "MMM dd")} -{" "}
+                        {format(dateRange.to, "MMM dd")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "MMM dd, yyyy")
+                    )
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={handleDateRangeChange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-export const useOrderFilters = () => {
-    const orderStatuses = [
-        { value: OrderStatus.PENDING, label: "Pending", color: "bg-yellow-100 text-yellow-800" },
-        { value: OrderStatus.PROCESSING, label: "Processing", color: "bg-blue-100 text-blue-800" },
-        { value: OrderStatus.SHIPPED, label: "Shipped", color: "bg-purple-100 text-purple-800" },
-        { value: OrderStatus.DELIVERED, label: "Delivered", color: "bg-green-100 text-green-800" },
-        { value: OrderStatus.CANCELLED, label: "Cancelled", color: "bg-red-100 text-red-800" },
-    ];
+          {/* Quick Actions */}
+          <div className="space-y-2">
+            <Label>Quick Filters</Label>
+            <div className="flex flex-wrap gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickFilter('pending')}
+                className="text-xs h-7"
+              >
+                Pending
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickFilter('thisWeek')}
+                className="text-xs h-7"
+              >
+                This Week
+              </Button>
+            </div>
+          </div>
+        </div>
 
-    const fulfillmentStatuses = [
-        { value: "pending_fulfillment", label: "Pending Fulfillment", color: "bg-yellow-100 text-yellow-800" },
-        { value: "processing", label: "Processing", color: "bg-blue-100 text-blue-800" },
-        { value: "shipped", label: "Shipped", color: "bg-purple-100 text-purple-800" },
-        { value: "completed", label: "Completed", color: "bg-green-100 text-green-800" },
-    ];
+        {/* Active Filters Display */}
+        {activeFiltersCount > 0 && (
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Active Filters</Label>
+            <div className="flex flex-wrap gap-1">
+              {filters.status?.map((status: OrderStatus) => (
+                <Badge 
+                  key={status} 
+                  variant="secondary" 
+                  className="text-xs"
+                >
+                  Status: {status}
+                  <button
+                    onClick={() => handleStatusFilter(status, false)}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              
+              {filters.fulfillmentStatus?.map((status: PhysicalStoreFulfillmentOrderStatus) => (
+                <Badge 
+                  key={status} 
+                  variant="secondary" 
+                  className="text-xs"
+                >
+                  Fulfillment: {status.replace('_', ' ')}
+                  <button
+                    onClick={() => handleFulfillmentFilter(status, false)}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
 
-    const getStatusBadgeClass = (status: OrderStatus | string) => {
-        const allStatuses = [...orderStatuses, ...fulfillmentStatuses];
-        const statusConfig = allStatuses.find(s => s.value === status);
-        return statusConfig?.color || "bg-gray-100 text-gray-800";
-    };
+              {filters.dateRange && (
+                <Badge variant="secondary" className="text-xs">
+                  {format(filters.dateRange.from, "MMM dd")} - {format(filters.dateRange.to, "MMM dd")}
+                  <button
+                    onClick={() => {
+                      onFiltersChange({ 
+                        ...filters,
+                        dateRange: undefined 
+                      });
+                      setDateRange(undefined);
+                    }}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
 
-    const getStatusLabel = (status: OrderStatus | string) => {
-        const allStatuses = [...orderStatuses, ...fulfillmentStatuses];
-        const statusConfig = allStatuses.find(s => s.value === status);
-        return statusConfig?.label || status;
-    };
-
-    return {
-        orderStatuses,
-        fulfillmentStatuses,
-        getStatusBadgeClass,
-        getStatusLabel,
-    };
-};
-
-// Infinite scroll hook for orders
-export const useInfiniteOrders = (
-    queryType: 'user' | 'virtual-store' | 'physical-fulfillment',
-    storeId?: string,
-    filters: {
-        status?: OrderStatus | string;
-        search?: string;
-    } = {}
-) => {
-    return useQuery({
-        queryKey: ["infinite-orders", queryType, storeId, filters],
-        queryFn: async () => {
-            switch (queryType) {
-                case 'user':
-                    return getLogedInUserOrders({ limit: 20, offset: 0, status: filters.status as OrderStatus });
-                case 'virtual-store':
-                    return getVirtualStoreOrders(storeId!, { limit: 20, offset: 0, status: filters.status as OrderStatus });
-                case 'physical-fulfillment':
-                    return getPhysicalStoreFulfillmentOrders(storeId!, {
-                        limit: 20,
-                        offset: 0,
-                        status: filters.status as any
-                    });
-                default:
-                    throw new Error('Invalid query type');
-            }
-        },
-        enabled: queryType === 'user' || !!storeId,
-        staleTime: 1000 * 60 * 2,
-    });
-};
-
-// Real-time order updates hook (for notifications)---> TO BE UPDATED LATER
-export const useOrderUpdates = (userId: string) => {
-    const queryClient = useQueryClient();
-
-    // This would typically use WebSocket or Server-Sent Events
-    // For now, just providing the structure
-    return {
-        subscribe: () => {
-            // Subscribe to order updates
-            console.log("Subscribing to order updates for user:", userId);
-        },
-        unsubscribe: () => {
-            // Unsubscribe from order updates
-            console.log("Unsubscribing from order updates");
-        },
-        invalidateOrderQueries: () => {
-            queryClient.invalidateQueries({ queryKey: ["user-orders"] });
-            queryClient.invalidateQueries({ queryKey: ["virtual-store-orders"] });
-            queryClient.invalidateQueries({ queryKey: ["physical-store-order-fulfillment"] });
-        }
-    };
-};
+              {filters.search && (
+                <Badge variant="secondary" className="text-xs">
+                  Search: "{filters.search}"
+                  <button
+                    onClick={() => {
+                      onFiltersChange({ 
+                        ...filters,
+                        search: undefined 
+                      });
+                      setSearchTerm("");
+                    }}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

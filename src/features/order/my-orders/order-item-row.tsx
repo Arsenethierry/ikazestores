@@ -4,8 +4,7 @@ import { OrderItems } from '@/lib/types/appwrite/appwrite';
 import Image from 'next/image';
 import React from 'react';
 
-function OrderItemRow({ item }: { item: OrderItems }) {
-
+function OrderItemRow({ item, orderCurrency }: { item: OrderItems, orderCurrency: string }) {
     return (
         <TableRow className='hover:bg-gray-50/50'>
             <TableCell className="w-[100px]">
@@ -21,11 +20,6 @@ function OrderItemRow({ item }: { item: OrderItems }) {
                             />
                         </div>
                     )}
-                    <div className="flex flex-col space-y-1 min-w-0">
-                        <span className="text-xs text-gray-500 font-mono">
-                            {item.sku}
-                        </span>
-                    </div>
                 </div>
             </TableCell>
 
@@ -42,21 +36,19 @@ function OrderItemRow({ item }: { item: OrderItems }) {
                 </div>
             </TableCell>
 
-            {/* Quantity Column */}
             <TableCell>
                 <span className="font-medium">
                     {item.quantity}
                 </span>
             </TableCell>
 
-            {/* Price Column */}
             <TableCell className="text-right">
                 <span className="font-medium text-gray-900">
-                    ${((item.basePrice + item.commission) * (item.quantity || 1))}
+                    {((item.basePrice + item.commission) * (item.quantity || 1))} {orderCurrency}
                 </span>
                 {item.quantity && item.quantity > 1 && (
                     <p className="text-sm text-gray-500">
-                        ${item.basePrice + item.commission} each
+                        {item.basePrice + item.commission} {orderCurrency} each
                     </p>
                 )}
             </TableCell>

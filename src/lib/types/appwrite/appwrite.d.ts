@@ -502,6 +502,7 @@ export type Orders = Models.Document & {
     itemCount: number | null;
     exchangeRatesSnapshot: string | null;
     deliveredAt: string | null;
+    cancellationReason: string | null;
 }
 
 export type OrderItems = Models.Document & {
