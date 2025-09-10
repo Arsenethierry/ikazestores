@@ -3,6 +3,8 @@ import { getCustomerOrdersAction } from "@/lib/actions/product-order-actions";
 import { OrderStatus } from "@/lib/constants";
 import { Package } from "lucide-react";
 import { OrderCard } from "./order-card";
+import { OrderPagination } from "./order-pagination";
+import { OrderFilters } from "./OrderFilters";
 
 interface MyOrdersListProps {
     customerId: string;
@@ -35,6 +37,8 @@ export async function MyOrdersList({ customerId, searchParams }: MyOrdersListPro
     if (orders.length === 0) {
         return (
             <div className="text-center py-12">
+                <OrderFilters currentStatus={status} />
+                
                 <Package className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-semibold">No orders found</h3>
                 <p className="mt-2 text-muted-foreground">
@@ -55,7 +59,7 @@ export async function MyOrdersList({ customerId, searchParams }: MyOrdersListPro
             </div>
 
             {total > 10 && (
-                <Pagination
+                <OrderPagination
                     currentPage={page}
                     totalPages={Math.ceil(total / 10)}
                     baseUrl="/my-orders"
