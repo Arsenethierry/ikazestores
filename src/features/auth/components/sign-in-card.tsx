@@ -60,7 +60,6 @@ export const SignInCard = ({ isModal = false }: SignInCardProps) => {
 
     const onSubmit = async (values: z.infer<typeof loginSchema>) => {
         execute(values);
-
     }
 
     const handleLoginWithGoogle = async () => {

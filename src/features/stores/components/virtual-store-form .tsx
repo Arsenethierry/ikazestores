@@ -14,13 +14,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorAlert from "@/components/error-alert";
-import { Loader } from "lucide-react";
+import { DollarSign, Globe, Loader } from "lucide-react";
 import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { SingleImageUploader } from "@/components/file-uploader";
 import { CreateVirtualStoreTypes, CurrentUserType, UpdateVirtualStoreTypes, VirtualStoreTypes } from "@/lib/types";
 import { MultiImageUploader } from "@/components/multiple-images-uploader";
 import { MAIN_DOMAIN } from "@/lib/env-config";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -29,6 +29,26 @@ import MultipleSelector, { type Option } from "@/components/ui/multiselect";
 import countriesData from '@/data/countries.json';
 import { createVirtualStoreFormSchema, updateVirtualStoreFormSchema } from "@/lib/schemas/stores-schema";
 import { useCreateVirtualStore, useUpdateVirtualStore } from "@/hooks/queries-and-mutations/use-virtual-store";
+import { COUNTRY_CURRENCY_MAP, getCurrencySymbol } from "@/features/products/currency/currency-utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const SUPPORTED_COUNTRIES = [
+    { name: "Rwanda", code: "RW", currency: "RWF" },
+    { name: "Kenya", code: "KE", currency: "KES" },
+    { name: "Uganda", code: "UG", currency: "UGX" },
+    { name: "Tanzania", code: "TZ", currency: "TZS" },
+    { name: "Burundi", code: "BI", currency: "BIF" },
+    { name: "Ethiopia", code: "ET", currency: "ETB" },
+    { name: "South Sudan", code: "SS", currency: "SSP" },
+    { name: "Zambia", code: "ZM", currency: "ZMW" },
+    { name: "Malawi", code: "MW", currency: "MWK" },
+    { name: "Congo DRC", code: "CD", currency: "CDF" }
+];
+
+const COUNTRY_NAME_TO_CURRENCY_MAP: Record<string, string> = SUPPORTED_COUNTRIES.reduce((acc, country) => {
+    acc[country.name] = country.currency;
+    return acc;
+}, {} as Record<string, string>);
 
 export function VirtualStoreForm({
     currentUser, initialValues = null
@@ -38,14 +58,10 @@ export function VirtualStoreForm({
 }) {
     const isEditMode = !!initialValues;
     const router = useRouter();
+    const [selectedCountryCurrency, setSelectedCountryCurrency] = useState<{ currency: string; symbol: string } | null>(null);
 
     const { mutate: createVirtualStore, isPending: isCreatingStore, error: createStoreError } = useCreateVirtualStore();
     const { mutate: updateVirtualStore, isPending: isUpdating, error: updateStoreError } = useUpdateVirtualStore();
-
-    const countries: Option[] = countriesData.map(country => ({
-        label: country.name,
-        value: country.name
-    }));
 
     const [CancelDialog, confirmCancelEdit] = useConfirm(
         "Are you sure you want to cancel?",
@@ -65,10 +81,8 @@ export function VirtualStoreForm({
             bannerIds: initialValues?.bannerIds ?? [],
             storeLogoUrl: initialValues?.storeLogoUrl ?? "",
             storeLogoId: initialValues?.storeLogoId ?? "",
-            operatingCountries: initialValues?.operatingCountries?.map(country => ({
-                value: country,
-                label: country
-            })) ?? [],
+            operatingCountry: initialValues?.operatingCountry ?? '',
+            countryCurrency: initialValues?.countryCurrency ?? '',
         } : {
             storeName: "",
             desccription: "",
@@ -76,11 +90,33 @@ export function VirtualStoreForm({
             storeDomain: "",
             storeBanner: [] as File[],
             storeLogo: undefined as unknown as File,
-            operatingCountries: [] as Array<{ value: string; label: string }>,
+            operatingCountry: '',
+            countryCurrency: '',
         },
     });
+
     const { watch, setValue, formState: { dirtyFields } } = form;
     const storeName = watch('storeName');
+    const selectedCountry = watch('operatingCountry');
+
+    useEffect(() => {
+        if (selectedCountry) {
+            const currency = COUNTRY_NAME_TO_CURRENCY_MAP[selectedCountry];
+            if (currency) {
+                const symbol = getCurrencySymbol(currency) || currency;
+                setSelectedCountryCurrency({ currency, symbol });
+                
+                setValue('countryCurrency', currency, { shouldDirty: true });
+            } else {
+                setSelectedCountryCurrency(null);
+                setValue('countryCurrency', '', { shouldDirty: true });
+            }
+        } else {
+            setSelectedCountryCurrency(null);
+            setValue('countryCurrency', '', { shouldDirty: true });
+        }
+    }, [selectedCountry, setValue]);
+
 
     useEffect(() => {
         if (isEditMode && initialValues?.storeLogoUrl) {
@@ -114,8 +150,11 @@ export function VirtualStoreForm({
                     updatedValues.storeLogo = values.storeLogo;
                     updatedValues.oldFileId = initialValues?.storeLogoId ?? null;
                 }
-                if (dirtyFields.operatingCountries) {
-                    updatedValues.operatingCountries = values.operatingCountries
+                if (dirtyFields.operatingCountry) {
+                    updatedValues.operatingCountry = values.operatingCountry
+                }
+                if (dirtyFields.countryCurrency) {
+                    updatedValues.countryCurrency = values.countryCurrency;
                 }
                 if (Object.keys(updatedValues).length > 0) {
                     const formData = {
@@ -146,6 +185,8 @@ export function VirtualStoreForm({
     }
 
     const isLoading = isCreatingStore || isUpdating;
+
+    console.log("&&&&&&: ", form.watch("operatingCountry"))
 
     const error = isEditMode ? updateStoreError : createStoreError
     return (
@@ -205,20 +246,91 @@ export function VirtualStoreForm({
 
                         <FormField
                             control={form.control}
-                            name="operatingCountries"
+                            name="operatingCountry"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Operating Countries</FormLabel>
-                                    <MultipleSelector
-                                        {...field}
-                                        defaultOptions={countries}
-                                        placeholder="Select operating countries to sell your products"
-                                        emptyIndicator={
-                                            <p className="text-center text-sm">No countries found</p>
-                                        }
-                                        maxSelected={5}
-                                        hideClearAllButton
-                                    />
+                                    <FormLabel>Store Country <span className="text-red-500">*</span></FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select your store's country">
+                                                    {field.value && (
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <div className="flex items-center gap-2">
+                                                                <Globe className="h-4 w-4 text-gray-500" />
+                                                                <span>{field.value}</span>
+                                                            </div>
+                                                            {selectedCountryCurrency && (
+                                                                <span className="text-sm text-gray-500">
+                                                                    {selectedCountryCurrency.symbol} {selectedCountryCurrency.currency}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="max-h-96 overflow-y-auto">
+                                            {SUPPORTED_COUNTRIES.map((country) => {
+                                                const symbol = getCurrencySymbol(country.currency) || country.currency;
+                                                return (
+                                                    <SelectItem key={country.code} value={country.name}>
+                                                        <div className="flex items-center justify-between w-full gap-4">
+                                                            <span>{country.name}</span>
+                                                            <span className="text-sm text-gray-500">
+                                                                {symbol} {country.currency}
+                                                            </span>
+                                                        </div>
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+
+                                    {selectedCountryCurrency && (
+                                        <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <DollarSign className="h-5 w-5 text-gray-600" />
+                                                    <span className="text-sm font-medium text-gray-700">
+                                                        Store Currency (Auto-assigned)
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-2xl font-bold text-gray-900">
+                                                        {selectedCountryCurrency.symbol}
+                                                    </span>
+                                                    <span className="text-lg font-semibold text-gray-700">
+                                                        {selectedCountryCurrency.currency}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                All products in your store will be priced in {selectedCountryCurrency.currency}.
+                                                Customers visiting your store will see prices in this currency by default.
+                                            </p>
+                                        </div>
+                                    )}
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="countryCurrency"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Store Currency</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            placeholder="Currency will be auto-populated"
+                                            readOnly
+                                            className="bg-gray-50 cursor-not-allowed"
+                                            {...field} 
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />

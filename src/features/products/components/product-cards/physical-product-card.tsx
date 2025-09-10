@@ -12,7 +12,7 @@ import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PhysicalProductMenuActions } from '../physical-product-actions';
 import { CloneProductModal } from '../clone-products/clone-product-modal';
-import { ProductPriceDisplay } from '../../currency/converted-price-component';
+import { getCurrencySymbol } from '../../currency/currency-utils';
 
 export const PhysicalProductCard = ({
     product,
@@ -110,17 +110,11 @@ export const PhysicalProductCard = ({
                 <div className='flex justify-between items-center'>
                     <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out group-hover:translate-x-1">
                         <span className="font-semibold transition-colors duration-300 group-hover:text-gray-900">
-                            <ProductPriceDisplay
-                                productCurrency={product.currency}
-                                productPrice={price}
-                            />
+                            {price} {getCurrencySymbol(product.currency)}
                         </span>
                         {originalPrice && (
                             <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">
-                                <ProductPriceDisplay
-                                    productCurrency={product.currency}
-                                    productPrice={originalPrice}
-                                />
+                                {originalPrice} {getCurrencySymbol(product.currency)}
                             </span>
                         )}
                     </div>

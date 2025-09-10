@@ -279,10 +279,10 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                 <FormDescription>
                                                     <div className="flex justify-between items-center pt-2 px-3 py-2 bg-gray-50 rounded-md border">
                                                         <span className="text-sm text-gray-600">
-                                                            Base: ${product.basePrice.toFixed(2)}
+                                                            Base: {product.basePrice} {product.currency}
                                                         </span>
                                                         <span className="text-sm font-semibold text-green-600">
-                                                            Final: ${finalPrice.toFixed(2)}
+                                                            Final: {finalPrice} {product.currency}
                                                         </span>
                                                     </div>
                                                 </FormDescription>
@@ -407,7 +407,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                                                             <div>
                                                                                                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Base Price</span>
                                                                                                 <div className="text-sm font-semibold text-gray-900 mt-1">
-                                                                                                    ${combination.basePrice.toFixed(2)}
+                                                                                                    {combination.basePrice} {product.currency}
                                                                                                 </div>
                                                                                             </div>
 
@@ -434,7 +434,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                                                             <div>
                                                                                                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Final Price</span>
                                                                                                 <div className="text-sm font-semibold text-green-600 mt-1">
-                                                                                                    ${finalCombinationPrice.toFixed(2)}
+                                                                                                    {finalCombinationPrice} {product.currency}
                                                                                                 </div>
                                                                                             </div>
 

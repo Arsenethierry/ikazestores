@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { ProductPriceDisplay } from "../../currency/converted-price-component";
+import { getCurrencySymbol } from "../../currency/currency-utils";
 
 interface AdminVirtualProductCardProps {
     product: VirtualProductTypes;
@@ -379,11 +379,7 @@ export const AdminVirtualProductCard = ({
                                         <span>Base Price</span>
                                     </div>
                                     <div className="font-semibold text-gray-900">
-                                        <ProductPriceDisplay
-                                            productPrice={product.basePrice || 0}
-                                            productCurrency={product.currency || "USD"}
-                                            showOriginalPrice={false}
-                                        />
+                                        {product.basePrice} {getCurrencySymbol(product.currency)}
                                     </div>
                                 </div>
 
@@ -393,11 +389,7 @@ export const AdminVirtualProductCard = ({
                                         <span>Commission</span>
                                     </div>
                                     <div className="font-semibold text-green-600">
-                                        <ProductPriceDisplay
-                                            productPrice={product.commission || 0}
-                                            productCurrency={product.currency || "USD"}
-                                            showOriginalPrice={false}
-                                        />
+                                       {product.commission} {getCurrencySymbol(product.currency)}
                                     </div>
                                 </div>
                             </div>
@@ -406,11 +398,7 @@ export const AdminVirtualProductCard = ({
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-medium text-gray-700">Selling Price:</span>
                                     <div className="text-lg font-bold text-blue-600">
-                                        <ProductPriceDisplay
-                                            productPrice={finalPrice}
-                                            productCurrency={product.currency || "USD"}
-                                            showOriginalPrice={false}
-                                        />
+                                        {finalPrice} {getCurrencySymbol(product.currency)}
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -462,31 +450,19 @@ export const AdminVirtualProductCard = ({
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Base Price:</span>
                                             <span className="font-semibold text-gray-900">
-                                                <ProductPriceDisplay
-                                                    productPrice={product.basePrice || 0}
-                                                    productCurrency={product.currency || "USD"}
-                                                    showOriginalPrice={false}
-                                                />
+                                                {product.basePrice} {getCurrencySymbol(product.currency)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Commission:</span>
                                             <span className="font-semibold text-green-600">
-                                                <ProductPriceDisplay
-                                                    productPrice={newCommission}
-                                                    productCurrency={product.currency || "USD"}
-                                                    showOriginalPrice={false}
-                                                />
+                                                {newCommission} {getCurrencySymbol(product.currency)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between pt-2 border-t border-blue-200">
                                             <span className="font-semibold text-gray-900">New Selling Price:</span>
                                             <span className="font-bold text-blue-600 text-base">
-                                                <ProductPriceDisplay
-                                                    productPrice={(product.basePrice || 0) + newCommission}
-                                                    productCurrency={product.currency || "USD"}
-                                                    showOriginalPrice={false}
-                                                />
+                                                {(product.basePrice || 0) + newCommission} {getCurrencySymbol(product.currency)}
                                             </span>
                                         </div>
                                     </div>

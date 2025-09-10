@@ -1,8 +1,6 @@
 "use server";
 
 import { Query } from "node-appwrite";
-import { createSessionClient } from "../appwrite";
-import { DATABASE_ID, VIRTUAL_PRODUCT_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { createVirtualStoreFormSchema } from "../schemas/stores-schema";
 import { VirtualStore } from "../models/virtual-store";
 import { CreateVirtualStoreTypes, UpdateVirtualStoreTypes, VirtualProductTypes, VirtualStoreTypes } from "../types";
@@ -148,7 +146,7 @@ export const getAllVirtualStores = async ({ withProducts }: { withProducts: bool
         const currentUserCountry = await await getUserLocale();
 
         if (currentUserCountry?.country) {
-            storesResult = await virtualStore.findByOperatingCountries([currentUserCountry.country], {
+            storesResult = await virtualStore.findByOperatingCountry(currentUserCountry.country, {
                 limit: 5,
                 orderBy: "$createdAt",
                 orderType: "desc"

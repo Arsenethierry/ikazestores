@@ -9,12 +9,12 @@ import Image from 'next/image';
 import React, { useState, useCallback, memo } from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
-import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
 import { SaveItemButton } from '../save-item-button';
 import { Button } from '@/components/ui/button';
 import { useInView } from 'react-intersection-observer';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
+import { getCurrencySymbol } from '../../currency/currency-utils';
 
 interface VirtualProductCardProps {
     product: VirtualProductTypes;
@@ -45,6 +45,8 @@ const VirtualProductCard = memo(({
         triggerOnce: true,
         rootMargin: '50px'
     });
+
+    console.log(product)
 
     const originalPrice = product.price;
     const sellingPrice = originalPrice - 0;
@@ -222,17 +224,11 @@ const VirtualProductCard = memo(({
                             <div className="flex items-center justify-between pt-2">
                                 <div className="flex items-center gap-2">
                                     <span className="font-bold text-lg">
-                                        <ProductPriceDisplay
-                                            productPrice={sellingPrice}
-                                            productCurrency={productCurrency}
-                                        />
+                                        {getCurrencySymbol(productCurrency)} {sellingPrice}
                                     </span>
                                     {discountPercentage > 0 && (
                                         <span className="text-sm text-muted-foreground line-through">
-                                            <ProductPriceDisplay
-                                                productPrice={originalPrice}
-                                                productCurrency={productCurrency}
-                                            />
+                                            {getCurrencySymbol(productCurrency)} {originalPrice}
                                         </span>
                                     )}
                                 </div>
@@ -446,17 +442,11 @@ const VirtualProductCard = memo(({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 transition-transform duration-300 group-hover:translate-x-1">
                         <span className="font-bold text-base transition-colors duration-300 group-hover:text-primary">
-                            <ProductPriceDisplay
-                                productPrice={sellingPrice}
-                                productCurrency={productCurrency}
-                            />
+                            {getCurrencySymbol(productCurrency)} {sellingPrice}
                         </span>
                         {discountPercentage > 0 && (
                             <span className="text-sm text-muted-foreground line-through transition-opacity duration-300 group-hover:opacity-70">
-                                <ProductPriceDisplay
-                                    productPrice={originalPrice}
-                                    productCurrency={productCurrency}
-                                />
+                                {getCurrencySymbol(productCurrency)} {originalPrice}
                             </span>
                         )}
                     </div>

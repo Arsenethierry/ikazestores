@@ -35,14 +35,8 @@ export const createVirtualStoreFormSchema = z.object({
   storeDomain: z.string().min(2).max(50),
   storeBanner: z.custom<File[]>(),
   storeLogo: z.custom<File>(),
-  operatingCountries: z
-    .array(
-      z.object({
-        value: z.string(),
-        label: z.string(),
-      })
-    )
-    .min(1, { message: "Select at least one operating country" }),
+  operatingCountry: z.string().min(1, "Operating country is required"),
+  countryCurrency: z.string(),
 });
 
 export const updateVirtualStoreFormSchema = z.object({
@@ -58,15 +52,8 @@ export const updateVirtualStoreFormSchema = z.object({
   storeLogoUrl: z.string().optional(),
   storeLogoId: z.string().optional(),
   oldFileId: z.string().optional().nullable(),
-  operatingCountries: z
-    .array(
-      z.object({
-        value: z.string(),
-        label: z.string(),
-      })
-    )
-    .min(1, { message: "Select at least one operating country" })
-    .optional(),
+  operatingCountry: z.string().optional(),
+  countryCurrency: z.string().optional(),
 });
 
 export const CreateStoreReviewDataSchema = z.object({

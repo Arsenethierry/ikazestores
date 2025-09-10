@@ -9,7 +9,6 @@ import { ProductSearchField } from "@/components/search/virtual-products-search"
 import { Suspense } from "react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { MobileMenuContent } from "../mobile-menu-contents";
-import { CurrencySelector } from "@/features/products/currency/currency-selector";
 import { ProductsCollectionsList } from "./products-collections-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CurrentStoreLogo } from "./store-logo";
@@ -29,7 +28,6 @@ export const TenantStoreNavbar = async ({ currentStoreId }: { currentStoreId: st
       <div className='main-container hidden md:flex justify-between items-center bg-primary font-sans text-white font-medium flex-between border-b border-blue-50/20 h-8'>
         <div className='flex gap-3'>
           <Link href={'/'} className='text-sm hover:text-white/80'>Language: English</Link>
-          <CurrencySelector />
         </div>
 
         <div className='flex gap-3'>

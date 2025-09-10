@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { OrderItems } from '@/lib/types/appwrite/appwrite';
 import Image from 'next/image';

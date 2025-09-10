@@ -1,658 +1,740 @@
 import { ID, Query } from "node-appwrite";
-import {
-  createAdminClient,
-  createDocumentPermissions,
-  createSessionClient,
-} from "../appwrite";
-import {
-  BaseModel,
-  PaginationResult,
-  QueryFilter,
-  QueryOptions,
-} from "../core/database";
+import { createAdminClient, createSessionClient } from "../appwrite";
+import { BaseModel, PaginationResult } from "../core/database";
+import { OrderNotificationService } from "../core/messaging-services";
 import {
   COMMISSION_RECORDS_COLLECTION_ID,
   DATABASE_ID,
   ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-  ORDER_ITEMS_COLLECTION_ID,
   ORDERS_COLLECTION_ID,
 } from "../env-config";
+import {
+  CreateOrderInput,
+  OrderItemCreateData,
+} from "../schemas/order-schemas";
 import {
   CommissionRecord,
   OrderFullfilmentRecords,
   OrderItems,
   Orders,
 } from "../types/appwrite/appwrite";
+import { AffiliateProductModel } from "./AffliateProductModel";
+import { OrderItemsModel } from "./OrderItemsModel";
 import { PhysicalStoreModel } from "./physical-store-model";
 import { ProductModel } from "./ProductModel";
 import { VirtualStore } from "./virtual-store";
 import { OrderStatus, PhysicalStoreFulfillmentOrderStatus } from "../constants";
-import { PhysicalStoreTypes, VirtualStoreTypes } from "../types";
-import { OrderNotificationService } from "../core/messaging-services";
-
-export interface OrderFilters {
-  orderStatus?: OrderStatus[];
-  fulfillmentStatus?: PhysicalStoreFulfillmentOrderStatus[];
-  commissionStatus?: string[];
-  virtualStoreId?: string;
-  physicalStoreId?: string;
-  customerId?: string;
-  customerEmail?: string;
-  dateRange?: {
-    from: Date;
-    to: Date;
-  };
-}
-
-export interface OrderItemCreateData {
-  virtualProductId: string;
-  originalProductId: string;
-  productName: string;
-  productImage?: string;
-  sku: string;
-  basePrice: number;
-  sellingPrice: number;
-  commission: number;
-  quantity: number;
-  subtotal: number;
-  virtualStoreId: string;
-  physicalStoreId: string;
-}
-
-export interface OrderCreateData {
-  orderNumber: string;
-  customerId: string;
-  customerEmail?: string;
-  virtualStoreId: string;
-  customerCurrency: string;
-  customerSubtotal: number;
-  customerTotalAmount: number;
-  customerShippingCost?: number;
-  customerTaxAmount?: number;
-  baseSubtotal: number;
-  baseTotalAmount: number;
-  baseShippingCost?: number;
-  baseTaxAmount?: number;
-  baseCurrency: string;
-  exchangeRateToBase: number;
-  shippingAddress: string;
-  billingAddress?: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  orderDate: string;
-  estimatedDeliveryDate?: string;
-  notes?: string;
-  orderItems: OrderItemCreateData[];
-}
 
 export interface OrderWithRelations extends Orders {
-  items?: OrderItems[];
+  items?: PaginationResult<OrderItems>;
   fulfillmentRecords?: OrderFullfilmentRecords[];
   commissionRecords?: CommissionRecord[];
-  virtualStore?: VirtualStoreTypes;
-  physicalStores?: PhysicalStoreTypes[];
 }
 
+export interface OrderWithItems extends Orders {
+  items?: PaginationResult<OrderItems>;
+}
 export class OrderModel extends BaseModel<Orders> {
   constructor() {
     super(ORDERS_COLLECTION_ID);
   }
 
-  async findByVirtualStore(
-    virtualStoreId: string,
-    options: QueryOptions = {}
-  ): Promise<PaginationResult<Orders>> {
-    const filters: QueryFilter[] = [
-      { field: "virtualStoreId", operator: "equal", value: virtualStoreId },
-      ...(options.filters || []),
-    ];
-
-    return this.findMany({
-      ...options,
-      filters,
-      orderBy: "$createdAt",
-      orderType: "desc",
-    });
-  }
-
   private get virtualStoreModel() {
     return new VirtualStore();
   }
+
   private get notificationService() {
     return new OrderNotificationService();
   }
+
   private get physicalStoreModel() {
     return new PhysicalStoreModel();
   }
 
-  async findByPhysicalStore(
-    physicalStoreId: string,
-    options: QueryOptions = {}
-  ): Promise<PaginationResult<Orders>> {
+  private get orderItemsModel() {
+    return new OrderItemsModel();
+  }
+
+  private get affiliateProductModel() {
+    return new AffiliateProductModel();
+  }
+
+  private get productModel() {
+    return new ProductModel();
+  }
+
+  async createOrder(
+    orderData: CreateOrderInput & { orderNumber: string }
+  ): Promise<{
+    success: boolean;
+    order?: Orders;
+    orderItems?: OrderItems[];
+    fulfillmentRecords?: OrderFullfilmentRecords[];
+    commissionRecords?: CommissionRecord[];
+    error?: string;
+  }> {
+    const { databases } = await createAdminClient();
+
     try {
-      const { databases } = await createSessionClient();
-
-      const orderItemsResponse = await databases.listDocuments(
-        DATABASE_ID,
-        ORDER_ITEMS_COLLECTION_ID,
-        [Query.equal("physicalStoreId", physicalStoreId), Query.limit(1000)]
-      );
-
-      const orderIds = [
-        ...new Set(orderItemsResponse.documents.map((item) => item.orderId)),
-      ];
-
-      if (orderIds.length === 0) {
-        return { documents: [], total: 0, hasMore: false, limit: 1, offset: 0 };
+      const validation = await this.validateOrderData(orderData);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
       }
 
-      const filters: QueryFilter[] = [
-        { field: "$id", operator: "equal", values: orderIds },
-        ...(options.filters || []),
-      ];
-
-      return this.findMany({
-        ...options,
-        filters,
-        orderBy: "$createdAt",
-        orderType: "desc",
-      });
-    } catch (error) {
-      console.error("Error finding orders by physical store:", error);
-      return { documents: [], total: 0, hasMore: false, limit: 1, offset: 0 };
-    }
-  }
-
-  async findByCustomer(
-    customerId: string,
-    options: QueryOptions = {}
-  ): Promise<PaginationResult<Orders>> {
-    const filters: QueryFilter[] = [
-      { field: "customerId", operator: "equal", value: customerId },
-      ...(options.filters || []),
-    ];
-
-    return this.findMany({
-      ...options,
-      filters,
-      orderBy: "$createdAt",
-      orderType: "desc",
-    });
-  }
-
-  async findByStatus(
-    status: OrderStatus,
-    options: QueryOptions = {}
-  ): Promise<PaginationResult<Orders>> {
-    const filters: QueryFilter[] = [
-      { field: "orderStatus", operator: "equal", value: status },
-      ...(options.filters || []),
-    ];
-
-    return this.findMany({
-      ...options,
-      filters,
-      orderBy: "$createdAt",
-      orderType: "desc",
-    });
-  }
-
-  async findOverdueOrders(
-    options: QueryOptions = {}
-  ): Promise<PaginationResult<Orders>> {
-    const today = new Date().toISOString();
-    const filters: QueryFilter[] = [
-      { field: "estimatedDeliveryDate", operator: "lessThan", value: today },
-      {
-        field: "orderStatus",
-        operator: "notEqual",
-        value: OrderStatus.DELIVERED,
-      },
-      {
-        field: "orderStatus",
-        operator: "notEqual",
-        value: OrderStatus.CANCELLED,
-      },
-      ...(options.filters || []),
-    ];
-
-    return this.findMany({
-      ...options,
-      filters,
-      orderBy: "estimatedDeliveryDate",
-      orderType: "asc",
-    });
-  }
-
-  async findWithFilters(
-    filters: OrderFilters,
-    options: QueryOptions = {}
-  ): Promise<PaginationResult<Orders>> {
-    const queryFilters: QueryFilter[] = [];
-
-    if (filters.orderStatus && filters.orderStatus.length > 0) {
-      queryFilters.push({
-        field: "orderStatus",
-        operator: "equal",
-        values: filters.orderStatus,
-      });
-    }
-
-    if (filters.virtualStoreId) {
-      queryFilters.push({
-        field: "virtualStoreId",
-        operator: "equal",
-        value: filters.virtualStoreId,
-      });
-    }
-
-    if (filters.customerId) {
-      queryFilters.push({
-        field: "customerId",
-        operator: "equal",
-        value: filters.customerId,
-      });
-    }
-
-    if (filters.customerEmail) {
-      queryFilters.push({
-        field: "customerEmail",
-        operator: "equal",
-        value: filters.customerEmail,
-      });
-    }
-
-    if (filters.dateRange) {
-      queryFilters.push({
-        field: "$createdAt",
-        operator: "greaterThanEqual",
-        value: filters.dateRange.from.toISOString(),
-      });
-      queryFilters.push({
-        field: "$createdAt",
-        operator: "lessThanEqual",
-        value: filters.dateRange.to.toISOString(),
-      });
-    }
-
-    if (filters.physicalStoreId) {
-      return this.findByPhysicalStore(filters.physicalStoreId, {
-        ...options,
-        filters: queryFilters,
-      });
-    }
-
-    return this.findMany({
-      ...options,
-      filters: queryFilters,
-      orderBy: "$createdAt",
-      orderType: "desc",
-    });
-  }
-
-  async getOrderWithRelations(
-    orderId: string
-  ): Promise<OrderWithRelations | null> {
-    try {
-      const order = await this.findById(orderId, {});
-      if (!order) return null;
-
-      const { databases } = await createSessionClient();
-
-      const orderItemsResponse = await databases.listDocuments(
-        DATABASE_ID,
-        ORDER_ITEMS_COLLECTION_ID,
-        [Query.equal("orderId", orderId)]
-      );
-
-      const fulfillmentResponse = await databases.listDocuments(
-        DATABASE_ID,
-        ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-        [Query.equal("orderId", orderId)]
-      );
-
-      const commissionResponse = await databases.listDocuments(
-        DATABASE_ID,
-        COMMISSION_RECORDS_COLLECTION_ID,
-        [Query.equal("orderId", orderId)]
-      );
-
-      const virtualStore = await this.virtualStoreModel.findById(
-        order.virtualStoreId,
-        {}
-      );
-
-      const physicalStoreIds = [
-        ...new Set(
-          orderItemsResponse.documents.map((item) => item.physicalStoreId)
-        ),
-      ];
-      const physicalStores = await Promise.all(
-        physicalStoreIds.map((id) => this.physicalStoreModel.findById(id, {}))
-      );
-
-      return {
-        ...order,
-        items: orderItemsResponse.documents as OrderItems[],
-        fulfillmentRecords:
-          fulfillmentResponse.documents as OrderFullfilmentRecords[],
-        commissionRecords: commissionResponse.documents as CommissionRecord[],
-        virtualStore: virtualStore || undefined,
-        physicalStores: physicalStores.filter(Boolean) as PhysicalStoreTypes[],
-      };
-    } catch (error) {
-      console.error("Error getting order with relations:", error);
-      return null;
-    }
-  }
-
-  async createOrder(data: OrderCreateData, userId: string): Promise<Orders> {
-    try {
-      const { databases } = await createAdminClient();
-      const permissions = createDocumentPermissions({ userId });
-
       const orderId = ID.unique();
-      const order = await databases.createDocument<Orders>(
+
+      const orderRecord = await databases.createDocument<Orders>(
         DATABASE_ID,
         ORDERS_COLLECTION_ID,
         orderId,
         {
-          ...data,
+          orderNumber: orderData.orderNumber,
+          customerId: orderData.customerId,
+          customerEmail: orderData.customerEmail,
+          customerPhone: orderData.customerPhone,
+          virtualStoreId: orderData.virtualStoreId,
+
+          currency: orderData.currency,
+          subtotal: orderData.subtotal,
+          shippingCost: orderData.shippingCost,
+          taxAmount: orderData.taxAmount,
+          discountAmount: orderData.discountAmount,
+          totalAmount: orderData.discountAmount,
+
+          deliveryAddress: this.formatAddressString(orderData.shippingAddress),
+
+          paymentMethod: orderData.paymentMethod,
+          paymentStatus: orderData.paymentStatus || "pending",
+
           orderStatus: OrderStatus.PENDING,
-          itemCount: data.orderItems.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-          ),
-        },
-        permissions
+          orderDate: orderData.orderDate,
+          estimatedDeliveryDate: orderData.estimatedDeliveryDate,
+          notes: orderData.notes,
+        }
       );
 
-      const orderItems = await Promise.all(
-        data.orderItems.map(async (item) => {
-          const itemId = ID.unique();
-          return databases.createDocument(
+      const orderItems = await this.orderItemsModel.createOrderItems(
+        orderData.orderItems,
+        orderData.customerId,
+        orderData.virtualStoreId
+      );
+
+      const fulfillmentRecords =
+        (await this.createFulfillmentRecords(
+          orderId,
+          orderData.orderItems,
+          orderData.virtualStoreId
+        )) || [];
+
+      const commissionRecords = await this.createCommissionRecords(
+        orderId,
+        orderData.orderItems,
+        orderData.virtualStoreId
+      );
+
+      await this.notificationService.sendNewOrderNotification(
+        orderRecord,
+        orderData.orderItems
+      );
+
+      return {
+        success: true,
+        order: orderRecord,
+        orderItems,
+        fulfillmentRecords,
+        commissionRecords,
+      };
+    } catch (error) {
+      console.error("Error creating order:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to create order",
+      };
+    }
+  }
+
+  async findOrdersByStore(
+    storeId: string,
+    storeType: "virtual" | "physical",
+    options: {
+      page?: number;
+      limit?: number;
+      status?: OrderStatus[];
+      fulfillmentStatus?: PhysicalStoreFulfillmentOrderStatus[];
+      search?: string;
+      customerId?: string;
+      customerEmail?: string;
+      dateRange?: { from: Date; to: Date };
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    } = {}
+  ): Promise<{
+    orders: OrderWithRelations[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    const { databases } = await createAdminClient();
+
+    try {
+      const queries: any[] = [];
+
+      // Store filter based on type
+      if (storeType === "virtual") {
+        queries.push(Query.equal("virtualStoreId", storeId));
+      } else {
+        // For physical stores, we need to find orders with their items
+        // This requires querying fulfillment records first
+        const fulfillmentRecords =
+          await databases.listDocuments<OrderFullfilmentRecords>(
             DATABASE_ID,
-            ORDER_ITEMS_COLLECTION_ID,
-            itemId,
-            {
-              orderId,
-              ...item,
-            },
-            permissions
+            ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
+            [Query.equal("physicalStoreId", storeId)]
           );
+
+        const orderIds = [
+          ...new Set(fulfillmentRecords.documents.map((r) => r.orderId)),
+        ];
+
+        if (orderIds.length === 0) {
+          return { orders: [], total: 0, hasMore: false };
+        }
+
+        queries.push(Query.equal("$id", orderIds));
+      }
+
+      if (options.status && options.status.length > 0) {
+        queries.push(Query.equal("orderStatus", options.status));
+      }
+
+      if (options.search) {
+        queries.push(Query.search("orderNumber", options.search));
+      }
+
+      if (options.customerId) {
+        queries.push(Query.equal("customerId", options.customerId));
+      }
+
+      if (options.customerEmail) {
+        queries.push(Query.equal("customerEmail", options.customerEmail));
+      }
+
+      if (options.dateRange) {
+        queries.push(
+          Query.greaterThanEqual(
+            "$createdAt",
+            options.dateRange.from.toISOString()
+          )
+        );
+        queries.push(
+          Query.lessThanEqual("$createdAt", options.dateRange.to.toISOString())
+        );
+      }
+
+      const limit = options.limit || 25;
+      const offset = ((options.page || 1) - 1) * limit;
+      queries.push(Query.limit(limit));
+      queries.push(Query.offset(offset));
+
+      const sortField = options.sortBy || "$createdAt";
+      const sortType = options.sortOrder === "asc" ? "ASC" : "DESC";
+      queries.push(Query.orderDesc(sortField));
+
+      const response = await databases.listDocuments<Orders>(
+        DATABASE_ID,
+        ORDERS_COLLECTION_ID,
+        queries
+      );
+
+      const ordersWithRelations = await Promise.all(
+        response.documents.map(async (order) => {
+          const [items, fulfillmentRecords, commissionRecords] =
+            await Promise.all([
+              this.orderItemsModel.findByOrder(order.$id),
+              this.getFulfillmentRecords(
+                order.$id,
+                storeType === "physical" ? storeId : undefined
+              ),
+              this.getCommissionRecords(order.$id),
+            ]);
+
+          return {
+            ...order,
+            items,
+            fulfillmentRecords,
+            commissionRecords,
+          };
         })
       );
 
-      // Create commission records grouped by virtual store
-      const virtualStoreCommissions = data.orderItems.reduce((acc, item) => {
-        if (!acc[item.virtualStoreId]) {
-          acc[item.virtualStoreId] = 0;
-        }
-        acc[item.virtualStoreId] += item.commission * item.quantity;
-        return acc;
-      }, {} as Record<string, number>);
-
-      await Promise.all(
-        Object.entries(virtualStoreCommissions).map(
-          async ([virtualStoreId, totalCommission]) => {
-            const commissionId = ID.unique();
-            return databases.createDocument(
-              DATABASE_ID,
-              COMMISSION_RECORDS_COLLECTION_ID,
-              commissionId,
-              {
-                orderId,
-                virtualStoreId,
-                totalCommission,
-                commissionStatus: "pending",
-              },
-              permissions
-            );
-          }
-        )
-      );
-
-      // Create fulfillment records grouped by physical store
-      const physicalStoreBreakdown = data.orderItems.reduce((acc, item) => {
-        if (!acc[item.physicalStoreId]) {
-          acc[item.physicalStoreId] = {
-            itemCount: 0,
-            totalValue: 0,
-          };
-        }
-        acc[item.physicalStoreId].itemCount += item.quantity;
-        acc[item.physicalStoreId].totalValue += item.basePrice * item.quantity;
-        return acc;
-      }, {} as Record<string, { itemCount: number; totalValue: number }>);
-
-      await Promise.all(
-        Object.entries(physicalStoreBreakdown).map(
-          async ([physicalStoreId, breakdown]) => {
-            const fulfillmentId = ID.unique();
-            return databases.createDocument(
-              DATABASE_ID,
-              ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-              fulfillmentId,
-              {
-                orderId,
-                physicalStoreId,
-                itemCount: breakdown.itemCount,
-                totalValue: breakdown.totalValue,
-                physicalStoreFulfillmentOrderStatus:
-                  PhysicalStoreFulfillmentOrderStatus.PENDING,
-              },
-              permissions
-            );
-          }
-        )
-      );
-
-      await this.sendOrderNotifications(order, data.orderItems);
-
-      this.invalidateCache(["findMany"]);
-
-      return order;
+      return {
+        orders: ordersWithRelations,
+        total: response.total,
+        hasMore: response.total > offset + limit,
+      };
     } catch (error) {
-      console.error("Error creating order:", error);
-      throw error;
+      console.error("Error fetching orders:", error);
+      return {
+        orders: [],
+        total: 0,
+        hasMore: false,
+      };
+    }
+  }
+
+  async getCustomerOrders(
+    customerId: string,
+    options: {
+      page?: number;
+      limit?: number;
+      status?: OrderStatus[];
+    } = {}
+  ): Promise<{
+    orders: OrderWithItems[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    const { databases } = await createSessionClient();
+
+    try {
+      const queries: any[] = [Query.equal("customerId", customerId)];
+
+      if (options.status && options.status.length > 0) {
+        queries.push(Query.equal("orderStatus", options.status));
+      }
+
+      const limit = options.limit || 10;
+      const offset = ((options.page || 1) - 1) * limit;
+      queries.push(Query.limit(limit));
+      queries.push(Query.offset(offset));
+      queries.push(Query.orderDesc("$createdAt"));
+
+      const response = await databases.listDocuments<Orders>(
+        DATABASE_ID,
+        ORDERS_COLLECTION_ID,
+        queries
+      );
+
+      const ordersWithItems = await Promise.all(
+        response.documents.map(async (order) => {
+          const items = await this.orderItemsModel.findByOrder(order.$id);
+          return {
+            ...order,
+            items,
+          };
+        })
+      );
+
+      return {
+        orders: ordersWithItems,
+        total: response.total,
+        hasMore: response.total > offset + limit,
+      };
+    } catch (error) {
+      console.error("Error fetching customer orders:", error);
+      return {
+        orders: [],
+        total: 0,
+        hasMore: false,
+      };
     }
   }
 
   async updateOrderStatus(
     orderId: string,
     status: OrderStatus,
-    notes?: string
-  ): Promise<Orders | { error: string }> {
+    updatedBy: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const { databases } = await createSessionClient();
+
     try {
-      const updateData: any = {
-        orderStatus: status,
-        $updatedAt: new Date().toString(),
-      };
-
-      if (notes) {
-        updateData.notes = notes;
-      }
-
-      if (status === OrderStatus.DELIVERED) {
-        updateData.actualDeliveryDate = new Date().toISOString();
-      }
-
-      const updatedData = await this.update(orderId, updateData);
-
-      await this.notificationService.sendOrderStatusUpdateNotification(
-        updateData
+      const order = await databases.updateDocument<Orders>(
+        DATABASE_ID,
+        ORDERS_COLLECTION_ID,
+        orderId,
+        {
+          orderStatus: status,
+          statusHistory: JSON.stringify([
+            { status, timestamp: new Date().toISOString(), updatedBy },
+          ]),
+        }
       );
 
-      return updateData;
+      await this.notificationService.sendOrderStatusUpdateNotification(order);
+
+      return { success: true };
     } catch (error) {
       console.error("Error updating order status:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to update order status";
-      return { error: errorMessage };
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to update status",
+      };
     }
   }
 
   async updateFulfillmentStatus(
-    fulfillmentRecordId: string,
+    fulfillmentId: string,
     status: PhysicalStoreFulfillmentOrderStatus,
-    notes?: string
-  ): Promise<void | { error: string }> {
+    updatedBy: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const { databases } = await createSessionClient();
+
     try {
-      const { databases } = await createSessionClient();
-
-      const updateData: any = {
-        physicalStoreFulfillmentOrderStatus: status,
-        $updatedAt: new Date().toISOString(),
-      };
-
-      if (notes) {
-        updateData.notes = notes;
-      }
-
-      if (status === PhysicalStoreFulfillmentOrderStatus.SHIPPED) {
-        updateData.shippedAt = new Date().toISOString();
-      }
-
-      if (status === PhysicalStoreFulfillmentOrderStatus.COMPLETED) {
-        updateData.completedAt = new Date().toISOString();
-      }
-
-      await databases.updateDocument(
-        DATABASE_ID,
-        ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-        fulfillmentRecordId,
-        updateData
-      );
-
-      const fulfillmentRecord = await databases.getDocument(
-        DATABASE_ID,
-        ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
-        fulfillmentRecordId
-      );
+      const fulfillmentRecord =
+        await databases.updateDocument<OrderFullfilmentRecords>(
+          DATABASE_ID,
+          ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
+          fulfillmentId,
+          {
+            physicalStoreFulfillmentOrderStatus: status,
+          }
+        );
 
       await this.notificationService.sendFulfillmentStatusUpdateNotification(
-        fulfillmentRecord as OrderFullfilmentRecords
+        fulfillmentRecord
       );
+
+      const allFulfillments =
+        await databases.listDocuments<OrderFullfilmentRecords>(
+          DATABASE_ID,
+          ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
+          [Query.equal("orderId", fulfillmentRecord.orderId)]
+        );
+
+      const allCompleted = allFulfillments.documents.every(
+        (f) => f.physicalStoreFulfillmentOrderStatus === "completed"
+      );
+
+      if (allCompleted) {
+        await this.updateOrderStatus(
+          fulfillmentRecord.orderId,
+          OrderStatus.SHIPPED,
+          updatedBy
+        );
+      }
+
+      return { success: true };
     } catch (error) {
       console.error("Error updating fulfillment status:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Error updating fulfillment status";
-      return { error: errorMessage };
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update fulfillment",
+      };
+    }
+  }
+
+  async bulkUpdateOrders(
+    orderIds: string[],
+    updates: {
+      orderStatus?: OrderStatus;
+      paymentStatus?: string;
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const updatePromises = orderIds.map((orderId) =>
+        this.update(orderId, updates)
+      );
+
+      await Promise.all(updatePromises);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error bulk updating orders:", error);
+      return {
+        success: false,
+        error: "Failed to update orders",
+      };
     }
   }
 
   async getOrderStats(
-    filters: OrderFilters = {},
-    storeId?: string,
-    storeType?: "physical" | "virtual"
+    storeId: string,
+    storeType?: "virtual" | "physical",
+    dateRange?: { from: Date; to: Date }
   ) {
-    try {
-      const ordersResult =
-        storeType === "physical" && storeId
-          ? await this.findByPhysicalStore(storeId, {
-              filters: this.convertToQueryFilters(filters),
-            })
-          : await this.findWithFilters(filters);
+    const { databases } = await createAdminClient();
 
-      const orders = ordersResult.documents;
+    try {
+      const queries: any[] = [];
+
+      if (storeType === "virtual") {
+        queries.push(Query.equal("virtualStoreId", storeId));
+      } else if (storeType === "physical") {
+        // Get orders through fulfillment records
+        const fulfillmentRecords =
+          await databases.listDocuments<OrderFullfilmentRecords>(
+            DATABASE_ID,
+            ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
+            [Query.equal("physicalStoreId", storeId)]
+          );
+
+        const orderIds = [
+          ...new Set(fulfillmentRecords.documents.map((r) => r.orderId)),
+        ];
+
+        if (orderIds.length === 0) {
+          return {
+            totalOrders: 0,
+            totalRevenue: 0,
+            avgOrderValue: 0,
+            statusBreakdown: {},
+            orders: [],
+          };
+        }
+
+        queries.push(Query.equal("$id", orderIds));
+      }
+
+      if (dateRange) {
+        queries.push(
+          Query.greaterThanEqual("$createdAt", dateRange.from.toISOString())
+        );
+        queries.push(
+          Query.lessThanEqual("$createdAt", dateRange.to.toISOString())
+        );
+      }
+
+      const response = await databases.listDocuments<Orders>(
+        DATABASE_ID,
+        ORDERS_COLLECTION_ID,
+        queries
+      );
+
+      const orders = response.documents;
+
+      // Calculate stats
+      const totalOrders = orders.length;
+      const totalRevenue = orders.reduce(
+        (sum, order) => sum + order.totalAmount,
+        0
+      );
+      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+      // Status breakdown
+      const statusBreakdown = orders.reduce((acc, order) => {
+        acc[order.orderStatus] = (acc[order.orderStatus] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Add missing statuses with 0 count
+      Object.values(OrderStatus).forEach((status) => {
+        if (!statusBreakdown[status]) {
+          statusBreakdown[status] = 0;
+        }
+      });
 
       return {
-        totalOrders: orders.length,
-        totalRevenue: orders.reduce(
-          (sum, order) => sum + order.customerTotalAmount,
-          0
-        ),
-        avgOrderValue:
-          orders.length > 0
-            ? orders.reduce(
-                (sum, order) => sum + order.customerTotalAmount,
-                0
-              ) / orders.length
-            : 0,
-        statusBreakdown: {
-          [OrderStatus.PENDING]: orders.filter(
-            (o) => o.orderStatus === OrderStatus.PENDING
-          ).length,
-          [OrderStatus.PROCESSING]: orders.filter(
-            (o) => o.orderStatus === OrderStatus.PROCESSING
-          ).length,
-          [OrderStatus.SHIPPED]: orders.filter(
-            (o) => o.orderStatus === OrderStatus.SHIPPED
-          ).length,
-          [OrderStatus.DELIVERED]: orders.filter(
-            (o) => o.orderStatus === OrderStatus.DELIVERED
-          ).length,
-          [OrderStatus.CANCELLED]: orders.filter(
-            (o) => o.orderStatus === OrderStatus.CANCELLED
-          ).length,
-        },
+        totalOrders,
+        totalRevenue,
+        avgOrderValue,
+        statusBreakdown,
+        orders: orders.slice(0, 10), // Recent orders
       };
     } catch (error) {
       console.error("Error getting order stats:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Error getting order stats";
-      return { error: errorMessage };
+      throw error;
     }
   }
 
-  private async sendOrderNotifications(
-    order: Orders,
-    orderItems: OrderItemCreateData[]
-  ): Promise<void> {
+  private async getFulfillmentRecords(
+    orderId: string,
+    physicalStoreId?: string
+  ): Promise<OrderFullfilmentRecords[]> {
+    const { databases } = await createAdminClient();
+
     try {
-      await this.notificationService.sendNewOrderNotification(
-        order,
-        orderItems
+      const queries = [Query.equal("orderId", orderId)];
+
+      if (physicalStoreId) {
+        queries.push(Query.equal("physicalStoreId", physicalStoreId));
+      }
+
+      const response = await databases.listDocuments<OrderFullfilmentRecords>(
+        DATABASE_ID,
+        ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
+        queries
       );
+
+      return response.documents;
     } catch (error) {
-      console.error("Error sending order notifications:", error);
+      console.error("Error fetching fulfillment records:", error);
+      return [];
     }
   }
 
-  private convertToQueryFilters(filters: OrderFilters): QueryFilter[] {
-    const queryFilters: QueryFilter[] = [];
+  private async createCommissionRecords(
+    orderId: string,
+    items: OrderItemCreateData[],
+    virtualStoreId: string
+  ): Promise<CommissionRecord[]> {
+    const { databases } = await createAdminClient();
 
-    if (filters.orderStatus && filters.orderStatus.length > 0) {
-      queryFilters.push({
-        field: "orderStatus",
-        operator: "equal",
-        value: filters.orderStatus,
-      });
+    const itemsByPhysicalStore = items.reduce((acc, item) => {
+      if (!acc[item.physicalStoreId]) {
+        acc[item.physicalStoreId] = [];
+      }
+      acc[item.physicalStoreId].push(item);
+      return acc;
+    }, {} as Record<string, OrderItemCreateData[]>);
+
+    const commissionRecords = await Promise.all(
+      Object.entries(itemsByPhysicalStore).map(
+        async ([physicalStoreId, storeItems]) => {
+          const recordId = ID.unique();
+          const totalCommission = storeItems.reduce(
+            (sum, item) => sum + item.commission * item.quantity,
+            0
+          );
+          const orderValue = storeItems.reduce(
+            (sum, item) => sum + item.subtotal,
+            0
+          );
+
+          return databases.createDocument<CommissionRecord>(
+            DATABASE_ID,
+            COMMISSION_RECORDS_COLLECTION_ID,
+            recordId,
+            {
+              orderId,
+              virtualStoreId,
+              physicalStoreId,
+              totalCommission,
+              orderValue,
+              commissionStatus: "pending",
+            }
+          );
+        }
+      )
+    );
+
+    return commissionRecords;
+  }
+
+  private async createFulfillmentRecords(
+    orderId: string,
+    items: OrderItemCreateData[],
+    virtualStoreId: string
+  ): Promise<OrderFullfilmentRecords[] | null> {
+    try {
+      const { databases } = await createAdminClient();
+
+      const itemsByPhysicalStore = items.reduce((acc, item) => {
+        if (!acc[item.physicalStoreId]) {
+          acc[item.physicalStoreId] = [];
+        }
+        acc[item.physicalStoreId].push(item);
+        return acc;
+      }, {} as Record<string, OrderItemCreateData[]>);
+
+      const fulfillmentRecords = await Promise.all(
+        Object.entries(itemsByPhysicalStore).map(
+          async ([physicalStoreId, storeItems]) => {
+            const recordId = ID.unique();
+            const totalValue = storeItems.reduce(
+              (sum, item) => sum + item.subtotal,
+              0
+            );
+            const itemCount = storeItems.reduce(
+              (sum, item) => sum + item.quantity,
+              0
+            );
+
+            return databases.createDocument<OrderFullfilmentRecords>(
+              DATABASE_ID,
+              ORDER_FULFILLMENT_RECORDS_COLLECTION_ID,
+              recordId,
+              {
+                orderId,
+                physicalStoreId,
+                virtualStoreId,
+                physicalStoreFulfillmentOrderStatus:
+                  PhysicalStoreFulfillmentOrderStatus.PENDING,
+                itemCount,
+                totalValue,
+              }
+            );
+          }
+        )
+      );
+
+      return fulfillmentRecords;
+    } catch (error) {
+      console.log("error creating fullfillment records: ", error);
+      return null;
+    }
+  }
+
+  private async getCommissionRecords(
+    orderId: string
+  ): Promise<CommissionRecord[]> {
+    const { databases } = await createSessionClient();
+
+    try {
+      const response = await databases.listDocuments<CommissionRecord>(
+        DATABASE_ID,
+        COMMISSION_RECORDS_COLLECTION_ID,
+        [Query.equal("orderId", orderId)]
+      );
+
+      return response.documents;
+    } catch (error) {
+      console.error("Error fetching commission records:", error);
+      return [];
+    }
+  }
+
+  private async validateOrderData(orderData: CreateOrderInput): Promise<{
+    valid: boolean;
+    error?: string;
+  }> {
+    const storeIds = new Set(
+      orderData.orderItems.map((item) => item.virtualStoreId)
+    );
+    if (storeIds.size > 1) {
+      return {
+        valid: false,
+        error: "All items must be from the same virtual store",
+      };
     }
 
-    if (filters.virtualStoreId) {
-      queryFilters.push({
-        field: "virtualStoreId",
-        operator: "equal",
-        value: filters.virtualStoreId,
-      });
+    if (
+      orderData.orderItems.length > 0 &&
+      orderData.orderItems[0].virtualStoreId !== orderData.virtualStoreId
+    ) {
+      return { valid: false, error: "Virtual store ID mismatch" };
     }
 
-    if (filters.customerId) {
-      queryFilters.push({
-        field: "customerId",
-        operator: "equal",
-        value: filters.customerId,
-      });
+    const calculatedSubtotal = orderData.orderItems.reduce(
+      (sum, item) => sum + item.subtotal,
+      0
+    );
+
+    if (Math.abs(calculatedSubtotal - orderData.subtotal) > 0.01) {
+      return { valid: false, error: "Subtotal calculation mismatch" };
     }
 
-    if (filters.dateRange) {
-      queryFilters.push({
-        field: "$createdAt",
-        operator: "greaterThanEqual",
-        value: filters.dateRange.from.toISOString(),
-      });
-      queryFilters.push({
-        field: "$createdAt",
-        operator: "lessThanEqual",
-        value: filters.dateRange.to.toISOString(),
-      });
+    if (Math.abs(calculatedSubtotal - orderData.subtotal) > 0.01) {
+      return { valid: false, error: "Subtotal calculation mismatch" };
     }
 
-    return queryFilters;
+    const calculatedTotal =
+      orderData.subtotal +
+      orderData.shippingCost +
+      orderData.taxAmount -
+      orderData.discountAmount;
+
+    if (Math.abs(calculatedTotal - orderData.totalAmount) > 0.01) {
+      return { valid: false, error: "Total calculation mismatch" };
+    }
+
+    return { valid: true };
+  }
+
+  private formatAddressString(address: any): string {
+    return `${address.fullName}, ${address.street}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
   }
 }

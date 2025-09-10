@@ -7,9 +7,8 @@ export enum AccountType {
     SYS_ADMIN = "sysAdmin",
     SYS_AGENT = "sysAgent",
     PHYSICAL_SELLER = "physicalSeller",
-    VIRTUAL_SELLER = "virtualSeller",
-    BUYER = "buyer",
-    PHYSICAL_SELLER_PENDING = "physicalSellerPending"
+    VIRTUAL_STORE_OWNER = "virtualStoreOwner",
+    BUYER = "buyer"
 }
 
 export enum ApplicationStatus {
@@ -61,12 +60,18 @@ export enum Status {
     ARCHIVED = "archived"
 }
 
-export enum Status {
+export enum OrderStatus {
     PENDING = "pending",
     PROCESSING = "processing",
     SHIPPED = "shipped",
     DELIVERED = "delivered",
     CANCELLED = "cancelled"
+}
+
+export enum PaymentStatus {
+    PENDING = "pending",
+    CONFIRMED = "confirmed",
+    FAILED = "failed"
 }
 
 export enum CommissionStatus {
@@ -161,22 +166,6 @@ export type UsersData = Models.Document & {
     applicationReason: string | null;
     bio: string | null;
     website: string | null;
-}
-
-export type VirtualStore = Models.Document & {
-    storeName: string;
-    desccription: string | null;
-    storeBio: string | null;
-    bannerUrls: string[] | null;
-    bannerIds: string[] | null;
-    storeType: StoreType | null;
-    storeLogoId: string | null;
-    storeLogoUrl: string | null;
-    subDomain: string;
-    locale: string | null;
-    owner: string;
-    virtualProductsIds: string[] | null;
-    operatingCountries: string[] | null;
 }
 
 export type PhysicalStore = Models.Document & {
@@ -401,7 +390,13 @@ export type VirtualStore = Models.Document & {
     locale: string | null;
     owner: string;
     virtualProductsIds: string[] | null;
-    operatingCountries: string[] | null;
+    operatingCountry: string;
+    countryCurrency: string;
+    totalOrders: number | null;
+    totalRevenue: number | null;
+    commissionEarned: number | null;
+    isActive: boolean;
+    rating: number | null;
 }
 
 export type PhysicalStore = Models.Document & {
@@ -482,27 +477,27 @@ export type Orders = Models.Document & {
     customerId: string;
     customerEmail: string | null;
     virtualStoreId: string;
-    customerCurrency: string;
-    customerSubtotal: number;
-    customerTotalAmount: number;
-    baseCurrency: string | null;
-    baseSubtotal: number | null;
-    baseTotalAmount: number | null;
-    exchangeRateToBase: number | null;
-    exchangeRatesTimestamp: string | null;
     totalCommission: number | null;
-    totalBasePrice: number | null;
     deliveryAddress: string | null;
     notes: string | null;
     isExpressDelivery: boolean;
     paymentMethod: string;
-    status: Status;
+    orderStatus: OrderStatus;
     orderDate: string;
     estimatedDeliveryDate: string | null;
     itemCount: number | null;
-    exchangeRatesSnapshot: string | null;
     deliveredAt: string | null;
     cancellationReason: string | null;
+    cancelledAt: string | null;
+    customerPhone: string;
+    currency: string;
+    subtotal: number;
+    shippingCost: number;
+    taxAmount: number;
+    discountAmount: number;
+    totalAmount: number;
+    paymentStatus: PaymentStatus;
+    statusHistory: string | null;
 }
 
 export type OrderItems = Models.Document & {
@@ -526,6 +521,7 @@ export type CommissionRecord = Models.Document & {
     virtualStoreId: string;
     totalCommission: number;
     commissionStatus: CommissionStatus;
+    physicalStoreId: string;
 }
 
 export type OrderFullfilmentRecords = Models.Document & {
@@ -534,6 +530,8 @@ export type OrderFullfilmentRecords = Models.Document & {
     itemCount: number | null;
     totalValue: number | null;
     physicalStoreFulfillmentOrderStatus: PhysicalStoreFulfillmentOrderStatus;
+    cancelledAt: string | null;
+    virtualStoreId: string;
 }
 
 export type ProductReview = Models.Document & {

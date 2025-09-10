@@ -1,14 +1,21 @@
+import { NoItemsCard } from '@/components/no-items-card';
 import { buttonVariants } from '@/components/ui/button';
-import CloneProductsPage from '@/features/products/components/clone-products/clone-products-page';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CloneProductsContainer } from '@/features/products/components/clone-products/clone-products-container';
+import { ProductsFiltersWrapper } from '@/features/products/components/clone-products/products-filters-wrapper';
+import { ProductsHeader } from '@/features/products/components/clone-products/products-header';
+import { getVirtualStoreById } from '@/lib/actions/virtual-store.action';
 import { getAuthState } from '@/lib/user-permission';
 import { ArrowLeft, TableOfContents } from 'lucide-react';
 import Link from 'next/link';
-import React from 'react';
+import React, { Suspense } from 'react';
 
-async function page({
+export default async function CloneProductsPage({
     params,
+    searchParams,
 }: {
-    params: Promise<{ storeId: string }>
+    params: Promise<{ storeId: string }>;
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
     const { storeId } = await params;
     const {
@@ -27,7 +34,7 @@ async function page({
                         You don&apos;t have permission to access this page. This feature is only available to virtual store owners.
                     </p>
                     <Link
-                        href="/dashboard"
+                        href="/admin"
                         className={buttonVariants({ variant: "secondary" })}
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -37,29 +44,57 @@ async function page({
             </div>
         )
     }
+
+    const resolvedSearchParams = await searchParams;
+    const storeData = await getVirtualStoreById(storeId);
+
+    if(!storeData) return <NoItemsCard description={`Store with the id: ${storeId} is not found!`} />
+
     return (
         <div className="min-h-screen bg-gray-50/50">
-            <div className="bg-white border-b">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href={`/admin/stores/${storeId}`}
-                            className={buttonVariants({ variant: "outline", size: "sm" })}
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Store
-                        </Link>
-                        <div className="flex items-center gap-2">
-                            <TableOfContents className="w-5 h-5 text-blue-600" />
-                            <h1 className="text-xl font-semibold">Product Import Center</h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <ProductsHeader storeId={storeId} />
 
-            <CloneProductsPage virtualStoreId={storeId} user={user} />
+            <div className="container mx-auto px-4 py-6">
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold mb-2">Clone Products</h1>
+                    <p className="text-muted-foreground">
+                        Browse and import products from other stores into your virtual store.
+                    </p>
+                </div>
+
+                <ProductsFiltersWrapper
+                    searchParams={resolvedSearchParams}
+                    storeId={storeId}
+                />
+
+                <Suspense fallback={<ProductsGridSkeleton />}>
+                    <CloneProductsContainer
+                        storeData={storeData}
+                        user={user}
+                        searchParams={resolvedSearchParams}
+                    />
+                </Suspense>
+            </div>
         </div>
     );
 }
 
-export default page;
+function ProductsGridSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="space-y-3">
+                        <Skeleton className="h-60 w-full rounded-lg" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <div className="flex justify-between">
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-8 w-20" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

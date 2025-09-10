@@ -9,8 +9,9 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { virtualStoreKeys } from "@/hooks/queries-and-mutations/query-keys";
 import { notFound } from "next/navigation";
 import { getStoreUrls } from "@/features/stores/store-domain-helper";
+import { VirtualStoreTypes } from "@/lib/types";
 
-function SEOTags({ store, storeUrl }: { store: any; storeUrl: string }) {
+function SEOTags({ store, storeUrl }: { store: VirtualStoreTypes; storeUrl: string }) {
     return (
         <>
             {/* Open Graph / Facebook */}
@@ -43,12 +44,8 @@ function SEOTags({ store, storeUrl }: { store: any; storeUrl: string }) {
             <meta name="theme-color" content="#000000" />
 
             {/* Geographic targeting */}
-            {store.operatingCountries && store.operatingCountries.length > 0 && (
-                <>
-                    <meta name="geo.region" content={store.operatingCountries.join(', ')} />
-                    <meta name="distribution" content="global" />
-                </>
-            )}
+            <meta name="geo.region" content={store.operatingCountry} />
+            <meta name="distribution" content="global" />
 
             {/* E-commerce specific */}
             <meta name="product-type" content="marketplace" />
@@ -83,7 +80,7 @@ function StoreErrorBoundary({
     );
 }
 
-function StructuredData({ store, storeUrl, baseUrl }: { store: any; storeUrl: string; baseUrl: string }) {
+function StructuredData({ store, storeUrl, baseUrl }: { store: VirtualStoreTypes; storeUrl: string; baseUrl: string }) {
     const structuredData = {
         "@context": "https://schema.org",
         "@graph": [
@@ -103,10 +100,10 @@ function StructuredData({ store, storeUrl, baseUrl }: { store: any; storeUrl: st
                     "@type": "ImageObject",
                     "url": url
                 })) : undefined,
-                "address": store.operatingCountries && store.operatingCountries.length > 0 ? {
+                "address": {
                     "@type": "PostalAddress",
-                    "addressCountry": store.operatingCountries
-                } : undefined,
+                    "addressCountry": store.operatingCountry
+                },
                 "foundingDate": store.$createdAt,
                 "sameAs": [
                     storeUrl

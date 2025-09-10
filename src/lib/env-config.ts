@@ -17,7 +17,6 @@ export const STORE_BUCKET_ID = process.env.NEXT_PUBLIC_STORE_BUCKET_ID!
 export const PRODUCTS_BUCKET_ID = process.env.NEXT_PUBLIC_PRODUCTS_BUCKET_ID!
 
 export const ORIGINAL_PRODUCT_ID = process.env.NEXT_PUBLIC_ORIGINAL_PRODUCT_ID!
-export const VIRTUAL_PRODUCT_ID = process.env.NEXT_PUBLIC_VIRTUAL_PRODUCT_ID!
 export const ORDER_ID = process.env.NEXT_PUBLIC_ORDER_ID!
 export const ORDER_ITEM_ID = process.env.NEXT_PUBLIC_ORDER_ITEM_ID!
 export const DELIVERY_ADDRESS_ID = process.env.NEXT_PUBLIC_DELIVERY_ADDRESS_ID!

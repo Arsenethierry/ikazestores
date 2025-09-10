@@ -1,10 +1,7 @@
 "use client";
 
-import DOMPurify from "isomorphic-dompurify";
-import { Suspense, useCallback, useEffect, useMemo, useState, useTransition } from 'react';
-import SpinningLoader from '@/components/spinning-loader';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { VirtualProductTypes } from '@/lib/types';
-import { ProductViewer } from '@/hooks/queries-and-mutations/use-recently-viewed-products';
 import { ProductImagesZoomComponent } from "../product-images-zoom-component";
 import { ProductDescription } from "../product-description";
 import { ArrowLeft, Star } from "lucide-react";
@@ -12,7 +9,7 @@ import { ProductColorsViewer } from "./product-colors-viewer";
 import { Separator } from "@/components/ui/separator";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ProductColors } from "@/lib/types/appwrite/appwrite";
-import { ProductPriceDisplay } from "../../currency/converted-price-component";
+import { getCurrencySymbol } from "../../currency/currency-utils";
 
 interface ProductDetailsProps {
     product: VirtualProductTypes;
@@ -200,10 +197,7 @@ export const ProductDetails = ({ product, initialColorParam }: ProductDetailsPro
                             <div className="space-y-2">
                                 <div className="flex items-center space-x-3">
                                     <span className="text-xl font-bold text-gray-900">
-                                        <ProductPriceDisplay
-                                            productPrice={finalPrice}
-                                            productCurrency={product.currency}
-                                        />
+                                        {finalPrice} {getCurrencySymbol(product.currency)}
                                     </span>
                                     {/* {selectedColor?.additionalPrice && selectedColor.additionalPrice > 0 && (
                                         <span className="text-lg text-gray-500 line-through">

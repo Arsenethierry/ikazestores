@@ -9,7 +9,6 @@ import {
     Skeleton
 } from "@/components/ui/skeleton";
 import { AdminVirtualProductCard } from "@/features/products/components/product-cards/admin-virtual-product-card";
-import { VirtualProductCard } from "@/features/products/components/product-cards/virtual-product-card";
 import { ProductSekeleton } from "@/features/products/components/products-list-sekeleton";
 import { ProductsDataTable } from "@/features/products/components/products-list-table/products-data-table";
 import { getVirtualStoreProducts } from "@/lib/actions/affiliate-product-actions";
@@ -42,11 +41,11 @@ async function StoreProductsContent({ storeId }: { storeId: string }) {
     const {
         isPhysicalStoreOwner,
         isVirtualStoreOwner,
-        // canAccessStore,
+        canAccessStore,
         user
     } = authState;
-
-    if (!user || (!isPhysicalStoreOwner && !isVirtualStoreOwner)) {
+    
+    if (!user || !canAccessStore(storeId)) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <Card className="max-w-md">

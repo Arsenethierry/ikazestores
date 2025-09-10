@@ -6,7 +6,7 @@ import {
   createSessionClient,
 } from "@/lib/appwrite";
 import { cookies, headers } from "next/headers";
-import { AUTH_COOKIE, UserAccountType, UserRole } from "../constants";
+import { AUTH_COOKIE, UserRole } from "../constants";
 import { APP_URL, DATABASE_ID, MAIN_DOMAIN, USER_DATA_ID } from "../env-config";
 import {
   ID,
@@ -121,7 +121,7 @@ export const signUpAction = action
             fullName,
             email,
             phoneNumber: phoneNumber || "",
-            accountType: UserAccountType.BUYER,
+            accountType: UserRole.BUYER,
           },
           [
             Permission.delete(Role.user(newAcc.$id)),
@@ -188,7 +188,7 @@ export const createUserData = action
               phoneNumber: parsedInput.phoneNumber || "",
               bio: parsedInput.bio || "",
               website: parsedInput.website || "",
-              accountType: UserAccountType.BUYER,
+              accountType: UserRole.BUYER,
             }
           );
 
@@ -211,7 +211,7 @@ export const createUserData = action
           phoneNumber: parsedInput.phoneNumber || "",
           bio: parsedInput.bio || "",
           website: parsedInput.website || "",
-          accountType: UserAccountType.BUYER,
+          accountType: UserRole.BUYER,
         },
         createDocumentPermissions({ userId: parsedInput.userId })
       );
@@ -789,13 +789,21 @@ export const updateUserAccountType = action
   .schema(AddNewUserLabels)
   .use(authMiddleware)
   .action(async ({ parsedInput, ctx }) => {
-    const { user } = ctx;
+    const { user, databases } = ctx;
     try {
       if (
         parsedInput.labels.length === 1 &&
         parsedInput.labels[0] === UserRole.VIRTUAL_STORE_OWNER &&
         user.$id === parsedInput.userId
       ) {
+        await databases.updateDocument(
+          DATABASE_ID,
+          USER_DATA_ID,
+          parsedInput.userId,
+          {
+            accountType: UserRole.VIRTUAL_STORE_OWNER,
+          }
+        );
         updateUserLabels(parsedInput.userId, parsedInput.labels);
         return { success: true };
       }

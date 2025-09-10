@@ -257,6 +257,7 @@ export const VirtualStoreProductFiltersSchema = z.object({
 });
 
 export const ProductFiltersSchema = z.object({
+  page: z.number().optional(),
   search: z.string().optional(),
   categoryId: z.string().optional(),
   subcategoryId: z.string().optional(),

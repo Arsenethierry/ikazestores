@@ -9,7 +9,7 @@ import {
 import { DATABASE_ID, STORE_BUCKET_ID, VIRTUAL_STORE_ID } from "../env-config";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { AppwriteRollback } from "../actions/rollback";
-import { TeamNamesPatterns } from "../constants";
+import { StoreRole, TeamNamesPatterns } from "../constants";
 import { getUserLocale } from "../actions/auth.action";
 import {
   CreateVirtualStoreTypes,
@@ -18,11 +18,12 @@ import {
 } from "../types";
 import { StoreStorageService } from "./storage-models";
 export class VirtualStore extends BaseModel<VirtualStoreTypes> {
-  private storageService: StoreStorageService;
-
   constructor() {
     super(VIRTUAL_STORE_ID);
-    this.storageService = new StoreStorageService();
+  }
+
+  private get storageService() {
+    return new StoreStorageService();
   }
 
   async findBySubdomain(
@@ -79,12 +80,12 @@ export class VirtualStore extends BaseModel<VirtualStoreTypes> {
     });
   }
 
-  async findByOperatingCountries(
-    countries: string[],
+  async findByOperatingCountry(
+    operatingCountry: string,
     options: QueryOptions = {}
   ): Promise<PaginationResult<VirtualStoreTypes>> {
     const filters: QueryFilter[] = [
-      { field: "operatingCountries", operator: "in", values: countries },
+      { field: "storeType", operator: "equal", value: operatingCountry },
       ...(options.filters || []),
     ];
 
@@ -184,11 +185,7 @@ export class VirtualStore extends BaseModel<VirtualStoreTypes> {
       const storeTeam = await teams.create(
         storeId,
         `${data.storeName} - ${storeId}`,
-        [
-          TeamNamesPatterns.STORE_ROLES.OWNER,
-          TeamNamesPatterns.STORE_ROLES.ADMIN,
-          TeamNamesPatterns.STORE_ROLES.STAFF,
-        ]
+        [StoreRole.OWNER, StoreRole.ADMIN, StoreRole.STAFF]
       );
       await rollback.trackTeam(storeTeam.$id);
 
@@ -210,8 +207,8 @@ export class VirtualStore extends BaseModel<VirtualStoreTypes> {
         desccription: data.desccription,
         storeBio: data.storeBio,
         virtualProductsIds: [],
-        operatingCountries:
-          data.operatingCountries?.map((country) => country.value) || [],
+        operatingCountry: data.operatingCountry,
+        countryCurrency: data.countryCurrency
       };
 
       const newVirtualStore = await databases.createDocument<VirtualStoreTypes>(
@@ -327,11 +324,6 @@ export class VirtualStore extends BaseModel<VirtualStoreTypes> {
       if (data.desccription !== undefined)
         updateData.desccription = data.desccription;
       if (data.storeBio !== undefined) updateData.storeBio = data.storeBio;
-      if (data.operatingCountries) {
-        updateData.operatingCountries = data.operatingCountries.map(
-          (country) => country.value
-        );
-      }
 
       const updatedStore = await this.update(storeId, updateData);
 

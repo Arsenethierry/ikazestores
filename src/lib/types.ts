@@ -1,5 +1,5 @@
 import { Models } from "node-appwrite";
-import { UserAccountType, UserRole } from "./constants";
+import { UserRole } from "./constants";
 import { ProductCombination } from "./schemas/product-variants-schema";
 import {
   AffiliateProductImports,
@@ -7,7 +7,9 @@ import {
   ProductCollections,
   ProductColors,
   Products,
+  SavedItems,
   Status,
+  UsersData,
   VirtualProducts,
   VirtualStore,
 } from "./types/appwrite/appwrite";
@@ -53,8 +55,8 @@ export type UserRoleType =
   | UserRole.SYS_AGENT
   | UserRole.PHYSICAL_STORE_OWNER
   | UserRole.VIRTUAL_STORE_OWNER
-  | UserRole.STORE_ADMIN
-  | UserRole.STORE_STAFF;
+  | UserRole.PHYSICAL_SELLER_PENDING
+  | UserRole.BUYER;
 
 export type AppwriteDocumentResponse = {
   total: number;
@@ -86,7 +88,7 @@ export interface Cart {
 export interface AuthState {
   isAuthenticated: boolean;
   user: Models.User<Models.Preferences> | null;
-  roles: UserRoleType[];
+  roles: string[];
   teams: Models.Team<Models.Preferences>[];
   memberships: Models.Membership[];
   isSystemAdmin: boolean;
@@ -156,12 +158,6 @@ export interface VirtualProductTypes extends AffiliateProductImports {
 }
 
 export type VirtualStoreTypes = VirtualStore;
-export interface ColorImagesTypes extends Models.Document {
-  colorName: string;
-  imageId: string;
-  imageUrl: string;
-  colorHex?: string;
-}
 
 enum OrderStatus {
   pending = "pending",
@@ -217,23 +213,12 @@ export type VirtualProductsSearchParams = {
 
 export type CollectionTypes = ProductCollections;
 export type CollectionGroupsTypes = ProductCollectionGroups;
-export interface SavedItemType extends Models.Document {
-  userId: string;
-  productId: string;
-  productData?: VirtualProductTypes;
-}
-
-export interface UserDataTypes extends Models.Document {
-  fullName: string;
-  email: string;
-  phoneNumber?: string;
-  accountType: UserAccountType;
-  // bio?: string;
-  // website?: string;
-  // socialLinks?: SocialLinks;
-}
+export type SavedItemType = SavedItems;
+export type UserDataTypes = UsersData;
 
 export interface ProductFilters {
+  page?: number;
+  limit?: number;
   storeId?: string;
   categoryId?: string;
   subcategoryId?: string;
@@ -244,12 +229,13 @@ export interface ProductFilters {
   tags?: string[];
   minPrice?: number;
   maxPrice?: number;
-  sortBy?: "name" | "price" | "created" | "updated";
+  sortBy?: string;
   sortOrder?: "asc" | "desc";
   userLat?: number;
   userLng?: number;
   radiusKm?: number;
   combinations?: ProductCombination[];
+  view: string
 }
 
 export type CreateVirtualStoreTypes = z.infer<

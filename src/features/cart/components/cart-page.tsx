@@ -9,10 +9,8 @@ import { DecreaseCartItemQuantity, IncreaseCartItemQuantity, RemoveCartItem } fr
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '../use-cart-store';
 import { NoItemsCard } from '@/components/no-items-card';
-import { useCurrency } from '@/features/products/currency/currency-context';
-import { ProductPriceDisplay } from '@/features/products/currency/converted-price-component';
-import { convertCurrency } from '@/hooks/use-currency';
 import { Separator } from '@/components/ui/separator';
+import { getCurrencySymbol } from '@/features/products/currency/currency-utils';
 
 export const CartPage = () => {
     const { items, totalItems } = useCartStore();
@@ -20,7 +18,6 @@ export const CartPage = () => {
 
     const router = useRouter();
     const [selectedItems, setSelectedItems] = useState<string[]>(items.map(item => item.id));
-    const { exchangeRates, exchangeRatesLoading, currentCurrency } = useCurrency();
 
     if (totalItems === 0) {
         return (
@@ -33,27 +30,6 @@ export const CartPage = () => {
 
     const selectedItemsData = items.filter(item => selectedItems.includes(item.id));
     const selectedTotalItems = selectedItemsData.reduce((acc, item) => acc + item.quantity, 0);
-
-    const calculateConvertedSubtotal = () => {
-        if (exchangeRatesLoading || !exchangeRates) {
-            return 0;
-        }
-
-        return selectedItemsData.reduce((acc, item) => {
-            const itemCurrency = item.productCurrency || 'USD';
-            const itemSubtotal = item.price * item.quantity;
-            const convertedAmount = convertCurrency(
-                itemSubtotal,
-                itemCurrency,
-                currentCurrency,
-                exchangeRates
-            );
-            return acc + convertedAmount;
-        }, 0);
-    };
-
-    const subtotal = calculateConvertedSubtotal();
-    const total = subtotal;
 
     const handleCheckedChange = (itemId: string) => (checked: boolean) => {
         setSelectedItems(prev =>
@@ -91,10 +67,7 @@ export const CartPage = () => {
                                     {item.name}
                                 </h3>
                                 <div className='text-sm text-gray-500'>
-                                    <ProductPriceDisplay
-                                        productPrice={item.price}
-                                        productCurrency={item.productCurrency || 'USD'}
-                                    /> {' '}
+                                    {getCurrencySymbol(item.productCurrency)} {item.price}
                                     each
                                 </div>
 
@@ -107,10 +80,7 @@ export const CartPage = () => {
 
                             <div className='flex flex-col items-end gap-2'>
                                 <div className='font-semibold text-lg'>
-                                    <ProductPriceDisplay
-                                        productPrice={(item.price * item.quantity)}
-                                        productCurrency={item.productCurrency || 'USD'}
-                                    />
+                                    {getCurrencySymbol(item.productCurrency)} {item.price * item.quantity}
                                 </div>
                                 <RemoveCartItem item={item} />
                             </div>
@@ -136,11 +106,7 @@ export const CartPage = () => {
                                         return (
                                             <div key={currency} className='flex justify-between text-sm'>
                                                 <span>{itemCount} items ({currency})</span>
-                                                <ProductPriceDisplay
-                                                    productPrice={currencySubtotal}
-                                                    productCurrency={currency}
-                                                    showOriginalPrice={false}
-                                                />
+                                                {getCurrencySymbol(currency)} {currencySubtotal}
                                             </div>
                                         );
                                     })}
@@ -149,18 +115,14 @@ export const CartPage = () => {
                             ) : null;
                         })()}
 
-                        <div className='flex justify-between'>
+                        {/* <div className='flex justify-between'>
                             <span>Subtotal ({selectedTotalItems} items)</span>
                             <div className='text-right'>
                                 {exchangeRatesLoading ? (
                                     <span className='text-sm text-gray-500'>Calculating...</span>
                                 ) : (
                                     <>
-                                        <ProductPriceDisplay
-                                            productPrice={subtotal}
-                                            productCurrency={currentCurrency}
-                                            showOriginalPrice={false}
-                                        />
+                                        {getCurrencySymbol(currentCurrency)} {subtotal}
                                         {[...new Set(selectedItemsData.map(item => item.productCurrency || 'USD'))].length > 1 && (
                                             <div className='text-xs text-gray-500'>
                                                 Total in {currentCurrency}
@@ -183,20 +145,14 @@ export const CartPage = () => {
                                 {exchangeRatesLoading ? (
                                     <span className='text-sm text-gray-500'>Calculating...</span>
                                 ) : (
-                                    <ProductPriceDisplay
-                                        productPrice={total}
-                                        productCurrency={currentCurrency}
-                                        showOriginalPrice={false}
-                                    />
+                                    <>
+                                        {getCurrencySymbol(currentCurrency)} {total}
+                                    </>
                                 )}
                             </div>
-                        </div>
+                        </div> */}
 
-                        {!exchangeRatesLoading && [...new Set(selectedItemsData.map(item => item.productCurrency || 'USD'))].length > 1 && (
-                            <div className='mt-3 p-2 bg-blue-50 rounded-md text-xs text-blue-700'>
-                                <span className='font-medium'>Note:</span> Prices converted to {currentCurrency} using current exchange rates
-                            </div>
-                        )}
+                
                     </CardContent>
 
                     <Separator className='my-4' />

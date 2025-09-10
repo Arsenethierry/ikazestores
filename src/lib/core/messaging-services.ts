@@ -280,7 +280,7 @@ export class OrderNotificationService {
                 order,
                 items,
                 totalValue,
-                itemCount,
+                  itemCount,
                 physicalStore
               ),
               text: this.generatePhysicalStoreFulfillmentText(

@@ -1,8 +1,6 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { ProductPriceDisplay } from "@/features/products/currency/converted-price-component";
-import { useCurrency } from "@/features/products/currency/currency-context";
 import { convertCurrency } from "@/hooks/use-currency";
 import { CartItem } from "@/lib/types";
 import Image from "next/image";
