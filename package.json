@@ -51,6 +51,8 @@
     "framer-motion": "^12.5.0",
     "isomorphic-dompurify": "^2.24.0",
     "jsdom": "^26.1.0",
+    "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "libphonenumber-js": "^1.12.6",
     "lodash": "^4.17.21",

@@ -70,6 +70,12 @@ export enum OrderStatus {
   CANCELLED = "cancelled",
 }
 
+export enum PaymentStatus {
+    PENDING = "pending",
+    CONFIRMED = "confirmed",
+    FAILED = "failed"
+}
+
 export const PRICE_FILTER_VALUE = {
   min: 1,
   max: 10000,

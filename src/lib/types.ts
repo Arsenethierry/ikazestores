@@ -69,15 +69,21 @@ export type AdminDashboardType =
   | "physicalStoreAdmin"
   | undefined;
 
-export type CartItem = {
-  id: string;
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  productCurrency: string;
-};
+export interface CartItem {
+    id: string;
+    productId: string;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    quantity: number;
+    image: string;
+    productCurrency: string;
+    sku?: string;
+    virtualProductId?: string;
+    virtualStoreId?: string;
+    physicalStoreId?: string;
+    commission?: number;
+}
 
 export interface Cart {
   items: CartItem[];

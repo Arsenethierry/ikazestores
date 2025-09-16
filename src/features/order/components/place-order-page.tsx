@@ -20,57 +20,38 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PaymentMethodType } from "@/lib/constants";
-import CustomFormField, { FormFieldType } from "@/components/custom-field";
 import { Form } from "@/components/ui/form";
-import { OrderSummaryStep } from "./order-steps/order-summary";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/features/cart/use-cart-store";
-import { OrderFormSchema, OrderSchema } from "@/lib/schemas/products-schems";
+import { OrderFormSchema } from "@/lib/schemas/products-schems";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Package, CreditCard, CheckCircle, AlertTriangle, Info, Clock, DollarSign } from "lucide-react";
-import { convertCurrency } from "@/hooks/use-currency";
+import { Truck, Package, CreditCard, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { createOrderAction } from "@/lib/actions/product-order-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface CurrencyBreakdown {
-    currency: string;
-    items: Array<{
-        id: string;
-        name: string;
-        price: number;
-        quantity: number;
-        subtotal: number;
-    }>;
-    originalSubtotal: number;
-    convertedSubtotal: number;
-    itemCount: number;
-}
+import { OrderSummaryStep } from "./order-steps/order-summary";
 
 interface OrderCalculations {
-    currencyBreakdowns: CurrencyBreakdown[];
-    customerSubtotal: number;
-    customerShippingCost: number;
-    customerTaxAmount: number;
-    customerTotalAmount: number;
-    exchangeRateSnapshot: Record<string, number>;
-    exchangeRateTimestamp: string;
+    subtotal: number;
+    shippingCost: number;
+    taxAmount: number;
+    totalAmount: number;
+    currency: string;
     isLoading: boolean;
 }
 
 export const PlaceOrderPage = () => {
-    const { items, totalPrice, clearCart } = useCartStore();
-    const { currentCurrency, exchangeRates, exchangeRatesLoading } = useCurrency();
+    const { items, clearCart } = useCartStore();
+
+    console.log("iiiii: ", items)
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [orderResult, setOrderResult] = useState<any>(null);
-    // const [processedCartItems, setProcessedCartItems] = useState<any[]>([]);
-    // const [orderCalculations, setOrderCalculations] = useState<any>(null);
 
     const { data: user, isLoading: userLoading, refetch: refetchUser, isRefetching } = useCurrentUser();
 
@@ -81,24 +62,22 @@ export const PlaceOrderPage = () => {
         reset: resetOrderAction
     } = useAction(createOrderAction, {
         onSuccess: (data) => {
-            if (data?.data && data?.data) {
-                setOrderResult(data.data);
+            if (data?.data?.success && data.data.data) {
+                setOrderResult(data.data.data);
                 setCurrentStep(5);
                 clearCart();
 
                 toast.success("Order placed successfully!");
 
                 // Auto-redirect to orders page after showing success
-                const timer = setTimeout(() => {
+                setTimeout(() => {
                     router.push("/my-orders");
                 }, 8000);
-
-                return () => clearTimeout(timer);
             }
         },
         onError: (error) => {
             console.error("Create order error:", error);
-            toast.error(error.serverError || "Failed to place order. Please try again.");
+            toast.error(error.error?.serverError || "Failed to place order. Please try again.");
         }
     });
 
@@ -106,37 +85,35 @@ export const PlaceOrderPage = () => {
         if (user) {
             setCurrentStep(2);
         } else {
-            refetchUser()
+            refetchUser();
         }
-    }, [user, searchParams, router]);
+    }, [user, refetchUser]);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentStep]);
 
-    const defaultValues: Partial<z.infer<typeof OrderFormSchema>> = {
-        deliveryAddress: {
-            fullName: "",
-            phoneNumber: "",
-            street: "",
-            city: "",
-            zip: "",
-            state: "",
-            country: "RW",
-            $id: null,
-        },
-        notes: "",
-        customerCurrency: currentCurrency,
-        preferredPaymentMethod: {
-            type: PaymentMethodType.CASH_ON_DELIVERY,
-        },
-        orderDate: new Date(),
-        isExpressDelivery: false,
-    };
-
     const form = useForm<z.infer<typeof OrderFormSchema>>({
         resolver: zodResolver(OrderFormSchema),
-        defaultValues,
+        defaultValues: {
+            deliveryAddress: {
+                fullName: "",
+                phoneNumber: "",
+                street: "",
+                city: "",
+                zip: "",
+                state: "",
+                country: "RW",
+                $id: null,
+            },
+            notes: "",
+            customerCurrency: "",
+            preferredPaymentMethod: {
+                type: PaymentMethodType.CASH_ON_DELIVERY,
+            },
+            orderDate: new Date(),
+            isExpressDelivery: false,
+        },
         mode: "onChange",
     });
 
@@ -147,72 +124,56 @@ export const PlaceOrderPage = () => {
 
     // Get selected items from URL parameters
     const selectedIds = searchParams.get("products")?.split(",") || [];
-    const selectedItems = items.filter(item => selectedIds.includes(item.id));
+    const selectedItems = items.filter(item => selectedIds.length > 0 ? selectedIds.includes(item.id) : true);
 
-    // Comprehensive order calculations with multi-currency support
+    // Simplified single-currency order calculations
     const orderCalculations: OrderCalculations = useMemo(() => {
-        if (exchangeRatesLoading || !exchangeRates || selectedItems.length === 0) {
+        if (selectedItems.length === 0) {
             return {
-                currencyBreakdowns: [],
-                customerSubtotal: 0,
-                customerShippingCost: 0,
-                customerTaxAmount: 0,
-                customerTotalAmount: 0,
-                exchangeRateSnapshot: {},
-                exchangeRateTimestamp: new Date().toISOString(),
-                isLoading: true
+                subtotal: 0,
+                shippingCost: 0,
+                taxAmount: 0,
+                totalAmount: 0,
+                currency: 'USD',
+                isLoading: false
             };
         }
 
-        // Group items by currency
-        const itemsByCurrency = selectedItems.reduce((acc, item) => {
-            const currency = item.productCurrency || 'USD';
-            if (!acc[currency]) {
-                acc[currency] = [];
-            }
-            acc[currency].push(item);
-            return acc;
-        }, {} as Record<string, typeof selectedItems>);
+        // Use the currency of the first item (since all items should have same currency)
+        const currency = selectedItems[0]?.productCurrency || 'USD';
 
-        // Calculate breakdown for each currency
-        const currencyBreakdowns: CurrencyBreakdown[] = Object.entries(itemsByCurrency).map(([currency, currencyItems]) => {
-            const originalSubtotal = currencyItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const convertedSubtotal = convertCurrency(originalSubtotal, currency, currentCurrency, exchangeRates);
-            const itemCount = currencyItems.reduce((sum, item) => sum + item.quantity, 0);
+        // Validate all items have the same currency
+        const hasMultipleCurrencies = selectedItems.some(item => 
+            (item.productCurrency || 'USD') !== currency
+        );
 
+        if (hasMultipleCurrencies) {
+            console.error("Items with different currencies found");
             return {
+                subtotal: 0,
+                shippingCost: 0,
+                taxAmount: 0,
+                totalAmount: 0,
                 currency,
-                items: currencyItems.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    subtotal: item.price * item.quantity
-                })),
-                originalSubtotal,
-                convertedSubtotal,
-                itemCount
+                isLoading: false
             };
-        });
+        }
 
-        // Calculate total amounts in customer currency
-        const customerSubtotal = currencyBreakdowns.reduce((sum, breakdown) => sum + breakdown.convertedSubtotal, 0);
-        const customerShippingCost = isExpressDelivery ? 10 : 0;
-        const taxRate = 0; // Can be made configurable based on location
-        const customerTaxAmount = (customerSubtotal * taxRate) / 100;
-        const customerTotalAmount = customerSubtotal + customerShippingCost + customerTaxAmount;
+        const subtotal = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const shippingCost = isExpressDelivery ? 10 : 5;
+        const taxRate = 0; // Can be made configurable
+        const taxAmount = (subtotal * taxRate) / 100;
+        const totalAmount = subtotal + shippingCost + taxAmount;
 
         return {
-            currencyBreakdowns,
-            customerSubtotal,
-            customerShippingCost,
-            customerTaxAmount,
-            customerTotalAmount,
-            exchangeRateSnapshot: exchangeRates,
-            exchangeRateTimestamp: new Date().toISOString(),
+            subtotal,
+            shippingCost,
+            taxAmount,
+            totalAmount,
+            currency,
             isLoading: false
         };
-    }, [selectedItems, currentCurrency, exchangeRates, exchangeRatesLoading, isExpressDelivery]);
+    }, [selectedItems, isExpressDelivery]);
 
     // Validation functions
     const isStep2Valid = () => {
@@ -285,37 +246,53 @@ export const PlaceOrderPage = () => {
             return;
         }
 
-        // Validate exchange rates age (must be less than 30 minutes old)
-        const ratesAge = (new Date().getTime() - new Date(orderCalculations.exchangeRateTimestamp).getTime()) / (1000 * 60);
-        if (ratesAge > 30) {
-            toast.error("Exchange rates are outdated. Please refresh the page and try again.");
+        // Validate single currency
+        const currencies = [...new Set(selectedItems.map(item => item.productCurrency || 'USD'))];
+        if (currencies.length > 1) {
+            toast.error("Cannot process order with items from different currencies");
             return;
         }
 
         resetOrderAction();
 
         const orderPayload = {
-            ...formData,
-            totalAmount: orderCalculations.customerTotalAmount,
-            selectedItems: selectedItems.map(item => ({
-                id: item.id,
-                productId: item.productId,
-                name: item.name,
-                price: convertCurrency(
-                    item.price,
-                    item.productCurrency,
-                    currentCurrency,
-                    orderCalculations.exchangeRateSnapshot
-                ),
+            customerId: user!.$id,
+            customerEmail: user!.email || '',
+            customerPhone: addressFields.phoneNumber,
+            
+            currency: orderCalculations.currency,
+            subtotal: orderCalculations.subtotal,
+            totalAmount: orderCalculations.totalAmount,
+            shippingCost: orderCalculations.shippingCost,
+            taxAmount: orderCalculations.taxAmount,
+            discountAmount: 0,
+
+            shippingAddress: addressFields,
+            
+            paymentMethod: paymentMethods.type,
+            orderDate: new Date().toISOString(),
+            estimatedDeliveryDate: new Date(Date.now() + (isExpressDelivery ? 2 : 7) * 24 * 60 * 60 * 1000).toISOString(),
+            notes: formData.notes || '',
+
+            orderItems: selectedItems.map(item => ({
+                orderId: '', // Will be set in the backend
+                virtualProductId: item.virtualProductId || item.id,
+                originalProductId: item.productId,
+                productName: item.name,
+                productImage: item.image || null,
+                sku: item.sku || `SKU-${item.id}`,
+                basePrice: item.originalPrice || item.price,
+                sellingPrice: item.price,
+                commission: item.commission || 0,
                 quantity: item.quantity,
-                image: item.image,
-                productCurrency: item.productCurrency
-            })),
-            customerCurrency: currentCurrency,
-            exchangeRatesSnapshot: orderCalculations.exchangeRateSnapshot,
-            exchangeRatesTimestamp: orderCalculations.exchangeRateTimestamp,
+                subtotal: item.price * item.quantity,
+                virtualStoreId: item.virtualStoreId || '',
+                physicalStoreId: item.physicalStoreId || '',
+            }))
         };
 
+        console.log(",,,,,,", orderPayload)
+// @ts-ignorel
         executeCreateOrder(orderPayload);
     };
 
@@ -407,37 +384,12 @@ export const PlaceOrderPage = () => {
                 </Alert>
             )}
 
-            {orderCalculations.isLoading && currentStep > 2 && (
-                <Alert className="max-w-xl mx-auto border-yellow-200 bg-yellow-50">
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                    <AlertDescription className="text-yellow-800">
-                        Calculating order totals and exchange rates...
-                    </AlertDescription>
-                </Alert>
-            )}
-
             {isExpressDelivery && currentStep > 2 && currentStep < 5 && (
                 <Alert className="max-w-xl mx-auto border-orange-200 bg-orange-50">
                     <Truck className="h-4 w-4 text-orange-600" />
                     <AlertDescription className="text-orange-800">
-                        Express Delivery selected - Additional{' '}
-                        {/* <ProductPriceDisplay
-                            productPrice={10}
-                            productCurrency={currentCurrency}
-                            showOriginalPrice={false}
-                        />{' '} */}
-                        fee applied. Estimated delivery: 2-3 business days
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            {/* Multi-currency Alert */}
-            {orderCalculations.currencyBreakdowns.length > 1 && currentStep > 2 && currentStep < 5 && (
-                <Alert className="max-w-xl mx-auto border-blue-200 bg-blue-50">
-                    <DollarSign className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-800">
-                        Your order contains items in {orderCalculations.currencyBreakdowns.length} different currencies.
-                        All prices are converted to {currentCurrency} using current exchange rates.
+                        Express Delivery selected - Additional ${orderCalculations.shippingCost - 5} fee applied. 
+                        Estimated delivery: 2-3 business days
                     </AlertDescription>
                 </Alert>
             )}
@@ -489,6 +441,7 @@ export const PlaceOrderPage = () => {
                             </div>
                         )}
 
+                        {/* Step 3: Order Review */}
                         {currentStep === 3 && (
                             <div className="space-y-6 text-start">
                                 <h2 className="text-xl font-semibold">Order Review</h2>
@@ -503,11 +456,26 @@ export const PlaceOrderPage = () => {
                                         <CardTitle className="text-lg">Order Summary</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
-                                        {orderCalculations.currencyBreakdowns.length > 1 && (
-                                            <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                                
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                                <span>Subtotal ({selectedItems.length} items)</span>
+                                                <span>${orderCalculations.subtotal.toFixed(2)} {orderCalculations.currency}</span>
                                             </div>
-                                        )}
+                                            <div className="flex justify-between">
+                                                <span>Shipping</span>
+                                                <span>${orderCalculations.shippingCost.toFixed(2)} {orderCalculations.currency}</span>
+                                            </div>
+                                            {orderCalculations.taxAmount > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span>Tax</span>
+                                                    <span>${orderCalculations.taxAmount.toFixed(2)} {orderCalculations.currency}</span>
+                                                </div>
+                                            )}
+                                            <div className="border-t pt-2 flex justify-between font-semibold">
+                                                <span>Total</span>
+                                                <span>${orderCalculations.totalAmount.toFixed(2)} {orderCalculations.currency}</span>
+                                            </div>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -524,27 +492,15 @@ export const PlaceOrderPage = () => {
                                     <div className="space-y-1 text-sm">
                                         <div className="flex justify-between">
                                             <span>{selectedItems.length} items</span>
-                                            {/* <ProductPriceDisplay
-                                                productPrice={itemsSubtotal}
-                                                productCurrency={currentCurrency}
-                                            />
-                                            {getCurrencySymbol(itemsSubtotal)} */}
+                                            <span>${orderCalculations.subtotal.toFixed(2)} {orderCalculations.currency}</span>
                                         </div>
-                                        {isExpressDelivery && (
-                                            <div className="flex justify-between">
-                                                <span>Express Delivery</span>
-                                                {/* <ProductPriceDisplay
-                                                    productPrice={expressDeliveryFee}
-                                                    productCurrency={currentCurrency}
-                                                /> */}
-                                            </div>
-                                        )}
+                                        <div className="flex justify-between">
+                                            <span>Shipping</span>
+                                            <span>${orderCalculations.shippingCost.toFixed(2)} {orderCalculations.currency}</span>
+                                        </div>
                                         <div className="border-t pt-1 flex justify-between font-semibold">
                                             <span>Total</span>
-                                            {/* <ProductPriceDisplay
-                                                productPrice={calculatedTotal}
-                                                productCurrency={currentCurrency}
-                                            /> */}
+                                            <span>${orderCalculations.totalAmount.toFixed(2)} {orderCalculations.currency}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -591,22 +547,11 @@ export const PlaceOrderPage = () => {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="font-medium">Total Amount:</span>
-                                        {/* <ProductPriceDisplay
-                                            productPrice={orderResult.totalAmount}
-                                            productCurrency={currentCurrency}
-                                        /> */}
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Items:</span>
-                                        <span>{orderResult.orderItems.length} items</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Virtual Store:</span>
-                                        <span>{orderResult.virtualStoreId}</span>
+                                        <span>${orderResult.totalAmount?.toFixed(2) || orderCalculations.totalAmount.toFixed(2)} {orderResult.currency || orderCalculations.currency}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="font-medium">Estimated Delivery:</span>
-                                        <span>{orderResult.estimatedDeliveryDate.toLocaleDateString()}</span>
+                                        <span>{new Date(orderResult.estimatedDeliveryDate || Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</span>
                                     </div>
                                 </div>
 
@@ -620,7 +565,7 @@ export const PlaceOrderPage = () => {
                                     </Alert>
 
                                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                        <Link href="/my-orders" className={buttonVariants({ variant: 'teritary' })}>
+                                        <Link href="/my-orders" className={buttonVariants({ variant: 'secondary' })}>
                                             View Your Orders
                                         </Link>
                                         <Link href="/products" className={buttonVariants({ variant: 'outline' })}>

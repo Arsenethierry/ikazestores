@@ -17,11 +17,6 @@ export enum ApplicationStatus {
     REJECTED = "rejected"
 }
 
-export enum StoreType {
-    PHYSICAL_STORE = "physicalStore",
-    VIRTUAL_STORE = "virtualStore"
-}
-
 export enum Status {
     ACTIVE = "active",
     DRAFT = "draft",
@@ -145,6 +140,13 @@ export enum Status {
     PENDING = "pending",
     RESOLVED = "resolved",
     DISMISSED = "dismissed"
+}
+
+export enum ReturnOrderStatus {
+    PENDING = "pending",
+    PROCESSING = "processing",
+    APPROVED = "approved",
+    REJECTED = "rejected"
 }
 
 export type UsersData = Models.Document & {
@@ -608,4 +610,13 @@ export type ReviewReport = Models.Document & {
     status: Status;
     resolvedBy: string | null;
     resolvedAt: string | null;
+}
+
+export type ReturnOrderRequests = Models.Document & {
+    orderId: string;
+    customerId: string;
+    reason: string;
+    description: string | null;
+    returnOrderStatus: ReturnOrderStatus;
+    requestedAt: string;
 }

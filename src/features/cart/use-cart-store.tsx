@@ -7,9 +7,13 @@ interface CartState {
     totalItems: number;
     totalPrice: number;
     addToCart: (item: VirtualProductTypes) => void
-    removeFromCart: (item: string) => void
-    updateItemQuantity: (item: string, quantity: number) => void
+    removeFromCart: (itemId: string) => void
+    updateItemQuantity: (itemId: string, quantity: number) => void
     clearCart: () => void
+    getCartItemsCount: () => number
+    getCartTotal: () => number
+    isItemInCart: (productId: string) => boolean
+    getItemQuantity: (productId: string) => number
 }
 
 const calculateCartTotals = (items: CartItem[]) => {
@@ -20,12 +24,12 @@ const calculateCartTotals = (items: CartItem[]) => {
 
 export const useCartStore = create(
     persist<CartState>(
-        (set) => ({
+        (set, get) => ({
             items: [],
             totalItems: 0,
             totalPrice: 0,
 
-            addToCart: (newItem) => {
+            addToCart: (newItem: VirtualProductTypes) => {
                 set((state) => {
                     const updatedItems = [...state.items];
 
@@ -37,17 +41,23 @@ export const useCartStore = create(
                         updatedItems[existingItemIndex] = {
                             ...updatedItems[existingItemIndex],
                             quantity: updatedItems[existingItemIndex].quantity + 1,
-                            productCurrency: newItem.currency
+                            productCurrency: newItem.currency || 'USD'
                         }
                     } else {
                         updatedItems.push({
                             id: Math.random().toString(36).substring(2, 15),
                             productId: newItem.$id,
+                            virtualProductId: newItem.$id,
                             name: newItem.name,
                             price: newItem.price,
+                            originalPrice: newItem.basePrice || newItem.price,
                             quantity: 1,
-                            image: newItem.images ?  newItem.images[0] : '',
-                            productCurrency: newItem.currency
+                            image: newItem.images?.[0] || '',
+                            productCurrency: newItem.currency || 'USD',
+                            sku: newItem.sku || `SKU-${newItem.$id}`,
+                            virtualStoreId: newItem.virtualStoreId,
+                            physicalStoreId: newItem.physicalStoreId,
+                            commission: 0, // Default commission
                         })
                     }
 
@@ -61,10 +71,9 @@ export const useCartStore = create(
                 })
             },
 
-            removeFromCart: (itemId) => {
+            removeFromCart: (itemId: string) => {
                 set((state) => {
                     const updatedItems = state.items.filter(item => item.id !== itemId);
-
                     const { totalItems, totalPrice } = calculateCartTotals(updatedItems);
 
                     return {
@@ -75,7 +84,7 @@ export const useCartStore = create(
                 })
             },
 
-            updateItemQuantity: (itemId, quantity) => {
+            updateItemQuantity: (itemId: string, quantity: number) => {
                 set((state) => {
                     if (quantity < 1) {
                         const updatedItems = state.items.filter(item => item.id !== itemId);
@@ -110,6 +119,23 @@ export const useCartStore = create(
                     totalItems: 0,
                     totalPrice: 0,
                 })
+            },
+
+            getCartItemsCount: () => {
+                return get().totalItems;
+            },
+
+            getCartTotal: () => {
+                return get().totalPrice;
+            },
+
+            isItemInCart: (productId: string) => {
+                return get().items.some(item => item.productId === productId);
+            },
+
+            getItemQuantity: (productId: string) => {
+                const item = get().items.find(item => item.productId === productId);
+                return item ? item.quantity : 0;
             }
         }),
         {

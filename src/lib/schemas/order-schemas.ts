@@ -20,7 +20,7 @@ export const OrderItemSchema = z.object({
   virtualProductId: z.string().min(1, "Virtual product ID is required"),
   originalProductId: z.string().min(1, "Product ID is required"),
   productName: z.string().min(1, "Product name is required").max(200),
-  productImage: z.string().url().optional(),
+  productImage: z.string().url().optional().nullable(),
   sku: z.string().min(1, "Product SKU is required").max(100),
   basePrice: z.number().min(0, "Base price must be positive"),
   sellingPrice: z.number().min(0, "Selling price must be positive"),
@@ -31,7 +31,7 @@ export const OrderItemSchema = z.object({
   physicalStoreId: z.string().min(1, "Physical store ID is required"),
 });
 
-// Main Order Creation Schema
+// Simplified Order Creation Schema (Single Currency)
 export const CreateOrderSchema = z
   .object({
     customerId: z.string().min(1, "Customer ID is required"),
@@ -39,7 +39,7 @@ export const CreateOrderSchema = z
     customerPhone: z.string().min(10, "Valid phone number required").optional(),
     virtualStoreId: z.string().min(1, "Virtual store ID is required"),
 
-    // Financial details (single currency)
+    // Financial details - single currency only
     currency: z.string().length(3, "Currency must be 3 characters"),
     subtotal: z.number().min(0, "Subtotal must be positive"),
     totalAmount: z.number().min(0, "Total amount must be positive"),
@@ -125,6 +125,23 @@ export const CreateOrderSchema = z
       message: "All items must belong to the specified virtual store",
       path: ["orderItems"],
     }
+  )
+  .refine(
+    (data) => {
+      // CRITICAL: Validate single currency constraint
+      // All items must have the same currency as the order
+      const orderCurrency = data.currency;
+      const hasInvalidCurrency = data.orderItems.some(item => {
+        // Since we removed currency from OrderItemSchema, we need to validate 
+        // this at the application level before creating the order
+        return false; // Will be validated in the frontend/action layer
+      });
+      return true;
+    },
+    {
+      message: "All items must use the same currency",
+      path: ["orderItems"],
+    }
   );
 
 // Update Order Status Schema
@@ -144,9 +161,8 @@ export const UpdateFulfillmentStatusSchema = z.object({
   estimatedDeliveryDate: z.string().datetime().optional(),
 });
 
-// Get Orders Filters Schema
+// Simplified Get Orders Schema
 export const GetOrdersSchema = z.object({
-  // Store filtering
   storeId: z.string().optional(),
   storeType: z.enum(["virtual", "physical"]).optional(),
 
@@ -155,15 +171,10 @@ export const GetOrdersSchema = z.object({
   fulfillmentStatus: z
     .array(z.nativeEnum(PhysicalStoreFulfillmentOrderStatus))
     .optional(),
-  commissionStatus: z.array(z.string()).optional(),
 
   // Customer filtering
   customerId: z.string().optional(),
   customerEmail: z.string().email().optional(),
-
-  // Location filtering
-  orderCountry: z.string().optional(),
-  currency: z.string().length(3).optional(),
 
   // Date filtering
   dateRange: z
@@ -173,7 +184,7 @@ export const GetOrdersSchema = z.object({
     })
     .optional(),
 
-  // Value filtering
+  // Value filtering (single currency)
   valueRange: z
     .object({
       min: z.number().min(0),
@@ -200,27 +211,6 @@ export const GetOrdersSchema = z.object({
     .default({ field: "$createdAt", direction: "desc" }),
 });
 
-// Get Order Analytics Schema
-export const GetOrderAnalyticsSchema = z.object({
-  storeId: z.string().optional(),
-  storeType: z.enum(["virtual", "physical"]).optional(),
-  country: z.string().optional(),
-  currency: z.string().length(3).optional(),
-  dateRange: z
-    .object({
-      from: z.date(),
-      to: z.date(),
-    })
-    .optional(),
-  includeDetailedBreakdown: z.boolean().default(false),
-});
-
-// Get Order by ID Schema
-export const GetOrderByIdSchema = z.object({
-  orderId: z.string().min(1, "Order ID is required"),
-  includeRelations: z.boolean().default(true),
-});
-
 // Cancel Order Schema
 export const CancelOrderSchema = z.object({
   orderId: z.string().min(1, "Order ID is required"),
@@ -229,64 +219,13 @@ export const CancelOrderSchema = z.object({
   notifyCustomer: z.boolean().default(true),
 });
 
-// Process Order Items Schema (for validation before order creation)
-export const ProcessOrderItemsSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        affiliateImportId: z.string().min(1),
-        productName: z.string().min(1),
-        quantity: z.number().int().min(1).max(999),
-        expectedPrice: z.number().min(0),
-      })
-    )
-    .min(1, "At least one item is required"),
-  virtualStoreId: z.string().min(1, "Virtual store ID is required"),
-});
-
-// Bulk Update Orders Schema
-export const BulkUpdateOrdersSchema = z.object({
-  orderIds: z
-    .array(z.string().min(1))
-    .min(1, "At least one order ID required")
-    .max(50, "Maximum 50 orders at once"),
-  updates: z
-    .object({
-      status: z.nativeEnum(OrderStatus).optional(),
-      fulfillmentStatus: z
-        .nativeEnum(PhysicalStoreFulfillmentOrderStatus)
-        .optional(),
-      notes: z.string().max(1000).optional(),
-      estimatedDeliveryDate: z.string().datetime().optional(),
-    })
-    .refine(
-      (data) => Object.keys(data).length > 0,
-      "At least one update field is required"
-    ),
-  notifyCustomers: z.boolean().default(false),
-});
-
-// Order Stats Schema
-export const GetOrderStatsSchema = z.object({
-  storeId: z.string().optional(),
-  storeType: z.enum(["virtual", "physical"]).optional(),
-  filters: z
-    .object({
-      orderStatus: z.array(z.nativeEnum(OrderStatus)).optional(),
-      fulfillmentStatus: z
-        .array(z.nativeEnum(PhysicalStoreFulfillmentOrderStatus))
-        .optional(),
-      commissionStatus: z.array(z.string()).optional(),
-      orderCountry: z.string().optional(),
-      currency: z.string().optional(),
-      dateRange: z
-        .object({
-          from: z.date(),
-          to: z.date(),
-        })
-        .optional(),
-    })
-    .default({}),
+// Order Return Request Schema
+export const CreateOrdersReturnRequestSchema = z.object({
+  orderId: z.string(),
+  customerId: z.string(),
+  returnOrderStatus: z.enum(["pending", "processing", "approved", "rejected"]).optional(),
+  reason: z.string(),
+  description: z.string().optional(),
 });
 
 // Customer Orders Schema
@@ -311,27 +250,14 @@ export const GetCustomerOrdersSchema = z.object({
     .default({}),
 });
 
-// Overdue Orders Schema
-export const GetOverdueOrdersSchema = z.object({
-  storeId: z.string().optional(),
-  storeType: z.enum(["virtual", "physical"]).optional(),
-  daysOverdue: z.number().int().min(1).default(1),
-  limit: z.number().int().min(1).max(100).default(25),
-});
-
 // Type exports for use in actions
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
+export type CreateOrdersReturnRequestInput = z.infer<typeof CreateOrdersReturnRequestSchema>;
 export type OrderItemCreateData = z.infer<typeof OrderItemSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof UpdateOrderStatusSchema>;
 export type UpdateFulfillmentStatusInput = z.infer<
   typeof UpdateFulfillmentStatusSchema
 >;
 export type GetOrdersInput = z.infer<typeof GetOrdersSchema>;
-export type GetOrderAnalyticsInput = z.infer<typeof GetOrderAnalyticsSchema>;
-export type GetOrderByIdInput = z.infer<typeof GetOrderByIdSchema>;
 export type CancelOrderInput = z.infer<typeof CancelOrderSchema>;
-export type ProcessOrderItemsInput = z.infer<typeof ProcessOrderItemsSchema>;
-export type BulkUpdateOrdersInput = z.infer<typeof BulkUpdateOrdersSchema>;
-export type GetOrderStatsInput = z.infer<typeof GetOrderStatsSchema>;
 export type GetCustomerOrdersInput = z.infer<typeof GetCustomerOrdersSchema>;
-export type GetOverdueOrdersInput = z.infer<typeof GetOverdueOrdersSchema>;

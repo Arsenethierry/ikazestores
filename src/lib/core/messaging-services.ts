@@ -3,7 +3,7 @@ import { createAdminClient } from "../appwrite";
 import { VirtualStore } from "../models/virtual-store";
 import { PhysicalStoreModel } from "../models/physical-store-model";
 import { OrderFullfilmentRecords, Orders } from "../types/appwrite/appwrite";
-import { OrderItemCreateData, OrderModel } from "../models/OrderModel";
+import { OrderModel } from "../models/OrderModel";
 import { getUserData } from "../actions/auth.action";
 import { format } from "date-fns";
 import { PhysicalStoreTypes, VirtualStoreTypes } from "../types";
@@ -14,6 +14,7 @@ import {
   UserRole,
 } from "../constants";
 import { DATABASE_ID } from "../env-config";
+import { OrderItemCreateData } from "../schemas/order-schemas";
 
 export interface EmailTemplate {
   subject: string;
@@ -256,6 +257,8 @@ export class OrderNotificationService {
       await Promise.all(
         Object.entries(itemsByPhysicalStore).map(
           async ([physicalStoreId, items]) => {
+            const typedData = items as OrderItemCreateData[];
+
             const physicalStore = await this.physicalStoreModel.findById(
               physicalStoreId,
               {}
@@ -265,11 +268,11 @@ export class OrderNotificationService {
             const storeOwner = await getUserData(physicalStore.owner);
             if (!storeOwner || !storeOwner.email) return;
 
-            const totalValue = items.reduce(
+            const totalValue = typedData.reduce(
               (sum, item) => sum + item.basePrice * item.quantity,
               0
             );
-            const itemCount = items.reduce(
+            const itemCount = typedData.reduce(
               (sum, item) => sum + item.quantity,
               0
             );
@@ -278,14 +281,14 @@ export class OrderNotificationService {
               subject: `📦 New Order to Fulfill - #${order.orderNumber}`,
               html: this.generatePhysicalStoreFulfillmentHTML(
                 order,
-                items,
+                typedData,
                 totalValue,
                   itemCount,
                 physicalStore
               ),
               text: this.generatePhysicalStoreFulfillmentText(
                 order,
-                items,
+                typedData,
                 totalValue,
                 itemCount,
                 physicalStore
