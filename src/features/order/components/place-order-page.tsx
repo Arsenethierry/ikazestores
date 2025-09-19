@@ -42,7 +42,7 @@ interface OrderCalculations {
     isLoading: boolean;
 }
 
-export const PlaceOrderPage = () => {
+export const PlaceOrderPage = ({ virtualStoreId }: { virtualStoreId: string }) => {
     const { items, clearCart } = useCartStore();
 
     console.log("iiiii: ", items)
@@ -143,7 +143,7 @@ export const PlaceOrderPage = () => {
         const currency = selectedItems[0]?.productCurrency || 'USD';
 
         // Validate all items have the same currency
-        const hasMultipleCurrencies = selectedItems.some(item => 
+        const hasMultipleCurrencies = selectedItems.some(item =>
             (item.productCurrency || 'USD') !== currency
         );
 
@@ -259,7 +259,8 @@ export const PlaceOrderPage = () => {
             customerId: user!.$id,
             customerEmail: user!.email || '',
             customerPhone: addressFields.phoneNumber,
-            
+            virtualStoreId: virtualStoreId,
+
             currency: orderCalculations.currency,
             subtotal: orderCalculations.subtotal,
             totalAmount: orderCalculations.totalAmount,
@@ -268,7 +269,7 @@ export const PlaceOrderPage = () => {
             discountAmount: 0,
 
             shippingAddress: addressFields,
-            
+
             paymentMethod: paymentMethods.type,
             orderDate: new Date().toISOString(),
             estimatedDeliveryDate: new Date(Date.now() + (isExpressDelivery ? 2 : 7) * 24 * 60 * 60 * 1000).toISOString(),
@@ -292,7 +293,7 @@ export const PlaceOrderPage = () => {
         };
 
         console.log(",,,,,,", orderPayload)
-// @ts-ignorel
+        // @ts-ignorel
         executeCreateOrder(orderPayload);
     };
 
@@ -388,7 +389,7 @@ export const PlaceOrderPage = () => {
                 <Alert className="max-w-xl mx-auto border-orange-200 bg-orange-50">
                     <Truck className="h-4 w-4 text-orange-600" />
                     <AlertDescription className="text-orange-800">
-                        Express Delivery selected - Additional ${orderCalculations.shippingCost - 5} fee applied. 
+                        Express Delivery selected - Additional ${orderCalculations.shippingCost - 5} fee applied.
                         Estimated delivery: 2-3 business days
                     </AlertDescription>
                 </Alert>

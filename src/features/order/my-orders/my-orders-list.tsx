@@ -33,7 +33,7 @@ export async function MyOrdersList({ customerId, searchParams }: MyOrdersListPro
         limit: 10
     });
 
-    if (!result?.data?.success || !result.data.orders) {
+    if (!result?.data?.success || !result?.data?.data.orders) {
         return (
             <Alert variant="destructive">
                 <AlertDescription>
@@ -43,7 +43,7 @@ export async function MyOrdersList({ customerId, searchParams }: MyOrdersListPro
         );
     }
 
-    const { orders, total, hasMore } = result.data;
+    const { orders, total, hasMore } = result.data.data;
 
     if (orders.length === 0) {
         return (

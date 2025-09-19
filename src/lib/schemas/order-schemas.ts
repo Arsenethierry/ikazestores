@@ -16,7 +16,7 @@ export const AddressSchema = z.object({
 });
 
 export const OrderItemSchema = z.object({
-  orderId: z.string().min(1, "Order ID is required"),
+  orderId: z.string().optional(),
   virtualProductId: z.string().min(1, "Virtual product ID is required"),
   originalProductId: z.string().min(1, "Product ID is required"),
   productName: z.string().min(1, "Product name is required").max(200),
@@ -53,9 +53,9 @@ export const CreateOrderSchema = z
 
     // Payment and delivery
     paymentMethod: z.enum([
-      "cash_on_delivery",
-      "bank_transfer",
-      "mobile_money",
+      "CASH_ON_DELIVERY",  
+      "ONLINE_PAYMENT", 
+      "CARD_PAYMENT"
     ]),
     paymentStatus: z
       .enum(["pending", "confirmed", "failed"])

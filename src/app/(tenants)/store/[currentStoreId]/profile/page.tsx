@@ -12,21 +12,25 @@ async function page({
 }: {
     params: Promise<{ currentStoreId: string }>;
 }) {
-    const { currentStoreId } = await params;
+    // const { currentStoreId } = await params;
     const {
         user,
         isPhysicalStoreOwner,
         isVirtualStoreOwner,
         isSystemAdmin,
         isSystemAgent,
-        canAccessStore
+        // canAccessStore
     } = await getAuthState();
 
     if (!user) redirect('/sign-in');
 
-    if(isPhysicalStoreOwner || (isVirtualStoreOwner && !canAccessStore(currentStoreId))) {
-        redirect(`${MAIN_DOMAIN}/profile`);
-    }
+    // const canAccess = typeof canAccessStore === 'function'
+    //     ? await canAccessStore(currentStoreId)
+    //     : Boolean(canAccessStore);
+
+    // if (isPhysicalStoreOwner || (isVirtualStoreOwner && !canAccess)) {
+    //    redirect(`${MAIN_DOMAIN}/profile`);
+    // }
 
     const hasPhysicalSellerPending = user?.labels?.includes(UserRole.PHYSICAL_SELLER_PENDING);
 

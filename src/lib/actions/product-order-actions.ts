@@ -13,6 +13,7 @@ import { createSessionClient } from "../appwrite";
 import { Query } from "node-appwrite";
 import { Orders } from "../types/appwrite/appwrite";
 import { DATABASE_ID, ORDERS_COLLECTION_ID } from "../env-config";
+import { AffiliateProductModel } from "../models/AffliateProductModel";
 
 const orderModel = new OrderModel();
 const orderReturnModel = new ReturnOrderRequestsModel();
@@ -37,6 +38,51 @@ export const createOrderAction = action
           "Invalid customer ID - can only create orders for yourself"
         );
       }
+
+      const affiliateProductModel = new AffiliateProductModel();
+      const enrichedOrderItems = [];
+
+      for (const item of validatedData.orderItems) {
+        const virtualProduct = await affiliateProductModel.findVirtualProductById(
+          item.virtualProductId
+        );
+
+        if (!virtualProduct) {
+          throw new Error(`Product "${item.productName}" not found or no longer available`);
+        }
+
+        if (virtualProduct.status !== 'active') {
+          throw new Error(`Product "${item.productName}" is currently unavailable`);
+        }
+
+        if (virtualProduct.virtualStoreId !== validatedData.virtualStoreId) {
+          throw new Error(`Product "${item.productName}" does not belong to the specified virtual store`);
+        }
+
+        const enrichedItem = {
+          ...item,
+          // Use actual product data instead of cart data
+          originalProductId: virtualProduct.productId || item.originalProductId,
+          productName: virtualProduct.name,
+          productImage: item.productImage || virtualProduct.images?.[0] || null,
+          sku: virtualProduct.sku,
+          basePrice: virtualProduct.basePrice,
+          sellingPrice: virtualProduct.price,
+          commission: virtualProduct.commission || 0,
+          physicalStoreId: virtualProduct.physicalStoreId,
+          // Keep original quantity and subtotal from cart
+          quantity: item.quantity,
+          subtotal: virtualProduct.price * item.quantity, // Recalculate with current price
+        };
+
+        enrichedOrderItems.push(enrichedItem);
+      }
+
+      validatedData.orderItems = enrichedOrderItems;
+
+      const newSubtotal = enrichedOrderItems.reduce((sum, item) => sum + item.subtotal, 0);
+            validatedData.subtotal = newSubtotal;
+      validatedData.totalAmount = newSubtotal + validatedData.shippingCost + validatedData.taxAmount - validatedData.discountAmount;
 
       const currencies = [
         ...new Set(

@@ -40,12 +40,12 @@ async function OrderDetailsContent({
       limit: 1,
     });
 
-    if (!result?.data?.success || !result.data.data.orders) {
+    if (!result?.data?.success || !result.data.orders) {
       throw new Error('Failed to fetch orders');
     }
 
     // Find the specific order
-    const order = result.data.data.orders.find(o => o.$id === orderId);
+    const order = result.data.orders.find(o => o.$id === orderId);
     
     if (!order) {
       notFound();
