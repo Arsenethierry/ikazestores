@@ -31,6 +31,7 @@ export function OrderActionsMenu({
 }: OrderActionsMenuProps) {
     const [isPending, startTransition] = useTransition();
     const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [cancellationReason, setCancellationReason] = useState("");
 
     const handleStatusUpdate = async (status: OrderStatus) => {
         startTransition(async () => {
@@ -38,17 +39,20 @@ export function OrderActionsMenu({
                 const result = await updateOrderStatusAction({
                     orderId: order.$id,
                     status,
-                    notes: `Status updated to ${status}`
+                    ...(status === OrderStatus.CANCELLED && {
+                        cancellationReason: cancellationReason || 'Cancelled by admin'
+                    })
                 });
 
                 if (result?.data?.success) {
-                    toast.success('Order status updated successfully');
+                    toast.success(result.data.message || 'Order status updated successfully');
                     onOrderUpdate();
-                } else {
-                    toast.error(result?.data?.error || 'Failed to update order status');
+                } else if (result?.data?.error) {
+                    toast.error(result.data.error);
                 }
             } catch (error) {
                 toast.error('Failed to update order status');
+                console.error('Error updating order status:', error);
             }
         });
     };
@@ -62,19 +66,19 @@ export function OrderActionsMenu({
         startTransition(async () => {
             try {
                 const result = await updateFulfillmentStatusAction({
-                    fulfillmentRecordId: order.fulfillmentRecords![0].$id,
-                    status,
-                    notes: `Fulfillment status updated to ${status}`
+                    fulfillmentId: order.fulfillmentRecords![0].$id,
+                    status: status as "pending" | "processing" | "ready" | "completed" | "cancelled"
                 });
 
                 if (result?.data?.success) {
-                    toast.success('Fulfillment status updated successfully');
+                    toast.success(result.data.message || 'Fulfillment status updated successfully');
                     onOrderUpdate();
-                } else {
-                    toast.error(result?.data?.error || 'Failed to update fulfillment status');
+                } else if (result?.data?.error) {
+                    toast.error(result.data.error);
                 }
             } catch (error) {
                 toast.error('Failed to update fulfillment status');
+                console.error('Error updating fulfillment status:', error);
             }
         });
     };
@@ -84,19 +88,21 @@ export function OrderActionsMenu({
             try {
                 const result = await cancelOrderAction({
                     orderId: order.$id,
-                    reason: 'Cancelled by admin'
+                    reason: cancellationReason || 'Cancelled by admin'
                 });
 
                 if (result?.data?.success) {
-                    toast.success('Order cancelled successfully');
+                    toast.success(result.data.message || 'Order cancelled successfully');
                     onOrderUpdate();
-                } else {
-                    toast.error(result?.data?.error || 'Failed to cancel order');
+                } else if (result?.data?.error) {
+                    toast.error(result.data.error);
                 }
             } catch (error) {
                 toast.error('Failed to cancel order');
+                console.error('Error cancelling order:', error);
             } finally {
                 setShowCancelDialog(false);
+                setCancellationReason("");
             }
         });
     };
@@ -104,11 +110,22 @@ export function OrderActionsMenu({
     const canCancelOrder = permissions.canCancel &&
         [OrderStatus.PENDING, OrderStatus.PROCESSING].includes(order.orderStatus as OrderStatus);
 
+    const getNextFulfillmentStatus = (currentStatus: string): PhysicalStoreFulfillmentOrderStatus | null => {
+        switch (currentStatus) {
+            case PhysicalStoreFulfillmentOrderStatus.PENDING:
+                return PhysicalStoreFulfillmentOrderStatus.PROCESSING;
+            case PhysicalStoreFulfillmentOrderStatus.PROCESSING:
+                return PhysicalStoreFulfillmentOrderStatus.COMPLETED;
+            default:
+                return null;
+        }
+    };
+
     return (
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={isPending}>
                         <span className="sr-only">Open menu</span>
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
@@ -158,22 +175,35 @@ export function OrderActionsMenu({
                         <>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel>Update Fulfillment</DropdownMenuLabel>
-                            {order.fulfillmentRecords[0].physicalStoreFulfillmentOrderStatus === "pending_fulfillment" && (
-                                <DropdownMenuItem
-                                    onClick={() => handleFulfillmentUpdate(PhysicalStoreFulfillmentOrderStatus.PROCESSING)}
-                                    disabled={isPending}
-                                >
-                                    Start Processing
-                                </DropdownMenuItem>
-                            )}
-                            {order.fulfillmentRecords[0].physicalStoreFulfillmentOrderStatus === "processing" && (
-                                <DropdownMenuItem
-                                    onClick={() => handleFulfillmentUpdate(PhysicalStoreFulfillmentOrderStatus.SHIPPED)}
-                                    disabled={isPending}
-                                >
-                                    Mark as Shipped
-                                </DropdownMenuItem>
-                            )}
+                            {(() => {
+                                const currentStatus = order.fulfillmentRecords[0].physicalStoreFulfillmentOrderStatus;
+                                const nextStatus = getNextFulfillmentStatus(currentStatus);
+
+                                if (nextStatus && currentStatus !== 'completed' &&
+                                    currentStatus !== 'cancelled') {
+                                    return (
+                                        <DropdownMenuItem
+                                            onClick={() => handleFulfillmentUpdate(nextStatus)}
+                                            disabled={isPending}
+                                        >
+                                            {nextStatus === PhysicalStoreFulfillmentOrderStatus.PROCESSING && "Start Processing"}
+                                            {nextStatus === PhysicalStoreFulfillmentOrderStatus.COMPLETED && "Mark as Completed"}
+                                        </DropdownMenuItem>
+                                    );
+                                }
+                                return null;
+                            })()}
+
+                            {order.fulfillmentRecords[0].physicalStoreFulfillmentOrderStatus !== 'cancelled' &&
+                                order.fulfillmentRecords[0].physicalStoreFulfillmentOrderStatus !== 'completed' && (
+                                    <DropdownMenuItem
+                                        onClick={() => handleFulfillmentUpdate(PhysicalStoreFulfillmentOrderStatus.CANCELLED)}
+                                        disabled={isPending}
+                                        className="text-destructive"
+                                    >
+                                        Cancel Fulfillment
+                                    </DropdownMenuItem>
+                                )}
                         </>
                     )}
 
@@ -201,11 +231,27 @@ export function OrderActionsMenu({
                             Are you sure you want to cancel order #{order.orderNumber}? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="my-4">
+                        <label htmlFor="cancellation-reason" className="text-sm font-medium">
+                            Cancellation Reason (optional)
+                        </label>
+                        <textarea
+                            id="cancellation-reason"
+                            className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            placeholder="Enter reason for cancellation..."
+                            value={cancellationReason}
+                            onChange={(e) => setCancellationReason(e.target.value)}
+                            rows={3}
+                        />
+                    </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => setCancellationReason("")}>
+                            Cancel
+                        </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleCancelOrder}
                             disabled={isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             Yes, Cancel Order
                         </AlertDialogAction>
@@ -213,5 +259,5 @@ export function OrderActionsMenu({
                 </AlertDialogContent>
             </AlertDialog>
         </>
-    )
+    );
 }

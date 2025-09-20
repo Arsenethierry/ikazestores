@@ -347,13 +347,13 @@ export function OrdersTable({
                                     {view === 'commissions' && (
                                         <TableCell>
                                             <div className="font-medium">
-                                                {order.commissionRecords?.reduce((sum, r) => sum + r.totalCommission, 0).toFixed(2)} {order.baseCurrency}
+                                                {order.commissionRecords && order.commissionRecords?.reduce((sum, r) => sum + r.totalCommission, 0).toFixed(2)} {order.baseCurrency}
                                             </div>
                                         </TableCell>
                                     )}
                                     <TableCell>
                                         <div className="font-medium">
-                                            {order.customerTotalAmount.toFixed(2)} {order.customerCurrency}
+                                            {order.customerTotalAmount && order.customerTotalAmount.toFixed(2)} {order.customerCurrency}
                                         </div>
                                     </TableCell>
                                     <TableCell>

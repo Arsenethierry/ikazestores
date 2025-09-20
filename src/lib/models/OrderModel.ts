@@ -612,7 +612,7 @@ export class OrderModel extends BaseModel<Orders> {
     }
   }
 
-  private async getFulfillmentRecords(
+  async getFulfillmentRecords(
     orderId: string,
     physicalStoreId?: string
   ): Promise<OrderFullfilmentRecords[]> {
@@ -748,7 +748,7 @@ export class OrderModel extends BaseModel<Orders> {
     }
   }
 
-  private async getCommissionRecords(
+  async getCommissionRecords(
     orderId: string
   ): Promise<CommissionRecord[]> {
     const { databases } = await createSessionClient();

@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useConfirm } from '@/hooks/use-confirm';
 
-// Enhanced cart page with modern e-commerce practices
+// Enhanced cart page with single currency support
 export const CartPage = () => {
   const { items, totalItems, clearCart } = useCartStore();
   const router = useRouter();
@@ -59,35 +59,23 @@ export const CartPage = () => {
     setSelectedItems(prev => prev.filter(id => items.some(item => item.id === id)));
   }, [items]);
 
-  // Calculations
+  // Calculations - simplified for single currency
   const calculations = useMemo(() => {
     const selectedItemsData = items.filter(item => selectedItems.includes(item.id));
     
-    // Group by currency
-    const currencyGroups = selectedItemsData.reduce((acc, item) => {
-      const currency = item.productCurrency || 'USD';
-      if (!acc[currency]) {
-        acc[currency] = [];
-      }
-      acc[currency].push(item);
-      return acc;
-    }, {} as Record<string, typeof items>);
-
-    // Calculate totals for each currency
-    const currencyTotals = Object.entries(currencyGroups).map(([currency, currencyItems]) => {
-      const subtotal = currencyItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const itemCount = currencyItems.reduce((sum, item) => sum + item.quantity, 0);
-      return { currency, subtotal, itemCount, items: currencyItems };
-    });
-
+    // Calculate totals (assuming single currency)
+    const subtotal = selectedItemsData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalSelectedItems = selectedItemsData.reduce((sum, item) => sum + item.quantity, 0);
+    const currency = selectedItemsData[0]?.productCurrency || 'USD'; // Get currency from first item
+    
     const estimatedTax = 0; // Calculate based on your tax logic
-    const shippingCost = totalSelectedItems > 0 ? (currencyTotals[0]?.subtotal > 100000 ? 0 : 50) : 0;
+    const shippingCost = totalSelectedItems > 0 ? (subtotal > 100000 ? 0 : 50) : 0;
 
     return {
       selectedItemsData,
-      currencyTotals,
+      subtotal,
       totalSelectedItems,
+      currency,
       estimatedTax,
       shippingCost,
       promoDiscount
@@ -139,6 +127,10 @@ export const CartPage = () => {
       setIsLoading(false);
     }, 500);
   };
+
+  // Calculate final totals
+  const discountAmount = calculations.subtotal * calculations.promoDiscount / 100;
+  const finalTotal = calculations.subtotal - discountAmount + calculations.shippingCost + calculations.estimatedTax;
 
   if (totalItems === 0) {
     return (
@@ -198,7 +190,7 @@ export const CartPage = () => {
           <div className="flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
               <Truck className="h-4 w-4" />
-              Free shipping on orders over 100000 RWF
+              Free shipping on orders over 100000 {calculations.currency}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
@@ -308,28 +300,12 @@ export const CartPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Multi-currency breakdown */}
-                {calculations.currencyTotals.length > 1 && (
-                  <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <span className="text-sm font-medium text-blue-800">Items by currency:</span>
-                    {calculations.currencyTotals.map(({ currency, subtotal, itemCount }) => (
-                      <div key={currency} className="flex justify-between text-sm text-blue-700">
-                        <span>{itemCount} items ({currency})</span>
-                        <span>{getCurrencySymbol(currency)} {subtotal.toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <Separator className="border-blue-200" />
-                  </div>
-                )}
-
                 {/* Price breakdown */}
                 <div className="space-y-3">
-                  {calculations.currencyTotals.map(({ currency, subtotal }) => (
-                    <div key={currency} className="flex justify-between">
-                      <span>Subtotal ({currency})</span>
-                      <span>{getCurrencySymbol(currency)} {subtotal.toFixed(2)}</span>
-                    </div>
-                  ))}
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{getCurrencySymbol(calculations.currency)} {calculations.subtotal.toFixed(2)}</span>
+                  </div>
                   
                   <div className="flex justify-between">
                     <span className="flex items-center gap-1">
@@ -341,20 +317,20 @@ export const CartPage = () => {
                     <span>
                       {calculations.shippingCost === 0 && calculations.totalSelectedItems > 0 
                         ? 'FREE' 
-                        : `${calculations.shippingCost} RWF`
+                        : `${getCurrencySymbol(calculations.currency)} ${calculations.shippingCost.toFixed(2)}`
                       }
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span>Estimated Tax</span>
-                    <span>{calculations.estimatedTax} RWF</span>
+                    <span>{getCurrencySymbol(calculations.currency)} {calculations.estimatedTax.toFixed(2)}</span>
                   </div>
 
                   {promoDiscount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount ({promoDiscount}%)</span>
-                      <span>-{((calculations.currencyTotals[0]?.subtotal || 0) * promoDiscount / 100).toFixed(2)} RWF</span>
+                      <span>-{getCurrencySymbol(calculations.currency)} {discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -364,22 +340,7 @@ export const CartPage = () => {
                 {/* Total */}
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Total</span>
-                  <div className="text-right">
-                    {calculations.currencyTotals.map(({ currency, subtotal }) => {
-                      const discountAmount = subtotal * promoDiscount / 100;
-                      const total = subtotal - discountAmount + calculations.shippingCost + calculations.estimatedTax;
-                      return (
-                        <div key={currency}>
-                          {getCurrencySymbol(currency)} {total.toFixed(2)}
-                        </div>
-                      );
-                    })}
-                    {calculations.currencyTotals.length > 1 && (
-                      <div className="text-xs text-gray-500 font-normal">
-                        Multiple currencies
-                      </div>
-                    )}
-                  </div>
+                  <span>{getCurrencySymbol(calculations.currency)} {finalTotal.toFixed(2)}</span>
                 </div>
 
                 {/* Savings indicator */}
@@ -387,7 +348,7 @@ export const CartPage = () => {
                   <Alert className="bg-green-50 border-green-200">
                     <Gift className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-green-800 text-sm">
-                      You're saving {50} RWF on shipping!
+                      You're saving {getCurrencySymbol(calculations.currency)} 50 on shipping!
                     </AlertDescription>
                   </Alert>
                 )}
@@ -534,6 +495,7 @@ const CartItemCard = ({
     </Card>
   );
 };
+
 interface ConfirmClearCartProps {
   onClearComplete?: () => void;
 }

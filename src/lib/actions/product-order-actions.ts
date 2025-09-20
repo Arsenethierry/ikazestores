@@ -6,7 +6,7 @@ import { authMiddleware } from "./middlewares";
 import { CreateOrderSchema } from "../schemas/order-schemas";
 import { revalidatePath } from "next/cache";
 import z from "zod";
-import { OrderStatus } from "../constants";
+import { OrderStatus, PhysicalStoreFulfillmentOrderStatus } from "../constants";
 import { differenceInHours } from "date-fns";
 import { OrderItemsModel } from "../models/OrderItemsModel";
 import { createSessionClient } from "../appwrite";
@@ -31,7 +31,7 @@ export const createOrderAction = action
   .use(authMiddleware)
   .action(async ({ parsedInput: validatedData, ctx }) => {
     const { user } = ctx;
-    console.log("%%%%%: ", validatedData)
+    console.log("%%%%%: ", validatedData);
     try {
       if (validatedData.customerId !== user.$id) {
         throw new Error(
@@ -43,20 +43,27 @@ export const createOrderAction = action
       const enrichedOrderItems = [];
 
       for (const item of validatedData.orderItems) {
-        const virtualProduct = await affiliateProductModel.findVirtualProductById(
-          item.virtualProductId
-        );
+        const virtualProduct =
+          await affiliateProductModel.findVirtualProductById(
+            item.virtualProductId
+          );
 
         if (!virtualProduct) {
-          throw new Error(`Product "${item.productName}" not found or no longer available`);
+          throw new Error(
+            `Product "${item.productName}" not found or no longer available`
+          );
         }
 
-        if (virtualProduct.status !== 'active') {
-          throw new Error(`Product "${item.productName}" is currently unavailable`);
+        if (virtualProduct.status !== "active") {
+          throw new Error(
+            `Product "${item.productName}" is currently unavailable`
+          );
         }
 
         if (virtualProduct.virtualStoreId !== validatedData.virtualStoreId) {
-          throw new Error(`Product "${item.productName}" does not belong to the specified virtual store`);
+          throw new Error(
+            `Product "${item.productName}" does not belong to the specified virtual store`
+          );
         }
 
         const enrichedItem = {
@@ -80,9 +87,16 @@ export const createOrderAction = action
 
       validatedData.orderItems = enrichedOrderItems;
 
-      const newSubtotal = enrichedOrderItems.reduce((sum, item) => sum + item.subtotal, 0);
-            validatedData.subtotal = newSubtotal;
-      validatedData.totalAmount = newSubtotal + validatedData.shippingCost + validatedData.taxAmount - validatedData.discountAmount;
+      const newSubtotal = enrichedOrderItems.reduce(
+        (sum, item) => sum + item.subtotal,
+        0
+      );
+      validatedData.subtotal = newSubtotal;
+      validatedData.totalAmount =
+        newSubtotal +
+        validatedData.shippingCost +
+        validatedData.taxAmount -
+        validatedData.discountAmount;
 
       const currencies = [
         ...new Set(
@@ -218,7 +232,9 @@ export const cancelOrderAction = action
       );
 
       if (!updateResult.success) {
-        throw new Error(updateResult.error || "Failed to cancel order");
+        return {
+          error: updateResult.error || "Failed to cancel order",
+        };
       }
 
       revalidatePath("/my-orders");
@@ -228,9 +244,10 @@ export const cancelOrderAction = action
       return { success: true, message: "Order cancelled successfully" };
     } catch (error) {
       console.error("Error cancelling order:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to cancel order"
-      );
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to cancel order",
+      };
     }
   });
 
@@ -304,6 +321,294 @@ export const requestReturnAction = action
       return {
         error:
           error instanceof Error ? error.message : "Failed to request return",
+      };
+    }
+  });
+
+export const getOrdersAction = action
+  .schema(
+    z.object({
+      storeId: z.string(),
+      storeType: z.enum(["virtual", "physical"]),
+      page: z.number().default(1),
+      limit: z.number().default(25),
+      status: z.array(z.nativeEnum(OrderStatus)).optional(),
+      fulfillmentStatus: z.array(z.string()).optional(),
+      search: z.string().optional(),
+      customerId: z.string().optional(),
+      customerEmail: z.string().optional(),
+      dateRange: z
+        .object({
+          from: z.string(),
+          to: z.string(),
+        })
+        .optional(),
+      sortBy: z.string().optional(),
+      sortOrder: z.enum(["asc", "desc"]).optional(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+
+    try {
+      const dateRange = parsedInput.dateRange
+        ? {
+            from: new Date(parsedInput.dateRange.from),
+            to: new Date(parsedInput.dateRange.to),
+          }
+        : undefined;
+
+      const result = await orderModel.findOrdersByStore(
+        parsedInput.storeId,
+        parsedInput.storeType,
+        {
+          page: parsedInput.page,
+          limit: parsedInput.limit,
+          status: parsedInput.status,
+          fulfillmentStatus: parsedInput.fulfillmentStatus as any,
+          search: parsedInput.search,
+          customerId: parsedInput.customerId,
+          customerEmail: parsedInput.customerEmail,
+          dateRange,
+          sortBy: parsedInput.sortBy,
+          sortOrder: parsedInput.sortOrder,
+        }
+      );
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch orders",
+      };
+    }
+  });
+
+export const updateFulfillmentStatusAction = action
+  .schema(
+    z.object({
+      fulfillmentId: z.string(),
+      status: z.enum([
+        "pending",
+        "processing",
+        "ready",
+        "completed",
+        "cancelled",
+      ]),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { fulfillmentId, status } = parsedInput;
+
+    try {
+      const result = await orderModel.updateFulfillmentStatus(
+        fulfillmentId,
+        status as PhysicalStoreFulfillmentOrderStatus,
+        user.$id
+      );
+
+      if (!result.success) {
+        return { error: result.error || "Failed to update fulfillment status" };
+      }
+
+      revalidatePath("/admin/[storeId]/orders");
+      revalidatePath("/store/[storeId]/orders");
+
+      return {
+        success: true,
+        message: "Fulfillment status updated successfully",
+      };
+    } catch (error) {
+      console.error("Error updating fulfillment status:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update fulfillment status",
+      };
+    }
+  });
+
+export const updateOrderStatusAction = action
+  .schema(
+    z.object({
+      orderId: z.string(),
+      status: z.nativeEnum(OrderStatus),
+      cancellationReason: z.string().optional(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { orderId, status, cancellationReason } = parsedInput;
+
+    try {
+      const result = await orderModel.updateOrderStatus(
+        orderId,
+        status,
+        user.$id,
+        cancellationReason
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update order status");
+      }
+
+      revalidatePath("/my-orders");
+      revalidatePath(`/my-orders/${orderId}`);
+      revalidatePath("/admin/[storeId]/orders");
+      revalidatePath("/store/[storeId]/orders");
+
+      return {
+        success: true,
+        message: "Order status updated successfully",
+      };
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update order status",
+      };
+    }
+  });
+
+export const bulkUpdateOrdersAction = action
+  .schema(
+    z.object({
+      orderIds: z.array(z.string()).min(1).max(50),
+      updates: z.object({
+        orderStatus: z.nativeEnum(OrderStatus).optional(),
+        paymentStatus: z.string().optional(),
+      }),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { orderIds, updates } = parsedInput;
+
+    try {
+      const result = await orderModel.bulkUpdateOrders(orderIds, updates);
+
+      if (!result.success) {
+        return { error: result.error || "Failed to update orders" };
+      }
+
+      revalidatePath("/admin/[storeId]/orders");
+      revalidatePath("/store/[storeId]/orders");
+
+      return {
+        success: true,
+        message: `Successfully updated ${orderIds.length} orders`,
+      };
+    } catch (error) {
+      console.error("Error bulk updating orders:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update orders",
+      };
+    }
+  });
+
+export const getOrderStatsAction = action
+  .schema(
+    z.object({
+      storeId: z.string(),
+      storeType: z.enum(["virtual", "physical"]).optional(),
+      dateRange: z
+        .object({
+          from: z.string(),
+          to: z.string(),
+        })
+        .optional(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+
+    try {
+      const dateRange = parsedInput.dateRange
+        ? {
+            from: new Date(parsedInput.dateRange.from),
+            to: new Date(parsedInput.dateRange.to),
+          }
+        : undefined;
+
+      const stats = await orderModel.getOrderStats(
+        parsedInput.storeId,
+        parsedInput.storeType,
+        dateRange
+      );
+
+      return {
+        success: true,
+        data: stats,
+      };
+    } catch (error) {
+      console.error("Error fetching order stats:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch order stats",
+      };
+    }
+  });
+
+export const getOrderByIdAction = action
+  .schema(
+    z.object({
+      orderId: z.string(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { orderId } = parsedInput;
+
+    try {
+      const order = await orderModel.findById(orderId, {});
+
+      if (!order) {
+        return { error: "Order not found" };
+      }
+
+      const hasPermission = order.customerId === user.$id || false;
+      if (!hasPermission) {
+        throw new Error(
+          "Unauthorized: You don't have permission to view this order"
+        );
+      }
+
+      const [items, fulfillmentRecords, commissionRecords] = await Promise.all([
+        orderItemsModel.findByOrder(orderId),
+        orderModel.getFulfillmentRecords(orderId),
+        orderModel.getCommissionRecords(orderId),
+      ]);
+
+      return {
+        success: true,
+        data: {
+          ...order,
+          items,
+          fulfillmentRecords,
+          commissionRecords,
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching order:", error);
+      return {
+        error: error instanceof Error ? error.message : "Failed to fetch order",
       };
     }
   });
