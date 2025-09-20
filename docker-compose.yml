@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ikazestores-next
+    command: pnpm dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - /app/node_modules   # Keep node_modules container-only
+    env_file:
+      - .env.local
+    environment:
+      - WATCHPACK_POLLING=true  # Ensures hot reload works on Windows/WSL2
+    restart: unless-stopped
+
+    develop:
+      watch:
+        # Sync your application code for instant reload
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+            - .git/
+            - .next/
+            - Dockerfile
+            - docker-compose.yml
+
+        # If package.json or lockfile changes, rebuild the image
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml

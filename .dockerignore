@@ -1,0 +1,11 @@
+node_modules
+.pnpm-store
+.dockerignore
+Dockerfile
+docker-compose.yml
+.git
+.gitignore
+.next
+appwrite.json
+appwrite copy.json
+/src/lib/core/appwrite-collection-setup.ts
