@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +25,7 @@ export const ProductDescription: React.FC<ProductDescriptionProps> = ({
     expandable = false
 }) => {
     const [isExpanded, setIsExpanded] = useState(!truncate);
+    const [textContent, setTextContent] = useState("");
 
     const sanitizeConfig = {
         USE_PROFILES: { html: true },
@@ -45,21 +46,40 @@ export const ProductDescription: React.FC<ProductDescriptionProps> = ({
         ALLOW_DATA_ATTR: true
     };
 
-    const getTextContent = (html: string): string => {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        return tempDiv.textContent || tempDiv.innerText || '';
+    // Extract text content safely on the client side
+    useEffect(() => {
+        if (typeof window !== 'undefined' && description) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = description;
+            const extractedText = tempDiv.textContent || tempDiv.innerText || '';
+            setTextContent(extractedText);
+        }
+    }, [description]);
+
+    // For SSR, use a simple fallback that doesn't require DOM
+    const getSSRSafeTextLength = () => {
+        // Strip HTML tags using regex for SSR (less accurate but works server-side)
+        const strippedText = description.replace(/<[^>]*>/g, '');
+        return strippedText.length;
     };
 
-    const textContent = getTextContent(description);
-    const shouldTruncate = truncate && !isExpanded && maxLength && textContent.length > maxLength;
+    // Use textContent if available (client-side), otherwise use SSR-safe method
+    const effectiveTextLength = textContent.length || getSSRSafeTextLength();
+    const shouldTruncate = truncate && !isExpanded && maxLength && effectiveTextLength > maxLength;
 
     let processedDescription = description;
 
     if (shouldTruncate) {
-        const truncatedText = textContent.substring(0, maxLength);
-        
-        processedDescription = truncatedText + '...';
+        if (textContent) {
+            // Client-side: use accurate text content
+            const truncatedText = textContent.substring(0, maxLength);
+            processedDescription = truncatedText + '...';
+        } else {
+            // Server-side: truncate the HTML (less accurate but prevents hydration mismatch)
+            const strippedText = description.replace(/<[^>]*>/g, '');
+            const truncatedText = strippedText.substring(0, maxLength);
+            processedDescription = truncatedText + '...';
+        }
     }
 
     const sanitizedDescription = DOMPurify.sanitize(processedDescription, sanitizeConfig);
@@ -99,7 +119,7 @@ export const ProductDescription: React.FC<ProductDescriptionProps> = ({
                 />
             )}
 
-            {truncate && expandable && maxLength && textContent.length > maxLength && (
+            {truncate && expandable && maxLength && effectiveTextLength > maxLength && (
                 <Button
                     onClick={() => setIsExpanded(!isExpanded)}
                     variant={'ghost'}

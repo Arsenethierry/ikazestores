@@ -182,7 +182,6 @@ export async function getVirtualStoreProducts(
       ...options,
     };
 
-    // Get virtual store products
     const result = await affiliateProductModel.getVirtualStoreProducts(
       virtualStoreId,
       queryOptions,
@@ -193,7 +192,6 @@ export async function getVirtualStoreProducts(
   } catch (error) {
     console.error("getVirtualStoreProducts action error:", error);
 
-    // Return empty result with error handling
     return {
       documents: [],
       total: 0,

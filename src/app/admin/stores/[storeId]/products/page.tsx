@@ -135,7 +135,7 @@ function VirtualStoreProductsView({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.location.reload()}
+                            // onClick={() => window.location.reload()}
                         >
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Try Again
