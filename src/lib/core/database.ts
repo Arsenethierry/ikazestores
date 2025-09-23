@@ -121,7 +121,6 @@ export abstract class BaseModel<T extends Models.Document> {
 
   async create(data: Omit<T, keyof VirtualStore>, userId: string): Promise<T> {
     try {
-      // to be able to asign permissions, using server api key to create docs
       const { databases } = await createAdminClient();
       const permissions = createDocumentPermissions({ userId });
       const documentId = ID.unique();

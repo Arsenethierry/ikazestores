@@ -55,6 +55,12 @@ export enum Status {
     ARCHIVED = "archived"
 }
 
+export enum StockStatus {
+    IN_STOCK = "in_stock",
+    LOW_STOCK = "low_stock",
+    OUT_OF_STOCK = "out_of_stock"
+}
+
 export enum OrderStatus {
     PENDING = "pending",
     PROCESSING = "processing",
@@ -147,6 +153,16 @@ export enum ReturnOrderStatus {
     PROCESSING = "processing",
     APPROVED = "approved",
     REJECTED = "rejected"
+}
+
+export enum InputType {
+    TEXT = "text",
+    COLOR = "color",
+    RANGE = "range",
+    NUMBER = "number",
+    SELECT = "select",
+    MULTISELECT = "multiselect",
+    BOOLEAN = "boolean"
 }
 
 export type UsersData = Models.Document & {
@@ -437,18 +453,21 @@ export type ProductCategories = Models.Document & {
     isActive: boolean | null;
     sortOrder: number | null;
     iconFileId: string | null;
+    description: string | null;
 }
 
 export type Subcategories = Models.Document & {
     categoryId: string;
     createdBy: string;
     isActive: boolean;
-    slug: string | null;
+    slug: string;
     subCategoryName: string;
     iconUrl: string | null;
     iconFileId: string | null;
     parentCategoryId: string;
     productTypes: string[] | null;
+    description: string | null;
+    sortOrder: number;
 }
 
 export type Products = Models.Document & {
@@ -472,6 +491,16 @@ export type Products = Models.Document & {
     storeLatitude: number;
     storeLongitude: number;
     storeCountry: string;
+    categoryName: string | null;
+    categoryPath: string | null;
+    subcategoryName: string | null;
+    productTypeName: string | null;
+    totalStock: number;
+    stockStatus: StockStatus;
+    viewCount: number;
+    salesCount: number;
+    rating: number;
+    reviewCount: number;
 }
 
 export type Orders = Models.Document & {
@@ -619,4 +648,47 @@ export type ReturnOrderRequests = Models.Document & {
     description: string | null;
     returnOrderStatus: ReturnOrderStatus;
     requestedAt: string;
+}
+
+export type CatalogProductTypes = Models.Document & {
+    productTypeName: string;
+    subcategoryId: string;
+    categoryId: string;
+    description: string | null;
+    slug: string | null;
+    sortOrder: number;
+    isActive: boolean;
+    createdBy: string;
+}
+
+export type CatalogVariantTemplates = Models.Document & {
+    variantTemplateName: string;
+    description: string | null;
+    inputType: InputType;
+    isRequired: boolean;
+    categoryIds: string[] | null;
+    subcategoryIds: string[] | null;
+    productTypeIds: string[] | null;
+    sortOrder: number;
+    isActive: boolean;
+    createdBy: string;
+}
+
+export type CatalogVariantOptions = Models.Document & {
+    variantTemplateId: string;
+    value: string;
+    label: string;
+    colorCode: string | null;
+    additionalPrice: number;
+    isDefault: boolean;
+    sortOrder: number;
+    isActive: boolean;
+}
+
+export type CatalogProductTypeVariants = Models.Document & {
+    productTypeId: string;
+    variantTemplateId: string;
+    isRequired: boolean;
+    sortOrder: number;
+    createdBy: string;
 }
