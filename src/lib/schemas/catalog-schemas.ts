@@ -86,19 +86,54 @@ export const CatalogVariantTemplateSchema = z.object({
 });
 
 export const CatalogVariantOptionSchema = z.object({
-    variantTemplateId: z.string().min(1),
-    value: z.string().min(1).max(200),
-    label: z.string().min(1).max(200),
-    colorCode: z.string().optional(),
-    additionalPrice: z.number().default(0),
-    isDefault: z.boolean().default(false),
-    sortOrder: z.number().int().min(0).default(0),
-    isActive: z.boolean().default(true),
+  variantTemplateId: z.string().min(1),
+  value: z.string().min(1).max(200),
+  label: z.string().min(1).max(200),
+  colorCode: z.string().optional(),
+  additionalPrice: z.number().default(0),
+  isDefault: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
 });
 
 export const AssignVariantToProductTypeSchema = z.object({
-    productTypeId: z.string().min(1),
-    variantTemplateId: z.string().min(1),
-    isRequired: z.boolean().default(false),
-    sortOrder: z.number().int().min(0).default(0),
+  productTypeId: z.string().min(1),
+  variantTemplateId: z.string().min(1),
+  isRequired: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
+});
+
+export const UpdateCatalogVariantTemplateSchema = z.object({
+  templateId: z.string(),
+  variantTemplateName: z.string().min(1).max(200).optional(),
+  description: z.string().optional(),
+  inputType: z
+    .enum([
+      "text",
+      "color",
+      "range",
+      "number",
+      "select",
+      "multiselect",
+      "boolean",
+    ])
+    .optional(),
+  isRequired: z.boolean().optional(),
+  categoryIds: z.array(z.string()).optional(),
+  subcategoryIds: z.array(z.string()).optional(),
+  productTypeIds: z.array(z.string()).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const UpdateCatalogVariantOption = z.object({
+  optionId: z.string(),
+  variantTemplateId: z.string().optional(),
+  value: z.string().min(1).max(200).optional(),
+  label: z.string().min(1).max(200).optional(),
+  colorCode: z.string().optional(),
+  additionalPrice: z.number().optional(),
+  isDefault: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
 });

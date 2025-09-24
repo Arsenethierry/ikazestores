@@ -12,6 +12,8 @@ import {
   UpdateCatalogCategorySchema,
   UpdateCatalogProductTypeSchema,
   UpdateCatalogSubcategorySchema,
+  UpdateCatalogVariantOption,
+  UpdateCatalogVariantTemplateSchema,
 } from "../schemas/catalog-schemas";
 import {
   CatalogProductTypeModel,
@@ -463,6 +465,8 @@ export const deleteCatalogSubcategory = action
       await subcategoryModel.delete(parsedInput.subcategoryId);
 
       revalidatePath("/admin/sys-admin/catalog/categories");
+
+      return { success: "Subcategory deleted successfully" };
     } catch (error) {
       console.error("Delete subcategory error:", error);
       return {
@@ -804,6 +808,178 @@ export const removeVariantFromProductType = action
           error instanceof Error
             ? error.message
             : "Failed to remove variant from product type",
+      };
+    }
+  });
+
+export const updateCatalogVariantTemplate = action
+  .use(authMiddleware)
+  .schema(UpdateCatalogVariantTemplateSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { templateId, ...updateData } = parsedInput;
+
+    try {
+      const existingTemplate =
+        await variantTemplateModel.getVariantTemplateById(templateId);
+      if (!existingTemplate) {
+        return { error: "Variant template not found" };
+      }
+
+      const updatedTemplate = await variantTemplateModel.update(
+        templateId,
+        updateData
+      );
+
+      revalidatePath("/admin/sys-admin/catalog/variant-templates");
+
+      return {
+        success: "Variant template updated successfully",
+        data: updatedTemplate,
+      };
+    } catch (error) {
+      console.error("Update variant template error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update variant template",
+      };
+    }
+  });
+
+export const updateCatalogVariantOption = action
+  .use(authMiddleware)
+  .schema(UpdateCatalogVariantOption)
+  .action(async ({ parsedInput, ctx }) => {
+    const { optionId, ...updateData } = parsedInput;
+
+    try {
+      const existingOption = await variantOptionModel.findById(optionId, {});
+      if (!existingOption) {
+        return { error: "Variant option not found" };
+      }
+
+      // Validate unique value if being updated
+      if (updateData.value && updateData.value !== existingOption.value) {
+        const valueExists = !(await variantOptionModel.validateUniqueValue(
+          existingOption.variantTemplateId,
+          updateData.value,
+          optionId
+        ));
+        if (valueExists) {
+          return {
+            error: `Variant option value "${updateData.value}" already exists in this template`,
+          };
+        }
+      }
+
+      const updatedOption = await variantOptionModel.update(
+        optionId,
+        updateData
+      );
+
+      revalidatePath("/admin/sys-admin/catalog/variant-templates");
+
+      return {
+        success: "Variant option updated successfully",
+        data: updatedOption,
+      };
+    } catch (error) {
+      console.error("Update variant option error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update variant option",
+      };
+    }
+  });
+
+export const deleteCatalogVariantOption = action
+  .use(authMiddleware)
+  .schema(z.object({ optionId: z.string() }))
+  .action(async ({ parsedInput, ctx }) => {
+    try {
+      const option = await variantOptionModel.findById(
+        parsedInput.optionId,
+        {}
+      );
+      if (!option) {
+        return { error: "Variant option not found" };
+      }
+
+      await variantOptionModel.delete(parsedInput.optionId);
+
+      revalidatePath("/admin/sys-admin/catalog/variant-templates");
+
+      return { success: "Variant option deleted successfully" };
+    } catch (error) {
+      console.error("Delete variant option error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete variant option",
+      };
+    }
+  });
+
+export const deleteCatalogVariantTemplate = action
+  .use(authMiddleware)
+  .schema(z.object({ templateId: z.string() }))
+  .action(async ({ parsedInput, ctx }) => {
+    try {
+      const template = await variantTemplateModel.getVariantTemplateById(
+        parsedInput.templateId
+      );
+      if (!template) {
+        return { error: "Variant template not found" };
+      }
+
+      const productTypeVariantsResult = await productTypeVariantModel.findMany({
+        filters: [
+          {
+            field: "variantTemplateId",
+            operator: "equal",
+            value: parsedInput.templateId,
+          },
+        ],
+        limit: 1,
+      });
+
+      if (productTypeVariantsResult.documents.length > 0) {
+        return {
+          error:
+            "Cannot delete variant template that is assigned to product types. Please remove assignments first.",
+        };
+      }
+
+      const optionsResult = await variantOptionModel.findMany({
+        filters: [
+          {
+            field: "variantTemplateId",
+            operator: "equal",
+            value: parsedInput.templateId,
+          },
+        ],
+      });
+
+      for (const option of optionsResult.documents) {
+        await variantOptionModel.delete(option.$id);
+      }
+
+      await variantTemplateModel.delete(parsedInput.templateId);
+
+      revalidatePath("/admin/sys-admin/catalog/variant-templates");
+
+      return { success: "Variant template deleted successfully" };
+    } catch (error) {
+      console.error("Delete variant template error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete variant template",
       };
     }
   });
