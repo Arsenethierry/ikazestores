@@ -1,7 +1,7 @@
 "use client";
 
 import {
-    assignVariantToProductType,
+  assignVariantToProductType,
   createCatalogCategory,
   createCatalogProductType,
   createCatalogSubcategory,
@@ -10,9 +10,14 @@ import {
   deleteCatalogCategory,
   deleteCatalogProductType,
   deleteCatalogSubcategory,
+  deleteCatalogVariantOption,
+  deleteCatalogVariantTemplate,
+  removeVariantFromProductType,
   updateCatalogCategory,
   updateCatalogProductType,
   updateCatalogSubcategory,
+  updateCatalogVariantOption,
+  updateCatalogVariantTemplate,
 } from "@/lib/actions/catalog-server-actions";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -164,7 +169,7 @@ export const useUpdateProductType = () => {
 
 export const useDeleteProductType = () => {
   const router = useRouter();
-  
+
   return useAction(deleteCatalogProductType, {
     onSuccess: (result) => {
       if (result.data?.success) {
@@ -175,14 +180,14 @@ export const useDeleteProductType = () => {
       }
     },
     onError: () => {
-      toast.error('Failed to delete product type');
+      toast.error("Failed to delete product type");
     },
   });
 };
 
 export const useCreateVariantTemplate = () => {
   const router = useRouter();
-  
+
   return useAction(createCatalogVariantTemplate, {
     onSuccess: (result) => {
       if (result.data?.success) {
@@ -193,14 +198,50 @@ export const useCreateVariantTemplate = () => {
       }
     },
     onError: () => {
-      toast.error('Failed to create variant template');
+      toast.error("Failed to create variant template");
+    },
+  });
+};
+
+export const useUpdateVariantTemplate = () => {
+  const router = useRouter();
+
+  return useAction(updateCatalogVariantTemplate, {
+    onSuccess: (result) => {
+      if (result.data?.success) {
+        toast.success(result.data.success);
+        router.refresh();
+      } else if (result.data?.error) {
+        toast.error(result.data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to update variant template");
+    },
+  });
+};
+
+export const useDeleteVariantTemplate = () => {
+  const router = useRouter();
+
+  return useAction(deleteCatalogVariantTemplate, {
+    onSuccess: (result) => {
+      if (result.data?.success) {
+        toast.success(result.data.success);
+        router.refresh();
+      } else if (result.data?.error) {
+        toast.error(result.data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to delete variant template");
     },
   });
 };
 
 export const useCreateVariantOption = () => {
   const router = useRouter();
-  
+
   return useAction(createCatalogVariantOption, {
     onSuccess: (result) => {
       if (result.data?.success) {
@@ -211,14 +252,68 @@ export const useCreateVariantOption = () => {
       }
     },
     onError: () => {
-      toast.error('Failed to create variant option');
+      toast.error("Failed to create variant option");
+    },
+  });
+};
+
+export const useUpdateVariantOption = () => {
+  const router = useRouter();
+
+  return useAction(updateCatalogVariantOption, {
+    onSuccess: (result) => {
+      if (result.data?.success) {
+        toast.success(result.data.success);
+        router.refresh();
+      } else if (result.data?.error) {
+        toast.error(result.data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to update variant option");
+    },
+  });
+};
+
+export const useDeleteVariantOption = () => {
+  const router = useRouter();
+
+  return useAction(deleteCatalogVariantOption, {
+    onSuccess: (result) => {
+      if (result.data?.success) {
+        toast.success(result.data.success);
+        router.refresh();
+      } else if (result.data?.error) {
+        toast.error(result.data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to delete variant option");
+    },
+  });
+};
+
+export const useRemoveVariantFromProductType = () => {
+  const router = useRouter();
+
+  return useAction(removeVariantFromProductType, {
+    onSuccess: (result) => {
+      if (result.data?.success) {
+        toast.success(result.data.success);
+        router.refresh();
+      } else if (result.data?.error) {
+        toast.error(result.data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to remove variant from product type");
     },
   });
 };
 
 export const useAssignVariantToProductType = () => {
   const router = useRouter();
-  
+
   return useAction(assignVariantToProductType, {
     onSuccess: (result) => {
       if (result.data?.success) {
@@ -229,7 +324,7 @@ export const useAssignVariantToProductType = () => {
       }
     },
     onError: () => {
-      toast.error('Failed to assign variant');
+      toast.error("Failed to assign variant");
     },
   });
 };

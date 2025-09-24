@@ -37,7 +37,7 @@ export default function CreateSubcategoryModal({
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [iconPreview, setIconPreview] = useState<string | null>(null);
 
-    const { execute: createSubcategory, isExecuting } = useCreateSubcategory();
+    const { execute: createSubcategory, isExecuting, result } = useCreateSubcategory();
 
     const {
         register,

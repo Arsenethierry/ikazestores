@@ -400,6 +400,52 @@ export class CatalogVariantTemplateModel extends BaseModel<CatalogVariantTemplat
     return this.create(templateData, userId);
   }
 
+  async getAllVariantTemplates(
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<CatalogVariantTemplates>> {
+    return this.findMany({
+      ...options,
+      filters: [
+        { field: "isActive", operator: "equal", value: true },
+        ...(options.filters || [])
+      ],
+      orderBy: "sortOrder",
+      orderType: "asc",
+    });
+  }
+
+  async searchVariantTemplates(
+    searchTerm: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<CatalogVariantTemplates>> {
+    return this.findMany({
+      ...options,
+      filters: [
+        { field: "variantTemplateName", operator: "contains", value: searchTerm },
+        { field: "isActive", operator: "equal", value: true },
+        ...(options.filters || [])
+      ],
+      orderBy: "sortOrder",
+      orderType: "asc",
+    });
+  }
+
+  async validateUniqueTemplateName(
+    templateName: string,
+    excludeId?: string
+  ): Promise<boolean> {
+    const filters: QueryFilter[] = [
+      { field: "variantTemplateName", operator: "equal", value: templateName },
+    ];
+
+    if (excludeId) {
+      filters.push({ field: "$id", operator: "notEqual", value: excludeId });
+    }
+
+    const existing = await this.findOne(filters);
+    return !existing;
+  }
+
   async getVariantTemplatesForProductType(
     productTypeId: string,
     options: QueryOptions = {}
@@ -456,6 +502,58 @@ export class CatalogVariantTemplateModel extends BaseModel<CatalogVariantTemplat
 export class CatalogVariantOptionModel extends BaseModel<CatalogVariantOptions> {
   constructor() {
     super(CATALOG_VARIANT_OPTIONS_COLLECTION_ID);
+  }
+
+  async getOptionById(id: string): Promise<CatalogVariantOptions | null> {
+    return this.findById(id, {});
+  }
+
+  async getDefaultOptionForTemplate(
+    variantTemplateId: string
+  ): Promise<CatalogVariantOptions | null> {
+    return this.findOne([
+      {
+        field: "variantTemplateId",
+        operator: "equal",
+        value: variantTemplateId,
+      },
+      { field: "isDefault", operator: "equal", value: true },
+      { field: "isActive", operator: "equal", value: true },
+    ]);
+  }
+
+  async setDefaultOption(
+    variantTemplateId: string,
+    optionId: string
+  ): Promise<void> {
+    const allOptions = await this.getAllOptionsForTemplate(variantTemplateId);
+    
+    for (const option of allOptions.documents) {
+      if (option.isDefault && option.$id !== optionId) {
+        await this.update(option.$id, { isDefault: false });
+      }
+    }
+
+    await this.update(optionId, { isDefault: true });
+  }
+
+  async getAllOptionsForTemplate(
+    variantTemplateId: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<CatalogVariantOptions>> {
+    return this.findMany({
+      ...options,
+      filters: [
+        {
+          field: "variantTemplateId",
+          operator: "equal",
+          value: variantTemplateId,
+        },
+        ...(options.filters || [])
+      ],
+      orderBy: "sortOrder",
+      orderType: "asc",
+    });
   }
 
   async createVariantOption(data: {
@@ -527,6 +625,10 @@ export class CatalogProductTypeVariantModel extends BaseModel<CatalogProductType
     super(CATALOG_PRODUCT_TYPE_VARIANTS_COLLECTION_ID);
   }
 
+  async getAssignmentById(id: string): Promise<CatalogProductTypeVariants | null> {
+    return this.findById(id, {});
+  }
+
   async assignVariantToProductType(
     data: {
       productTypeId: string;
@@ -592,5 +694,47 @@ export class CatalogProductTypeVariantModel extends BaseModel<CatalogProductType
     ]);
 
     return !!assignment;
+  }
+
+  async updateVariantAssignment(
+    productTypeId: string,
+    variantTemplateId: string,
+    updateData: {
+      isRequired?: boolean;
+      sortOrder?: number;
+    }
+  ): Promise<CatalogProductTypeVariants | null> {
+    const assignment = await this.findOne([
+      { field: "productTypeId", operator: "equal", value: productTypeId },
+      {
+        field: "variantTemplateId",
+        operator: "equal",
+        value: variantTemplateId,
+      },
+    ]);
+
+    if (assignment) {
+      return this.update(assignment.$id, updateData);
+    }
+
+    return null;
+  }
+
+  async getProductTypesUsingVariant(
+    variantTemplateId: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<CatalogProductTypeVariants>> {
+    return this.findMany({
+      ...options,
+      filters: [
+        {
+          field: "variantTemplateId",
+          operator: "equal",
+          value: variantTemplateId,
+        },
+      ],
+      orderBy: "sortOrder",
+      orderType: "asc",
+    });
   }
 }

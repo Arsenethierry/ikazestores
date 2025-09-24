@@ -28,6 +28,7 @@ import { AppwriteRollback } from "./rollback";
 import { STORE_BUCKET_ID } from "../env-config";
 import { revalidatePath } from "next/cache";
 import z from "zod";
+import { createAdminClient } from "../appwrite";
 
 const categoryModel = new CategoryModel();
 const subcategoryModel = new CatalogSubcategoryModel();
@@ -39,7 +40,7 @@ const storageService = new StoreStorageService();
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
-    return error.message;
+    return error instanceof Error ? error.message : "Something went wrong";
   },
 });
 
@@ -47,7 +48,9 @@ export const createCatalogCategory = action
   .use(authMiddleware)
   .schema(CatalogCategorySchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, storage, databases, teams } = ctx;
+    const { user, storage, teams } = ctx;
+    const { databases } = await createAdminClient();
+
     const rollback = new AppwriteRollback(storage, databases, teams);
 
     try {
@@ -263,7 +266,8 @@ export const createCatalogSubcategory = action
   .use(authMiddleware)
   .schema(CatalogSubcategorySchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, storage, databases, teams } = ctx;
+    const { user, storage, teams } = ctx;
+    const { databases } = await createAdminClient();
     const rollback = new AppwriteRollback(storage, databases, teams);
 
     try {
