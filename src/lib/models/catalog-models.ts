@@ -565,8 +565,7 @@ export class CatalogVariantOptionModel extends BaseModel<CatalogVariantOptions> 
     isDefault?: boolean;
     sortOrder?: number;
     isActive?: boolean;
-    userId: string;
-  }): Promise<CatalogVariantOptions> {
+  }, userId: string): Promise<CatalogVariantOptions> {
     const optionData = {
       ...data,
       additionalPrice: data.additionalPrice ?? 0,
@@ -575,7 +574,7 @@ export class CatalogVariantOptionModel extends BaseModel<CatalogVariantOptions> 
       sortOrder: data.sortOrder ?? 0,
     };
 
-    return this.create(optionData, data.userId);
+    return this.create(optionData, userId);
   }
 
   async getOptionsForTemplate(

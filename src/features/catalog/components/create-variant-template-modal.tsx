@@ -38,9 +38,7 @@ import {
 type FormData = z.infer<typeof CatalogVariantTemplateSchema>;
 
 interface CreateVariantTemplateModalProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    children?: React.ReactNode;
+    children: React.ReactNode;
 }
 
 const inputTypeOptions = [
@@ -53,11 +51,8 @@ const inputTypeOptions = [
     { value: 'boolean', label: 'Toggle Switch', description: 'True/false toggle' },
 ];
 
-export default function CreateVariantTemplateModal({
-    open,
-    onOpenChange,
-    children
-}: CreateVariantTemplateModalProps) {
+export default function CreateVariantTemplateModal({ children }: CreateVariantTemplateModalProps) {
+    const [open, setOpen] = useState(false);
     const { execute: createTemplate, isExecuting } = useCreateVariantTemplate();
 
     const {
@@ -81,23 +76,19 @@ export default function CreateVariantTemplateModal({
 
     const onSubmit = useCallback(async (data: FormData) => {
         createTemplate(data);
-        onOpenChange(false);
+        setOpen(false);
         reset();
-    }, [createTemplate, onOpenChange, reset]);
-
-    const handleOpenChange = useCallback((newOpen: boolean) => {
-        onOpenChange(newOpen);
-        if (!newOpen) {
-            reset();
-        }
-    }, [onOpenChange, reset]);
+    }, [createTemplate, reset]);
 
     const getInputTypeDescription = useCallback((inputType: string) => {
         return inputTypeOptions.find(option => option.value === inputType)?.description || '';
     }, []);
 
-    const modalContent = (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                {children}
+            </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Create Variant Template</DialogTitle>
@@ -244,7 +235,7 @@ export default function CreateVariantTemplateModal({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => onOpenChange(false)}
+                            onClick={() => setOpen(false)}
                         >
                             Cancel
                         </Button>
@@ -263,149 +254,4 @@ export default function CreateVariantTemplateModal({
             </DialogContent>
         </Dialog>
     );
-
-    if (children) {
-        return (
-            <Dialog open={open} onOpenChange={handleOpenChange}>
-                <DialogTrigger asChild>
-                    {children}
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Create Variant Template</DialogTitle>
-                        <DialogDescription>
-                            Define a reusable variant configuration that can be applied to product types
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="variantTemplateName">Template Name *</Label>
-                            <Input
-                                id="variantTemplateName"
-                                {...register('variantTemplateName')}
-                                placeholder="e.g., Color, Size, Material"
-                            />
-                            {errors.variantTemplateName && (
-                                <p className="text-sm text-destructive">{errors.variantTemplateName.message}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                {...register('description')}
-                                placeholder="Describe what this variant represents..."
-                                rows={3}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <Label htmlFor="inputType">Input Type *</Label>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Determines how users will input variant values</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
-                            <Controller
-                                control={control}
-                                name="inputType"
-                                render={({ field }) => (
-                                    <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select input type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {inputTypeOptions.map((option) => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                    <div>
-                                                        <div className="font-medium">{option.label}</div>
-                                                        <div className="text-sm text-muted-foreground">{option.description}</div>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="sortOrder">Sort Order</Label>
-                                <Input
-                                    id="sortOrder"
-                                    type="number"
-                                    {...register('sortOrder', { valueAsNumber: true })}
-                                    min="0"
-                                />
-                            </div>
-
-                            <div className="space-y-4 pt-7">
-                                <div className="flex items-center space-x-2">
-                                    <Controller
-                                        control={control}
-                                        name="isRequired"
-                                        render={({ field }) => (
-                                            <Switch
-                                                id="isRequired"
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        )}
-                                    />
-                                    <Label htmlFor="isRequired">Required Field</Label>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <Controller
-                                        control={control}
-                                        name="isActive"
-                                        render={({ field }) => (
-                                            <Switch
-                                                id="isActive"
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        )}
-                                    />
-                                    <Label htmlFor="isActive">Active</Label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={isExecuting}>
-                                {isExecuting ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Creating...
-                                    </>
-                                ) : (
-                                    'Create Template'
-                                )}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        );
-    }
-
-    return modalContent;
 }

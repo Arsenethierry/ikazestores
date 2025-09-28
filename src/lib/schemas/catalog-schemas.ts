@@ -55,7 +55,6 @@ export const CatalogProductTypeSchema = z.object({
 
 export const UpdateCatalogProductTypeSchema = z.object({
   productTypeId: z.string(),
-  $id: z.string(),
   productTypeName: z.string().min(1).max(200).optional(),
   subcategoryId: z.string().min(1).optional(),
   categoryId: z.string().min(1).optional(),

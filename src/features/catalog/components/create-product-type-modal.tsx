@@ -13,33 +13,30 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CatalogSubcategorySchema } from '@/lib/schemas/catalog-schemas';
-import { useCreateSubcategory } from '@/hooks/queries-and-mutations/use-catalog-actions';
+import { CatalogProductTypeSchema } from '@/lib/schemas/catalog-schemas';
+import { useCreateProductType } from '@/hooks/queries-and-mutations/use-catalog-actions';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
-type FormData = z.infer<typeof CatalogSubcategorySchema>;
+type FormData = z.infer<typeof CatalogProductTypeSchema>;
 
-interface CreateSubcategoryModalProps {
-    categoryId: string;
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSuccess?: () => void;
+interface CreateProductTypeModalProps {
+    subcategoryId: string;
+    categoryId?: string;
+    children: React.ReactNode;
 }
 
-export default function CreateSubcategoryModal({
+export default function CreateProductTypeModal({
+    subcategoryId,
     categoryId,
-    open,
-    onOpenChange,
-    onSuccess
-}: CreateSubcategoryModalProps) {
-    const [iconFile, setIconFile] = useState<File | null>(null);
-    const [iconPreview, setIconPreview] = useState<string | null>(null);
-
-    const { execute: createSubcategory, isExecuting, result } = useCreateSubcategory();
+    children
+}: CreateProductTypeModalProps) {
+    const [open, setOpen] = useState(false);
+    const { execute: createProductType, isExecuting } = useCreateProductType();
 
     const {
         register,
@@ -49,88 +46,63 @@ export default function CreateSubcategoryModal({
         setValue,
         watch
     } = useForm<FormData>({
-        resolver: zodResolver(CatalogSubcategorySchema),
+        resolver: zodResolver(CatalogProductTypeSchema),
         defaultValues: {
-            categoryId,
+            subcategoryId,
+            categoryId: categoryId || '',
             isActive: true,
             sortOrder: 0,
         }
     });
 
-    const subcategoryName = watch('subCategoryName');
+    const productTypeName = watch('productTypeName');
 
     React.useEffect(() => {
-        if (subcategoryName) {
-            const slug = subcategoryName
+        if (productTypeName) {
+            const slug = productTypeName
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/(^-|-$)/g, '');
             setValue('slug', slug);
         }
-    }, [subcategoryName, setValue]);
-
-    const handleIconChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setIconFile(file);
-            const reader = new FileReader();
-            reader.onload = () => {
-                setIconPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    }, []);
+    }, [productTypeName, setValue]);
 
     const onSubmit = useCallback(async (data: FormData) => {
-        const formData = { ...data };
-        if (iconFile) {
-            formData.icon = iconFile;
-        }
-
-        try {
-            await createSubcategory(formData);
-            onOpenChange(false);
-            reset();
-            setIconFile(null);
-            setIconPreview(null);
-
-            if (onSuccess) {
-                onSuccess();
-            }
-        } catch (error) {
-            console.error('Failed to create subcategory:', error);
-        }
-    }, [createSubcategory, iconFile, reset, onOpenChange, onSuccess]);
+        createProductType(data);
+        setOpen(false);
+        reset();
+    }, [createProductType, reset]);
 
     const handleOpenChange = useCallback((newOpen: boolean) => {
-        onOpenChange(newOpen);
+        setOpen(newOpen);
         if (!newOpen) {
             reset();
-            setIconFile(null);
-            setIconPreview(null);
         }
-    }, [onOpenChange, reset]);
+    }, [reset]);
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                {children}
+            </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Create New Subcategory</DialogTitle>
+                    <DialogTitle>Create New Product Type</DialogTitle>
                     <DialogDescription>
-                        Add a new subcategory to organize products within this category
+                        Add a new product type to this subcategory
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="subCategoryName">Subcategory Name *</Label>
+                        <Label htmlFor="productTypeName">Product Type Name *</Label>
                         <Input
-                            id="subCategoryName"
-                            {...register('subCategoryName')}
-                            placeholder="e.g., Smartphones, Laptops"
+                            id="productTypeName"
+                            {...register('productTypeName')}
+                            placeholder="e.g., Gaming Laptops, Running Shoes"
                         />
-                        {errors.subCategoryName && (
-                            <p className="text-sm text-destructive">{errors.subCategoryName.message}</p>
+                        {errors.productTypeName && (
+                            <p className="text-sm text-destructive">{errors.productTypeName.message}</p>
                         )}
                     </div>
 
@@ -151,31 +123,9 @@ export default function CreateSubcategoryModal({
                         <Textarea
                             id="description"
                             {...register('description')}
-                            placeholder="Describe this subcategory..."
+                            placeholder="Describe this product type..."
                             rows={3}
                         />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="icon">Subcategory Icon</Label>
-                        <div className="flex items-center space-x-4">
-                            <Input
-                                id="icon"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleIconChange}
-                                className="flex-1"
-                            />
-                            {iconPreview && (
-                                <div className="w-10 h-10 rounded-md overflow-hidden bg-muted">
-                                    <img
-                                        src={iconPreview}
-                                        alt="Preview"
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -203,7 +153,7 @@ export default function CreateSubcategoryModal({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => onOpenChange(false)}
+                            onClick={() => setOpen(false)}
                         >
                             Cancel
                         </Button>
@@ -214,7 +164,7 @@ export default function CreateSubcategoryModal({
                                     Creating...
                                 </>
                             ) : (
-                                'Create Subcategory'
+                                'Create Product Type'
                             )}
                         </Button>
                     </DialogFooter>

@@ -128,6 +128,7 @@ export default function ManageVariantOptionsModal({
         formState: { errors },
         reset,
         setValue,
+        watch
     } = useForm<OptionFormData>({
         resolver: zodResolver(CatalogVariantOptionSchema),
         defaultValues: {

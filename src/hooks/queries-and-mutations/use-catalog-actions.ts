@@ -118,6 +118,7 @@ export const useDeleteSubcategory = () => {
 
   return useAction(deleteCatalogSubcategory, {
     onSuccess: (result) => {
+      console.log("resss: ", result)
       if (result.data?.success) {
         toast.success(result.data.success);
         router.refresh();

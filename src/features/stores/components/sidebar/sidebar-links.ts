@@ -9,6 +9,7 @@ import {
   FolderTree,
   User,
   Megaphone,
+  Database,
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -25,45 +26,23 @@ export const getSidebarLinks = (storeId: string | null) => ({
       ],
     },
     {
+      title: "Catalog Management",
+      url: "#",
+      icon: Database,
+      items: [
+        { title: "Overview", url: "/admin/sys-admin/catalog" },
+        { title: "Categories", url: "/admin/sys-admin/catalog/categories" },
+        { title: "Product Types", url: "/admin/sys-admin/catalog/product-types" },
+        { title: "Variant Templates", url: "/admin/sys-admin/catalog/variant-templates" },
+        { title: "Import/Export", url: "/admin/sys-admin/catalog/import-export" },
+        { title: "Validation", url: "/admin/sys-admin/catalog/validation" },
+      ],
+    },
+    {
       title: "Users",
       url: "#",
       icon: User,
       items: [{ title: "All Users", url: "/admin/sys-admin/users" }],
-    },
-    {
-      title: "Categories",
-      url: "#",
-      icon: Layers,
-      items: [{ title: "All Categories", url: "/admin/categories" }],
-    },
-    {
-      title: "Product Types",
-      url: "#",
-      icon: Package,
-      items: [
-        { title: "All Product Types", url: "/admin/sys-admin/product-types" },
-        {
-          title: "Create Product Type",
-          url: "/admin/sys-admin/product-types/create",
-        },
-        { title: "Analytics", url: "/admin/sys-admin/product-types/analytics" },
-      ],
-    },
-    {
-      title: "Variant Templates",
-      url: "#",
-      icon: Palette,
-      items: [
-        { title: "All Templates", url: "/admin/sys-admin/variant-templates" },
-        {
-          title: "Create Template",
-          url: "/admin/sys-admin/variant-templates/create",
-        },
-        {
-          title: "Template Categories",
-          url: "/admin/sys-admin/variant-templates/categories",
-        },
-      ],
     },
     {
       title: "Products",

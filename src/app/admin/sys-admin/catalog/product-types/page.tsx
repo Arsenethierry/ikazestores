@@ -1,28 +1,67 @@
 import { Suspense } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { GlobalProductTypesContainer, GlobalProductTypesContainerSkeleton } from '@/features/catalog/global-product-types-container';
+import { getCatalogProductTypes } from '@/lib/actions/catalog-server-actions';
 
-export default function ProductTypesPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Types</h1>
-          <p className="text-muted-foreground">
-            Define specific product types within your categories
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Product Type
-          </Button>
-        </div>
-      </div>
+interface GlobalProductTypesPageProps {
+    searchParams: Promise<{
+        page?: string;
+        search?: string;
+        includeInactive?: string;
+        categoryId?: string;
+        subcategoryId?: string;
+    }>;
+}
 
-      <Suspense fallback={<ProductTypesListSkeleton />}>
-        <ProductTypesListContainer />
-      </Suspense>
-    </div>
-  );
+export default async function GlobalProductTypesPage({ searchParams }: GlobalProductTypesPageProps) {
+    const page = parseInt((await searchParams).page || '1');
+    const search = (await searchParams).search;
+    const includeInactive = (await searchParams).includeInactive === 'true';
+    const categoryId = (await searchParams).categoryId;
+    const subcategoryId = (await searchParams).subcategoryId;
+
+    const productTypesResponse = await getCatalogProductTypes({
+        page,
+        search,
+        includeInactive,
+        categoryId,
+        subcategoryId,
+        limit: 25,
+    });
+
+    if (!productTypesResponse.success || !productTypesResponse.data) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Product Types</h1>
+                        <p className="text-muted-foreground">
+                            Manage all product types across your catalog
+                        </p>
+                    </div>
+                </div>
+                <div className="text-red-500">
+                    Error loading product types: {productTypesResponse.error || 'Unknown error'}
+                </div>
+            </div>
+        );
+    }
+
+    const productTypesData = productTypesResponse.data;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Product Types</h1>
+                    <p className="text-muted-foreground">
+                        Manage all product types across your catalog
+                    </p>
+                </div>
+            </div>
+
+            <Suspense fallback={<GlobalProductTypesContainerSkeleton />}>
+                <GlobalProductTypesContainer initialData={productTypesData} />
+            </Suspense>
+        </div>
+    );
 }

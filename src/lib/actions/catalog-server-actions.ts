@@ -451,6 +451,8 @@ export const deleteCatalogSubcategory = action
           { limit: 1 }
         );
 
+      console.log("productTypesResultproductTypesResult: ", productTypesResult);
+
       if (productTypesResult.total > 0) {
         return {
           error:
@@ -541,45 +543,45 @@ export const createCatalogProductType = action
 export const updateCatalogProductType = action
   .use(authMiddleware)
   .schema(UpdateCatalogProductTypeSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput: { productTypeId, ...updateData } }) => {
     try {
       const existingProductType = await productTypeModel.getProductTypeById(
-        parsedInput.productTypeId
+        productTypeId
       );
       if (!existingProductType) {
         return { error: "Product type not found" };
       }
 
       if (
-        parsedInput.subcategoryId &&
-        parsedInput.subcategoryId !== existingProductType.subcategoryId
+        updateData.subcategoryId &&
+        updateData.subcategoryId !== existingProductType.subcategoryId
       ) {
         const parentSubcategory = await subcategoryModel.getSubcategoryById(
-          parsedInput.subcategoryId
+          updateData.subcategoryId
         );
         if (!parentSubcategory) {
           return { error: "Parent subcategory not found" };
         }
       }
 
-      if (parsedInput.slug && parsedInput.slug !== existingProductType.slug) {
+      if (updateData.slug && updateData.slug !== existingProductType.slug) {
         const subcategoryIdToCheck =
-          parsedInput.subcategoryId || existingProductType.subcategoryId;
+          updateData.subcategoryId || existingProductType.subcategoryId;
         const slugExists = !(await productTypeModel.validateUniqueSlug(
           subcategoryIdToCheck,
-          parsedInput.slug,
-          parsedInput.productTypeId
+          updateData.slug,
+          productTypeId
         ));
         if (slugExists) {
           return {
-            error: `Product type slug "${parsedInput.slug}" already exists in this subcategory`,
+            error: `Product type slug "${updateData.slug}" already exists in this subcategory`,
           };
         }
       }
 
       const updatedProductType = await productTypeModel.update(
-        parsedInput.productTypeId,
-        parsedInput
+        productTypeId,
+        updateData
       );
 
       revalidatePath("/admin/catalog/product-types");
@@ -598,6 +600,67 @@ export const updateCatalogProductType = action
       };
     }
   });
+
+export const getCatalogProductTypes = async ({
+  includeInactive = false,
+  limit = 25,
+  page,
+  search,
+  categoryId,
+  subcategoryId,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  includeInactive?: boolean;
+  categoryId?: string;
+  subcategoryId?: string;
+}) => {
+  try {
+    const filters: any = {};
+    if (search) {
+      filters.productTypeName = search;
+    }
+    if (categoryId) {
+      filters.categoryId = categoryId;
+    }
+    if (subcategoryId) {
+      filters.subcategoryId = subcategoryId;
+    }
+
+    const result = await productTypeModel.findMany({
+      filters:
+        Object.keys(filters).length > 0
+          ? Object.entries(filters).map(([field, value]) => ({
+              field,
+              operator: field === "productTypeName" ? "contains" : "equal",
+              value,
+            }))
+          : [],
+      limit: limit,
+      offset: ((page || 1) - 1) * limit,
+      orderBy: "sortOrder",
+      orderType: "asc",
+    });
+
+    if (!includeInactive) {
+      result.documents = result.documents.filter((pt) => pt.isActive);
+    }
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Get product types error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch product types",
+    };
+  }
+};
 
 export const deleteCatalogProductType = action
   .use(authMiddleware)
@@ -639,6 +702,57 @@ export const deleteCatalogProductType = action
       };
     }
   });
+
+export const getCatalogVariantTemplates = async ({
+  includeInactive = false,
+  limit = 25,
+  page,
+  search,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  includeInactive?: boolean;
+}) => {
+  try {
+    const filters: any = {};
+    if (search) {
+      filters.variantTemplateName = search;
+    }
+
+    const result = await variantTemplateModel.findMany({
+      filters:
+        Object.keys(filters).length > 0
+          ? Object.entries(filters).map(([field, value]) => ({
+              field,
+              operator: "contains",
+              value,
+            }))
+          : [],
+      limit: limit,
+      offset: ((page || 1) - 1) * limit,
+      orderBy: "sortOrder",
+      orderType: "asc",
+    });
+
+    if (!includeInactive) {
+      result.documents = result.documents.filter((vt) => vt.isActive);
+    }
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Get variant templates error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch variant templates",
+    };
+  }
+};
 
 export const createCatalogVariantTemplate = action
   .use(authMiddleware)
@@ -705,13 +819,9 @@ export const createCatalogVariantOption = action
         };
       }
 
-      const optionData = {
-        ...parsedInput,
-        userId: user.$id,
-      };
-
       const variantOption = await variantOptionModel.createVariantOption(
-        optionData
+        parsedInput,
+        user.$id
       );
 
       revalidatePath("/admin/sys-admin/catalog/variant-templates");
@@ -770,7 +880,7 @@ export const assignVariantToProductType = action
           user.$id
         );
 
-      revalidatePath("/admin/sys-admin/catalog/product-types");
+      revalidatePath("/admin/sys-admin/catalog/product-types/[productTypeId]");
 
       return {
         success: "Variant assigned to product type successfully",
