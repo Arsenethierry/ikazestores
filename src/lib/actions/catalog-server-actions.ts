@@ -841,6 +841,183 @@ export const createCatalogVariantOption = action
     }
   });
 
+export const getProductTypeDetails = async (productTypeId: string) => {
+  try {
+    const productType = await productTypeModel.getProductTypeById(
+      productTypeId
+    );
+
+    if (!productType) {
+      return {
+        error: "Product type not found",
+      };
+    }
+
+    return {
+      success: true,
+      data: productType,
+    };
+  } catch (error) {
+    console.error("Get product type details error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch product type details",
+    };
+  }
+};
+
+export const getCategoryDetails = async (categoryId: string) => {
+  try {
+    const category = await categoryModel.findById(categoryId);
+
+    return {
+      success: true,
+      data: category,
+    };
+  } catch (error) {
+    console.error("Get category details error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch category details",
+    };
+  }
+};
+
+export const getSubcategoryDetails = async (subcategoryId: string) => {
+  try {
+    const subcategory = await subcategoryModel.getSubcategoryById(
+      subcategoryId
+    );
+
+    return {
+      success: true,
+      data: subcategory,
+    };
+  } catch (error) {
+    console.error("Get subcategory details error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch subcategory details",
+    };
+  }
+};
+
+export const getVariantTemplateDetails = async (templateId: string) => {
+  try {
+    const template = await variantTemplateModel.getVariantTemplateById(
+      templateId
+    );
+
+    return {
+      success: true,
+      data: template,
+    };
+  } catch (error) {
+    console.error("Get variant template details error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch variant template details",
+    };
+  }
+};
+
+export const getProductTypeWithFullDetails = async (productTypeId: string) => {
+  try {
+    // Get product type
+    const productType = await productTypeModel.getProductTypeById(
+      productTypeId
+    );
+
+    if (!productType) {
+      return {
+        error: "Product type not found",
+      };
+    }
+
+    // Get related data in parallel
+    const [variantsResponse, categoryResult, subcategoryResult] =
+      await Promise.all([
+        getVariantsForProductType({ productTypeId }),
+        productType.categoryId
+          ? getCategoryDetails(productType.categoryId)
+          : Promise.resolve({ success: true, data: null }),
+        productType.subcategoryId
+          ? getSubcategoryDetails(productType.subcategoryId)
+          : Promise.resolve({ success: true, data: null }),
+      ]);
+
+    if (!variantsResponse.success) {
+      return {
+        error: variantsResponse.error || "Failed to fetch variants",
+      };
+    }
+
+    // Get variant templates with their options
+    const variantTemplatesWithOptions = await Promise.all(
+      variantsResponse.data!.documents.map(async (assignment) => {
+        const [templateResult, optionsResult] = await Promise.all([
+          getVariantTemplateDetails(assignment.variantTemplateId),
+          getVariantOptionsForTemplate({
+            variantTemplateId: assignment.variantTemplateId,
+          }),
+        ]);
+
+        return {
+          assignment,
+          template: templateResult.success ? templateResult.data : null,
+          options: optionsResult.success
+            ? optionsResult.data?.documents || []
+            : [],
+        };
+      })
+    );
+
+    // Calculate statistics
+    const totalVariantTemplates = variantsResponse.data!.total;
+    const requiredVariants = variantsResponse.data!.documents.filter(
+      (v) => v.isRequired
+    ).length;
+    const optionalVariants = totalVariantTemplates - requiredVariants;
+    const totalVariantOptions = variantTemplatesWithOptions.reduce(
+      (sum, item) => sum + item.options.length,
+      0
+    );
+
+    return {
+      success: true,
+      data: {
+        productType,
+        category: categoryResult.success ? categoryResult.data : null,
+        subcategory: subcategoryResult.success ? subcategoryResult.data : null,
+        variants: variantsResponse.data!,
+        variantTemplatesWithOptions,
+        statistics: {
+          totalVariantTemplates,
+          requiredVariants,
+          optionalVariants,
+          totalVariantOptions,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Get product type with full details error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch product type details",
+    };
+  }
+};
+
 export const assignVariantToProductType = action
   .use(authMiddleware)
   .schema(AssignVariantToProductTypeSchema)
