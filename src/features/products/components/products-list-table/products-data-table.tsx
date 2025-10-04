@@ -22,7 +22,6 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { OriginalProductTypes } from "@/lib/types";
 import ErrorAlert from "@/components/error-alert";
 import SpinningLoader from "@/components/spinning-loader";
-import { useBulkUpdateProductStatus, useDeleteOriginalProducts, useToggleProductFeatured } from "@/hooks/queries-and-mutations/use-original-products-queries";
 import Image from "next/image";
 import { Archive, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Eye, Filter, MoreHorizontal, RefreshCw, RotateCcw, Search, SortAsc, SortDesc, Star, StarOff, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +30,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAction } from "next-safe-action/hooks";
+import { bulkUpdateProductStatus, deleteOriginalProducts, toggleProductFeatured } from "@/lib/actions/original-products-actions";
 
 interface ProductsDataTableProps {
     data: OriginalProductTypes[];
@@ -77,9 +78,39 @@ export function ProductsDataTable<TValue>({
         window.location.reload()
     }
 
-    const deleteProductsMutation = useDeleteOriginalProducts();
-    const toggleFeaturedMutation = useToggleProductFeatured();
-    const bulkUpdateStatusMutation = useBulkUpdateProductStatus();
+    const onSuccessCommon = useCallback((_: any) => {
+        setRowSelection({});
+        onRefresh?.();
+    }, [onRefresh]);
+
+    const onErrorCommon = useCallback((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Something went wrong";
+        setErrorMessage(msg);
+    }, []);
+
+    const {
+        execute: deleteProductsExecute,
+        isExecuting: isDeleting,
+    } = useAction(deleteOriginalProducts, {
+        onSuccess: onSuccessCommon,
+        onError: onErrorCommon
+    });
+
+    const {
+        execute: toggleFeaturedExecute,
+        isExecuting: isTogglingFeatured,
+    } = useAction(toggleProductFeatured, {
+        onSuccess: onSuccessCommon,
+        onError: onErrorCommon,
+    })
+
+    const {
+        execute: bulkStatusExecute,
+        isExecuting: isBulkUpdating,
+    } = useAction(bulkUpdateProductStatus, {
+        onSuccess: onSuccessCommon,
+        onError: onErrorCommon,
+    });
 
     const columns = useMemo<ColumnDef<OriginalProductTypes>[]>(() => [
         {
@@ -327,7 +358,7 @@ export function ProductsDataTable<TValue>({
                             <DropdownMenuItem
                                 onClick={() => handleToggleFeatured(product.$id)}
                                 className="cursor-pointer"
-                                disabled={toggleFeaturedMutation.isPending}
+                                disabled={isTogglingFeatured}
                             >
                                 {product.featured ? (
                                     <>
@@ -346,7 +377,7 @@ export function ProductsDataTable<TValue>({
                                 <DropdownMenuItem
                                     onClick={() => handleSingleStatusUpdate(product.$id, "archived")}
                                     className="cursor-pointer"
-                                    disabled={bulkUpdateStatusMutation.isPending}
+                                    disabled={isBulkUpdating}
                                 >
                                     <Archive className="mr-2 h-4 w-4" />
                                     Archive
@@ -355,7 +386,7 @@ export function ProductsDataTable<TValue>({
                                 <DropdownMenuItem
                                     onClick={() => handleSingleStatusUpdate(product.$id, "active")}
                                     className="cursor-pointer"
-                                    disabled={bulkUpdateStatusMutation.isPending}
+                                    disabled={isBulkUpdating}
                                 >
                                     <RotateCcw className="mr-2 h-4 w-4" />
                                     Publish
@@ -364,7 +395,7 @@ export function ProductsDataTable<TValue>({
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onClick={() => handleDeleteSingle(product.$id)}
-                                disabled={deleteProductsMutation.isPending}
+                                disabled={isDeleting}
                                 className="text-red-600 focus:text-red-600"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -378,7 +409,7 @@ export function ProductsDataTable<TValue>({
             enableHiding: false,
             size: 80,
         }
-    ], [currentStoreId, toggleFeaturedMutation.isPending, bulkUpdateStatusMutation.isPending, deleteProductsMutation.isPending, router])
+    ], [currentStoreId, isTogglingFeatured, isBulkUpdating, isDeleting, router])
 
     const table = useReactTable({
         data,
@@ -404,106 +435,46 @@ export function ProductsDataTable<TValue>({
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedProductIds = selectedRows.map((row) => row.original.$id);
 
-    const handleBulkDelete = useCallback(async () => {
-        const confirmed = await confirmDelete();
-        if (!confirmed) return;
-
-        setErrorMessage(null);
-
-        deleteProductsMutation.mutate(selectedProductIds, {
-            onSuccess: (result) => {
-                if ('error' in result) {
-                    setErrorMessage(result.error || null);
-                } else {
-                    setRowSelection({});
-                    onRefresh?.();
-                }
-            },
-            onError: (error) => {
-                setErrorMessage(error instanceof Error ? error.message : "Failed to delete products");
-            }
-        })
-    }, [confirmDelete, selectedProductIds, deleteProductsMutation, onRefresh]);
+   const handleBulkDelete = useCallback(async () => {
+  const confirmed = await confirmDelete();
+  if (!confirmed) return;
+  setErrorMessage(null);
+  await deleteProductsExecute({productIds: selectedProductIds});
+}, [confirmDelete, selectedProductIds, deleteProductsExecute]);
 
     const handleDeleteSingle = useCallback(async (productId: string) => {
-        const confirmed = await confirmDelete();
-        if (!confirmed) return;
+  const confirmed = await confirmDelete();
+  if (!confirmed) return;
+  setErrorMessage(null);
+  await deleteProductsExecute({productIds: productId});
+}, [confirmDelete, deleteProductsExecute]);
 
-        setErrorMessage(null);
+const handleBulkStatusUpdate = useCallback(
+  async (status: "active" | "draft" | "archived") => {
+    const confirmed = await confirmStatusUpdate();
+    if (!confirmed) return;
+    setErrorMessage(null);
+    await bulkStatusExecute({ productIds: selectedProductIds, status });
+  },
+  [confirmStatusUpdate, selectedProductIds, bulkStatusExecute]
+);
 
-        deleteProductsMutation.mutate(productId, {
-            onSuccess: (result) => {
-                if ('error' in result) {
-                    setErrorMessage(result.error || null);
-                } else {
-                    onRefresh?.();
-                }
-            },
-            onError: (error) => {
-                setErrorMessage(error instanceof Error ? error.message : "Failed to delete product");
-            }
-        })
-    }, [confirmDelete, deleteProductsMutation, onRefresh]);
+    const handleSingleStatusUpdate = useCallback(
+  async (productId: string, status: "active" | "draft" | "archived") => {
+    setErrorMessage(null);
+    await bulkStatusExecute({ productIds: [productId], status });
+  },
+  [bulkStatusExecute]
+);
 
-    const handleBulkStatusUpdate = useCallback(async (status: "active" | "draft" | "archived") => {
-        const confirmed = await confirmStatusUpdate();
-        if (!confirmed) return;
-
-        setErrorMessage(null);
-
-        bulkUpdateStatusMutation.mutate({ productIds: selectedProductIds, status }, {
-            onSuccess: (result) => {
-                if ('error' in result) {
-                    setErrorMessage(result.error || null);
-                } else {
-                    setRowSelection({});
-                    onRefresh?.();
-                }
-            },
-            onError: (error) => {
-                setErrorMessage(error instanceof Error ? error.message : "Failed to update product status");
-            }
-        });
-    }, [confirmStatusUpdate, selectedProductIds, bulkUpdateStatusMutation, onRefresh]);
-
-    const handleSingleStatusUpdate = useCallback(async (productId: string, status: "active" | "draft" | "archived") => {
-        setErrorMessage(null);
-
-        bulkUpdateStatusMutation.mutate({ productIds: [productId], status }, {
-            onSuccess: (result) => {
-                if ('error' in result) {
-                    setErrorMessage(result.error || null);
-                } else {
-                    onRefresh?.();
-                }
-            },
-            onError: (error) => {
-                setErrorMessage(error instanceof Error ? error.message : "Failed to update product status");
-            }
-        })
-    }, [bulkUpdateStatusMutation, onRefresh]);
 
     const handleToggleFeatured = useCallback(async (productId: string) => {
-        setErrorMessage(null);
+  setErrorMessage(null);
+  await toggleFeaturedExecute({ productId });
+}, [toggleFeaturedExecute]);
 
-        toggleFeaturedMutation.mutate(productId, {
-            onSuccess: (result) => {
-                if ('error' in result) {
-                    setErrorMessage(result.error || null);
-                } else {
-                    onRefresh?.();
-                }
-            },
-            onError: (error) => {
-                setErrorMessage(error instanceof Error ? error.message : "Failed to toggle featured status");
-            }
-        });
-    }, [toggleFeaturedMutation, onRefresh]);
+   const isAnyActionPending = isDeleting || isBulkUpdating || isTogglingFeatured;
 
-    const isAnyActionPending =
-        deleteProductsMutation.isPending ||
-        bulkUpdateStatusMutation.isPending ||
-        toggleFeaturedMutation.isPending;
 
     return (
         <TooltipProvider>
@@ -614,7 +585,7 @@ export function ProductsDataTable<TValue>({
                                                     onClick={handleBulkDelete}
                                                     disabled={isAnyActionPending}
                                                 >
-                                                    {deleteProductsMutation.isPending ? (
+                                                    {isDeleting ? (
                                                         <>
                                                             <SpinningLoader />
                                                             Deleting...

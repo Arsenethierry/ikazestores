@@ -40,7 +40,7 @@ export const ProductCombinationSchema = z.object({
     weight: z.number().min(0, "Weight cannot be negative").optional(),
     dimensions: z.string().optional(), // Keep as string to match existing
     images: z.array(z.instanceof(File)).optional(),
-    isDefault: z.boolean().default(false),
+    isDefault: z.boolean().default(false).optional(),
     colorVariantId: z.string().optional()
 });
 
@@ -49,8 +49,8 @@ export const ProductVariantSchema = z.object({
     name: z.string(),
     type: z.enum(['boolean', 'text', 'select', 'range', 'number', 'multiselect']), // removed 'color'
     values: z.array(VariantOptionSchema),
-    required: z.boolean().default(false),
-    sortOrder: z.number().optional().default(0)
+    required: z.boolean().default(false).optional(),
+    sortOrder: z.number().optional().default(0).optional()
 });
 
 export const VariantTemplateSchema = z.object({

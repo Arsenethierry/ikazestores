@@ -205,7 +205,7 @@ export default function ManageVariantOptionsModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
+            <DialogContent className="w-auto max-w-[min(95vw,48rem)] overflow-x-hidden overflow-y-auto p-6">
                 <DialogHeader>
                     <DialogTitle className="flex items-center space-x-2">
                         <PaletteIcon className="h-5 w-5" />

@@ -1,199 +1,294 @@
 import { z } from "zod";
-import {
-  CardProvider,
-  OnlinePaymentProvider,
-  OrderStatus,
-  PaymentMethodType,
-  PhysicalStoreFulfillmentOrderStatus,
-} from "../constants";
-// import { VariantCombinationSchema } from "./product-variants-schema";
-import {
-  ColorVariantSchema,
-  VariantCombinationSchema,
-} from "./product-variants-schema";
 
-export const FormVariantValueSchema = z.object({
-  id: z.string(),
-  value: z.string(),
-  label: z.string(),
-  additionalPrice: z.number().default(0),
-  isDefault: z.boolean().default(false),
-  images: z.array(z.string()).default([]),
+// ============================================
+// Base Schemas
+// ============================================
+
+export const DenormalizedFieldsSchema = z.object({
+  categoryName: z.string().optional(),
+  subcategoryName: z.string().optional(),
+  productTypeName: z.string().optional(),
+  categoryPath: z.string().optional(),
+  categoryIds: z.array(z.string()).optional(),
+
+  variantCount: z.number().optional(),
+  availableVariantTypes: z.array(z.string()).optional(),
+  availableVariantValues: z.array(z.string()).optional(),
+
+  availableColorCodes: z.array(z.string()).optional(),
+  searchText: z.string().optional(),
+  searchKeywords: z.array(z.string()).optional(),
+  normalizedName: z.string().optional(),
+
+  // Popularity / aggregates
+  viewCount: z.number().default(0),
+  orderCount: z.number().default(0),
+  saveCount: z.number().default(0),
+  rating: z.number().default(0),
+  reviewCount: z.number().default(0),
+  popularityScore: z.number().default(0),
 });
 
-export const FormProductVariantSchema = z.object({
-  templateId: z.string(),
-  name: z.string(),
+export const VariantValueSchema = z.object({
+  value: z.string().min(1, "Value is required"),
+  label: z.string().min(1, "Label is required"),
+  colorCode: z.string().optional(),
+  additionalPrice: z.number().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const VariantSchema = z.object({
+  templateId: z.string().min(1, "Template ID is required"),
+  name: z.string().min(1, "Variant name is required"),
   type: z.enum([
-    "boolean",
-    "color",
     "text",
-    "select",
+    "color",
     "range",
     "number",
+    "select",
     "multiselect",
+    "boolean",
   ]),
-  values: z.array(FormVariantValueSchema),
-  required: z.boolean().default(false),
+  values: z.array(VariantValueSchema).min(1, "At least one value is required"),
+  required: z.boolean().optional(),
+  sortOrder: z.number().optional(),
 });
 
 export const ProductCombinationSchema = z.object({
   variantStrings: z.array(z.string()).optional(),
   sku: z.string().min(1, "SKU is required"),
   basePrice: z.number().min(0, "Price must be positive"),
-  stockQuantity: z.number().min(1).optional(),
-  isActive: z.boolean().default(true),
+  stockQuantity: z.number().min(0, "Stock must be non-negative").optional(),
   weight: z.number().min(0).optional(),
-  isDefault: z.boolean().default(false),
   dimensions: z.string().optional(),
   images: z.array(z.instanceof(File)).optional(),
-  variantValues: z.record(z.string(), z.any()).optional(),
-  colorVariantId: z.string().optional(),
+  variantValues: z.record(z.string()).optional(),
+  isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });
 
-export const VariantOptionSchema = z.object({
-  value: z.string(),
-  label: z.string(),
-  additionalPrice: z.number().optional().default(0),
-  colorCode: z.string().optional(),
-  metadata: z
-    .object({
-      count: z.number(),
-    })
-    .optional()
-    .default({ count: 0 }),
+export const ColorVariantSchema = z.object({
+  colorName: z.string().min(1, "Color name is required"),
+  colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color code"),
+  images: z.array(z.instanceof(File)).min(1, "At least one image required"),
+  additionalPrice: z.number().min(0).optional(),
+  isDefault: z.boolean().optional(),
 });
 
-export const ProductVariantSchema = z.object({
-  templateId: z.string(),
-  name: z.string(),
-  type: z.enum([
-    "boolean",
-    "color",
-    "text",
-    "select",
-    "range",
-    "number",
-    "multiselect",
-  ]),
-  values: z.array(VariantOptionSchema),
-  required: z.boolean().default(false),
-  sortOrder: z.number().optional().default(0),
-});
+// ============================================
+// Step Validation Schemas
+// ============================================
 
-export const ColorVariantUpdateSchema = ColorVariantSchema.partial().extend({
-  newImages: z.array(z.instanceof(File)).optional(),
-  removeImageIds: z.array(z.string()),
-});
-
-const BaseCreateProductSchema = z.object({
-  physicalStoreId: z.string().min(1, "Physical store ID is required"),
-  name: z
-    .string()
-    .min(1, "Product name is required")
-    .max(2200, "Name too long"),
-  description: z
-    .string()
-    .min(1, "Description is required")
-    .max(10000, "Description too long"),
-  shortDescription: z
-    .string()
-    .max(500, "Short description too long")
-    .optional(),
-  sku: z.string().min(1, "SKU is required").max(50, "SKU too long"),
+export const BasicInfoStepSchema = z.object({
+  name: z.string().min(3, "Product name must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  shortDescription: z.string().optional(),
+  sku: z.string().min(3, "SKU is required"),
   basePrice: z.number().min(0, "Price must be positive"),
-  currency: z
-    .string()
-    .min(1, "Currency is required")
-    .max(20, "Currency code too long"),
-  status: z.enum(["active", "draft", "archived"]).default("active"),
-  featured: z.boolean().default(false),
+  currency: z.string(),
+  status: z.enum(["active", "draft", "archived"]),
+  featured: z.boolean(),
+  isDropshippingEnabled: z.boolean(),
+});
 
+export const CategoryStepSchema = z.object({
   categoryId: z.string().min(1, "Category is required"),
   subcategoryId: z.string().min(1, "Subcategory is required"),
   productTypeId: z.string().min(1, "Product type is required"),
   tags: z.array(z.string()).optional(),
-
-  images: z
-    .array(z.instanceof(File))
-    .min(1, "At least one product image is required"),
-
-  storeLatitude: z.number(),
-  storeLongitude: z.number(),
-  storeCountry: z.string().min(1, "Store country is required"),
-
-  enableColors: z.boolean().default(false),
-  hasVariants: z.boolean().default(false),
-  isDropshippingEnabled: z.boolean().default(true),
-
-  colorVariants: z
-    .array(ColorVariantSchema)
-    .optional()
-    .refine(
-      (colors) => {
-        if (!colors || colors.length === 0) return true;
-
-        // Ensure at least one default color if colors exist
-        const hasDefault = colors.some((color) => color.isDefault);
-        return hasDefault;
-      },
-      {
-        message:
-          "At least one color must be set as default when colors are enabled",
-      }
-    ),
-
-  variants: z.array(ProductVariantSchema).optional(),
-
-  productCombinations: z.array(ProductCombinationSchema).optional(),
-
-  hasColorVariants: z.boolean().optional(),
 });
 
-export const CreateProductSchema = BaseCreateProductSchema.refine(
-  (data) => {
-    if (
-      data.enableColors &&
-      (!data.colorVariants || data.colorVariants.length === 0)
-    ) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "At least one color variant is required when colors are enabled",
-    path: ["colorVariants"],
-  }
-)
+export const VariantsStepSchema = z
+  .object({
+    hasVariants: z.boolean(),
+    variants: z.array(VariantSchema).optional(),
+    productCombinations: z.array(ProductCombinationSchema).optional(),
+  })
   .refine(
     (data) => {
-      if (data.hasVariants && (!data.variants || data.variants.length === 0)) {
-        return false;
-      }
-      if (data.hasVariants && data.variants) {
-        const hasVariantWithValues = data.variants.some(
-          (variant) => variant.values && variant.values.length > 0
+      if (!data.hasVariants) return true;
+
+      // Check if there are non-color variants
+      const hasNonColorVariants = data.variants?.some((variant) => {
+        const name = variant.name?.toLowerCase() || "";
+        const type = variant.type?.toLowerCase() || "";
+        const colorKeywords = ["color", "colour", "hue", "shade", "tint"];
+        return !colorKeywords.some(
+          (keyword) => name.includes(keyword) || type.includes(keyword)
         );
-        return hasVariantWithValues;
-      }
-      return true;
+      });
+
+      if (!hasNonColorVariants) return true;
+
+      // If has non-color variants, need combinations
+      return data.productCombinations && data.productCombinations.length > 0;
     },
     {
-      message:
-        "At least one variant with options is required when variants are enabled",
-      path: ["variants"],
+      message: "Product combinations are required when variants are enabled",
+      path: ["productCombinations"],
+    }
+  );
+
+export const ImagesStepSchema = z
+  .object({
+    images: z
+      .array(z.instanceof(File))
+      .min(1, "At least one image is required")
+      .max(10, "Maximum 10 images allowed"),
+    enableColors: z.boolean(),
+    colorVariants: z.array(ColorVariantSchema).optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.enableColors) return true;
+      return data.colorVariants && data.colorVariants.length > 0;
+    },
+    {
+      message: "At least one color variant is required when colors are enabled",
+      path: ["colorVariants"],
     }
   )
   .refine(
     (data) => {
-      if (data.colorVariants && data.colorVariants.length > 1) {
-        const colorNames = data.colorVariants.map((c) =>
-          c.colorName.toLowerCase()
+      if (!data.enableColors || !data.colorVariants) return true;
+      return data.colorVariants.some((c) => c.isDefault);
+    },
+    {
+      message: "At least one color must be set as default",
+      path: ["colorVariants"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.enableColors || !data.colorVariants) return true;
+      const names = data.colorVariants.map((c) => c.colorName.toLowerCase());
+      return new Set(names).size === names.length;
+    },
+    {
+      message: "Color names must be unique",
+      path: ["colorVariants"],
+    }
+  );
+
+// ============================================
+// Main Product Creation Schema
+// ============================================
+
+export const CreateProductSchema = z
+  .object({
+    // Basic Info
+    name: z.string().min(3, "Product name must be at least 3 characters"),
+    description: z
+      .string()
+      .min(10, "Description must be at least 10 characters"),
+    shortDescription: z.string().optional(),
+    sku: z.string().min(3, "SKU is required"),
+    basePrice: z.number().min(0, "Price must be positive"),
+    currency: z.string(),
+    status: z.enum(["active", "draft", "archived"]),
+    stockStatus: z.enum(["in_stock", "low_stock", "out_of_stock"]),
+    totalStock: z.number().default(1),
+    featured: z.boolean(),
+    isDropshippingEnabled: z.boolean(),
+
+    // Category Info
+    categoryId: z.string().min(1, "Category is required"),
+    subcategoryId: z.string().min(1, "Subcategory is required"),
+    productTypeId: z.string().min(1, "Product type is required"),
+    tags: z.array(z.string()).optional(),
+
+    // Store Info
+    physicalStoreId: z.string().min(1, "Store ID is required"),
+    storeLatitude: z.number(),
+    storeLongitude: z.number(),
+    storeCountry: z.string().min(1, "Store country is required"),
+
+    // Variants
+    hasVariants: z.boolean(),
+    variants: z.array(VariantSchema).optional(),
+    productCombinations: z.array(ProductCombinationSchema).optional(),
+
+    // Images & Colors
+    images: z
+      .array(z.instanceof(File))
+      .min(1, "At least one image is required")
+      .max(10, "Maximum 10 images allowed"),
+    enableColors: z.boolean(),
+    hasColorVariants: z.boolean().optional(),
+    colorVariants: z.array(ColorVariantSchema).optional(),
+
+    // Denormalized block (readonly in UI but persisted)
+    denormalized: DenormalizedFieldsSchema.optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.hasVariants) return true;
+
+      const hasNonColorVariants = data.variants?.some((variant) => {
+        const name = variant.name?.toLowerCase() || "";
+        const type = variant.type?.toLowerCase() || "";
+        const colorKeywords = ["color", "colour", "hue", "shade", "tint"];
+        return !colorKeywords.some(
+          (keyword) => name.includes(keyword) || type.includes(keyword)
         );
-        const uniqueNames = new Set(colorNames);
-        return uniqueNames.size === colorNames.length;
-      }
-      return true;
+      });
+
+      if (!hasNonColorVariants) return true;
+      return data.productCombinations && data.productCombinations.length > 0;
+    },
+    {
+      message: "Product combinations are required when variants are enabled",
+      path: ["productCombinations"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.productCombinations || data.productCombinations.length === 0)
+        return true;
+      const skus = data.productCombinations.map((c) => c.sku);
+      return new Set(skus).size === skus.length;
+    },
+    {
+      message: "Product combination SKUs must be unique",
+      path: ["productCombinations"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.productCombinations || data.productCombinations.length === 0)
+        return true;
+      return data.productCombinations.some((c) => c.isDefault);
+    },
+    {
+      message: "At least one combination must be set as default",
+      path: ["productCombinations"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.enableColors) return true;
+      return data.colorVariants && data.colorVariants.length > 0;
+    },
+    {
+      message: "At least one color variant is required when colors are enabled",
+      path: ["colorVariants"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.enableColors || !data.colorVariants) return true;
+      return data.colorVariants.some((c) => c.isDefault);
+    },
+    {
+      message: "At least one color must be set as default",
+      path: ["colorVariants"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.enableColors || !data.colorVariants) return true;
+      const names = data.colorVariants.map((c) => c.colorName.toLowerCase());
+      return new Set(names).size === names.length;
     },
     {
       message: "Color names must be unique",
@@ -202,449 +297,96 @@ export const CreateProductSchema = BaseCreateProductSchema.refine(
   )
   .refine(
     (data) => {
-      if (data.productCombinations && data.productCombinations.length > 1) {
-        const skus = data.productCombinations.map((c) => c.sku);
-        const uniqueSkus = new Set(skus);
-        return uniqueSkus.size === skus.length;
-      }
-      return true;
+      if (!data.enableColors || !data.colorVariants) return true;
+      const colorsWithoutImages = data.colorVariants.filter(
+        (c) => !c.images || c.images.length === 0
+      );
+      return colorsWithoutImages.length === 0;
     },
     {
-      message: "Product combination SKUs must be unique",
-      path: ["productCombinations"],
+      message: "All color variants must have at least one image",
+      path: ["colorVariants"],
     }
   );
 
-export const UpdateProductSchema = BaseCreateProductSchema.omit({
-  physicalStoreId: true,
-  storeLatitude: true,
-  storeLongitude: true,
-  storeCountry: true,
-}).partial();
+// ============================================
+// Update Product Schema
+// ============================================
 
-export const CreateAffiliateImportSchema = z.object({
-  virtualStoreId: z.string().min(1, "Virtual store ID is required"),
-  productId: z.string().min(1, "Product ID is required"),
-  commission: z
-    .number()
-    .min(0, "Commission must be greater than or equal to 0"),
-  selectedCombinations: z.array(z.string()).optional().default([]), // Array of combination IDs to import
-  customCombinationPricing: z
-    .array(
-      z.object({
-        combinationId: z.string(),
-        customCommission: z.number().min(0, "Custom commission must be ≥ 0"),
-      })
-    )
-    .optional(),
-});
-
-export const UpdateAffiliateImportSchema = z.object({
-  commission: z.number().min(0).optional(),
-  isActive: z.boolean().optional(),
-});
-
-export const VirtualStoreProductFiltersSchema = z.object({
-  search: z.string().optional(),
+export const UpdateProductSchema = z.object({
+  name: z.string().min(3).optional(),
+  description: z.string().min(10).optional(),
+  shortDescription: z.string().optional(),
+  sku: z.string().min(3).optional(),
+  basePrice: z.number().min(0).optional(),
+  currency: z.string().optional(),
+  status: z.enum(["active", "draft", "archived"]).optional(),
+  featured: z.boolean().optional(),
+  isDropshippingEnabled: z.boolean().optional(),
   categoryId: z.string().optional(),
   subcategoryId: z.string().optional(),
-  minFinalPrice: z.number().min(0).optional(),
-  maxFinalPrice: z.number().min(0).optional(),
-  minCommission: z.number().min(0).max(100).optional(),
-  maxCommission: z.number().min(0).max(100).optional(),
-  featured: z.boolean().optional(),
+  productTypeId: z.string().optional(),
   tags: z.array(z.string()).optional(),
-});
-
-export const ProductFiltersSchema = z.object({
-  page: z.number().optional(),
-  search: z.string().optional(),
-  categoryId: z.string().optional(),
-  subcategoryId: z.string().optional(),
-  physicalStoreId: z.string().optional(),
-  status: z.enum(["active", "draft", "archived", "all"]).optional(),
-  featured: z.boolean().optional(),
-  minPrice: z.number().min(0).optional(),
-  maxPrice: z.number().min(0).optional(),
-  tags: z.array(z.string()).optional(),
-  dropshippingOnly: z.boolean().optional(),
   hasVariants: z.boolean().optional(),
-  location: z
-    .object({
-      latitude: z.number(),
-      longitude: z.number(),
-      radius: z.number().min(0),
-    })
-    .optional(),
+  variants: z.array(VariantSchema).optional(),
+  productCombinations: z.array(ProductCombinationSchema).optional(),
+  images: z.array(z.instanceof(File)).optional(),
+  enableColors: z.boolean().optional(),
+  hasColorVariants: z.boolean().optional(),
+  colorVariants: z.array(ColorVariantSchema).optional(),
+  denormalized: DenormalizedFieldsSchema.partial().optional(),
 });
 
-export const OrderFormSchema = z.object({
-  deliveryAddress: z.object({
-    $id: z.string().nullable(),
-    fullName: z
-      .string()
-      .min(2, { message: "Full name is required" })
-      .max(100, { message: "Full name must be at most 100 characters" }),
-    phoneNumber: z
-      .string()
-      .regex(/^\+?[0-9]{10,15}$/, {
-        message: "Please enter a valid phone number",
-      })
-      .min(10),
-    street: z
-      .string()
-      .min(3, { message: "Street must be at least 3 characters" })
-      .max(50, { message: "Street must be at most 50 characters" })
-      .optional(),
-    city: z
-      .string()
-      .min(3, { message: "City must be at least 3 characters" })
-      .max(50, { message: "City must be at most 50 characters" })
-      .optional(),
-    zip: z.string().optional(),
-    state: z.string().min(2).max(50).optional(),
-    country: z.string().min(2).max(50).optional(),
-  }),
-  notes: z.string().max(255).optional(),
-  customerCurrency: z.string(),
-  preferredPaymentMethod: z.object({
-    type: z.nativeEnum(PaymentMethodType),
-    onlineProvider: z.nativeEnum(OnlinePaymentProvider).optional(),
-    cardProvider: z.nativeEnum(CardProvider).optional(),
-  }),
-  orderDate: z.date().default(() => new Date()),
-  isExpressDelivery: z.boolean().default(false), //allows customers to pay extra for faster shipping when they need their items more urgently
+export const BulkUpdateProductStatusSchema = z.object({
+  productIds: z.array(z.string()).min(1),
+  status: z.enum(["active", "draft", "archived"]),
 });
 
-export const OrderSchema = OrderFormSchema.extend({
-  totalAmount: z.number(),
-  selectedItems: z
-    .object({
-      id: z.string(),
-      productId: z.string(),
-      name: z.string(),
-      price: z.number(),
-      quantity: z.number(),
-      image: z.string(),
-      productCurrency: z.string().optional(),
-    })
-    .array(),
-  customerCurrency: z.string(),
-  exchangeRatesSnapshot: z.record(z.string(), z.number()),
-  exchangeRatesTimestamp: z.string(),
-});
-
-export const GetOrdersSchema = z.object({
-  storeId: z.string().optional(),
-  storeType: z.enum(["physical", "virtual"]).optional(),
-  filters: z
-    .object({
-      status: z.array(z.nativeEnum(OrderStatus)).optional(),
-      fulfillmentStatus: z
-        .array(z.nativeEnum(PhysicalStoreFulfillmentOrderStatus))
-        .optional(),
-      commissionStatus: z.array(z.string()).optional(),
-      dateRange: z
-        .object({
-          from: z.date(),
-          to: z.date(),
-        })
-        .optional(),
-      search: z.string().optional(),
-      virtualStoreId: z.string().optional(),
-      physicalStoreId: z.string().optional(),
-      customerId: z.string().optional(),
-      customerEmail: z.string().optional(),
-    })
-    .optional(),
-  sorting: z
-    .object({
-      field: z.string(),
-      direction: z.enum(["asc", "desc"]),
-    })
-    .optional(),
-  pagination: z
-    .object({
-      page: z.number().min(1),
-      limit: z.number().min(1).max(100),
-    })
-    .optional(),
-});
-
-export const UpdateOrderStatusSchema = z.object({
-  orderId: z.string().min(1),
-  status: z.nativeEnum(OrderStatus),
-  notes: z.string().optional(),
-});
-
-export const UpdateFulfillmentStatusSchema = z.object({
-  fulfillmentRecordId: z.string().min(1),
-  status: z.nativeEnum(PhysicalStoreFulfillmentOrderStatus),
-  notes: z.string().optional(),
-});
-
-export const BulkUpdateOrdersSchema = z.object({
-  orderIds: z.array(z.string().min(1)),
-  updates: z.object({
-    orderStatus: z.nativeEnum(OrderStatus).optional(),
-    fulfillmentStatus: z
-      .nativeEnum(PhysicalStoreFulfillmentOrderStatus)
-      .optional(),
-    notes: z.string().optional(),
-  }),
-});
-export interface CreateColorVariantData
-  extends z.infer<typeof ColorVariantSchema> {
-  productId: string;
-}
-export type UpdateColorVariantData = z.infer<typeof ColorVariantUpdateSchema>;
-export type CreateProductSchema = z.infer<typeof CreateProductSchema>;
-export type UpdateProductSchema = z.infer<typeof UpdateProductSchema>;
-export type ProductCombinationSchema = z.infer<typeof ProductCombinationSchema>;
-export type ProductVariantSchema = z.infer<typeof ProductVariantSchema>;
-export type VariantOptionSchema = z.infer<typeof VariantOptionSchema>;
-export type CreateAffiliateImportSchema = z.infer<
-  typeof CreateAffiliateImportSchema
->;
-export type UpdateAffiliateImportSchema = z.infer<
-  typeof UpdateAffiliateImportSchema
->;
-export type VirtualStoreProductFilters = z.infer<
-  typeof VirtualStoreProductFiltersSchema
->;
-export type ProductFilters = z.infer<typeof ProductFiltersSchema>;
-
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-export const VirtualProductSchema = z.object({
-  originalProductId: z.string(),
-  shortDescription: z.string(),
-  purchasePrice: z.coerce
-    .number({ invalid_type_error: "Price must be a number" })
-    .positive({ message: "Price must be a positive number" }),
-  sellingPrice: z.coerce
-    .number({ invalid_type_error: "Price must be a number" })
-    .positive({ message: "Price must be a positive number" }),
-  storeId: z.string(),
-  description: z.string().min(1, "Description is required"),
-  title: z.string().min(1, "Title is required"),
-  generalImageUrls: z.array(z.string()).default([]),
-  createdBy: z.string(),
-  currency: z.string(),
-  commission: z
-    .number()
-    .min(0, "Commission must be greater than or equal to 0"),
-  combinationPrices: z
-    .array(
-      z.object({
-        combinationId: z.string(),
-        basePrice: z.number(),
-        commission: z.number().min(0, "Commission must be ≥ 0"),
-        finalPrice: z.number(),
-      })
-    )
-    .default([]),
-});
-
-export const deleteVirtualProductSchema = z.object({
-  productId: z.string(),
-  virtualStoreId: z.string(),
-});
+// ============================================
+// Delete Product Schema
+// ============================================
 
 export const DeleteProductSchema = z.object({
-  productIds: z.union([z.string(), z.array(z.string())]),
+  productIds: z.union([
+    z.string().min(1, "Product ID is required"),
+    z.array(z.string().min(1, "Product ID is required")),
+  ]),
 });
 
-export const CategorySchema = z.object({
-  storeId: z.string().nullable(),
-  categoryName: z.string().min(1, "Category name is required"),
-  subcategories: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        slug: z.string().optional(),
-      })
-    )
-    .optional(),
-  slug: z.string().min(1, "Slug is required"),
-  icon: z.instanceof(File).optional(),
-  createdBy: z.string(),
-  isActive: z.boolean().default(true),
-  sortOrder: z.number().optional(),
-  parentCategoryId: z.string().nullable(),
+// ============================================
+// Color Variant Schemas
+// ============================================
+
+export const CreateColorVariantData = z.object({
+  productId: z.string().min(1, "Product ID is required"),
+  colorName: z.string().min(1, "Color name is required"),
+  colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color code"),
+  images: z.array(z.instanceof(File)).min(1, "At least one image required"),
+  additionalPrice: z.number().min(0).optional(),
+  isDefault: z.boolean().optional(),
 });
 
-export const UpdateCategoryForm = z.object({
-  categoryId: z.string(),
-  storeId: z.string().nullable(),
-  categoryName: z.string().min(1, "Category name is required").optional(),
-  subcategories: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        slug: z.string().optional(),
-      })
-    )
-    .optional(),
-  slug: z.string().min(1, "Slug is required").optional(),
-  icon: z.instanceof(File).optional(),
-  oldFileId: z.string().optional(),
-  isActive: z.boolean().optional(),
-  sortOrder: z.number().optional(),
-});
-
-export const UpdateCategoryActionSchema = UpdateCategoryForm.extend({
-  categoryId: z.string(),
-});
-
-export const CategoryById = z.object({
-  categoryId: z.string(),
-});
-
-export const SubCategorySchema = z.object({
-  parentCategoryIds: z.array(z.string()),
-  subCategoryName: z
+export const UpdateColorVariantData = z.object({
+  colorName: z.string().min(1).optional(),
+  colorCode: z
     .string()
-    .min(2, { message: "Sub category name is required" })
-    .max(50, {
-      message: "Sub category name must not exceed 50 characters long",
-    }),
-  icon: z.custom<File>().refine((file) => file instanceof File, {
-    message: "Icon thumbnail is required",
-  }),
-  storeId: z.string().nullable(),
-  createdBy: z.string(),
-});
-
-export const UpdateSubCategoryForm = z.object({
-  parentCategoryIds: z.array(z.string()).optional(),
-  subCategoryName: z
-    .string()
-    .max(50, {
-      message: "sub category name must not exceed 50 characters long",
-    })
+    .regex(/^#[0-9A-Fa-f]{6}$/)
     .optional(),
-  icon: z.custom<File>().optional(),
-  oldFileId: z.string().optional().nullable(),
-  iconUrl: z.string().optional(),
+  newImages: z.array(z.instanceof(File)).optional(),
+  removeImageIds: z.array(z.string()).optional(),
+  additionalPrice: z.number().min(0).optional(),
+  isDefault: z.boolean().optional(),
 });
 
-export const UpdateSubCategoryActionSchema = UpdateSubCategoryForm.extend({
-  subCategoryId: z.string(),
-});
-
-const baseCollectionSchema = z.object({
-  collectionName: z.string().min(2, {
-    message: "Collection name must be at least 2 characters.",
-  }),
-  description: z
+export const ColorVariantUpdateSchema = z.object({
+  colorName: z.string().min(1).optional(),
+  colorCode: z
     .string()
-    .max(500, {
-      message: "Description must not exceed 500 characters.",
-    })
-    .optional()
-    .nullable(),
-  type: z.enum(["simple", "grouped"]),
-  featured: z.boolean().default(false),
-  bannerImage: z.union([z.string().url(), z.instanceof(File)]).optional(),
-  storeId: z.string().nullable().optional(),
-  createdBy: z.string(),
-
-  heroTitle: z
-    .string()
-    .max(60, "Title must be at most 60 characters")
+    .regex(/^#[0-9A-Fa-f]{6}$/)
     .optional(),
-  heroSubtitle: z
-    .string()
-    .max(80, "Subtitle must be at most 80 characters")
-    .optional(),
-  heroDescription: z
-    .string()
-    .max(200, "Description must be at most 200 characters")
-    .optional(),
-  heroButtonText: z
-    .string()
-    .max(30, "Button text must be at most 30 characters")
-    .optional(),
-  heroImage: z.union([z.string().url(), z.instanceof(File)]).optional(),
-});
-
-export const CollectionSchema = baseCollectionSchema.refine(
-  (data) => {
-    if (data.featured) {
-      return !!(
-        data.heroTitle?.trim() &&
-        data.heroSubtitle?.trim() &&
-        data.heroDescription?.trim() &&
-        data.heroButtonText?.trim() &&
-        data.heroImage
-      );
-    }
-    return true;
-  },
-  {
-    message:
-      "All hero carousel fields are required when collection is featured",
-    path: ["featured"],
-  }
-);
-
-export const UpdateCollectionForm = baseCollectionSchema.partial().extend({
-  collectionId: z.string(),
-  oldBannerImageId: z.string().optional(),
-});
-
-export const DeleteCollectionSchema = z.object({
-  collectionId: z.string(),
-  bannerImageId: z.string().optional().nullable(),
-});
-
-export const CollectionGroupSchema = z.object({
-  id: z.string(),
-  groupName: z.string().min(1, "Group name is required"),
-  groupImage: z.any().optional(),
-  displayOrder: z.number(),
-});
-
-export const SaveCollectionGroupsSchema = z.object({
-  collectionId: z.string(),
-  groups: z.array(CollectionGroupSchema),
-});
-
-export const DeleteCollectionGroupSchema = z.object({
-  groupId: z.string(),
-  collectionId: z.string(),
-  imageId: z.string().nullable(),
-});
-
-export const UpdateCollectionGroupSchema = z.object({
-  groupId: z.string(),
-  collectionId: z.string(),
-  groupName: z.string().min(1, "Group name is required"),
-  groupImage: z.any().optional(),
-  displayOrder: z.number(),
-  oldImageId: z.string().optional(),
-});
-
-export const AddProductToCollectionSchema = z.object({
-  collectionId: z.string(),
-  productsIds: z.array(z.string()),
-  groupId: z.string().optional().nullable(),
-});
-
-export const RemoveProductFromCollection = z.object({
-  collectionId: z.string(),
-  productId: z.string(),
-  groupId: z.string().optional(),
-});
-
-export const CreateCollectionGroup = z.object({
-  collectionId: z.string(),
-  groupName: z.string().min(1, "Group name is required"),
-  groupImageUrl: z.string().optional(),
-  displayOrder: z.number().optional(),
+  additionalPrice: z.number().min(0).optional(),
+  isDefault: z.boolean().optional(),
+  images: z.array(z.string()).optional(), // URLs
 });
 
 export const SaveItemSchema = z.object({
@@ -655,29 +397,23 @@ export const RemoveSavedItemSchema = z.object({
   savedItemId: z.string().min(1, "Saved item ID is required"),
 });
 
-export const GetProductsWithVirtualSchema = z.object({
-  storeId: z.string().optional(),
-  categoryId: z.string().optional(),
-  subcategoryId: z.string().optional(),
-  productTypeId: z.string().optional(),
-  status: z.string().optional(),
-  featured: z.boolean().optional(),
-  search: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  minPrice: z.number().optional(),
-  maxPrice: z.number().optional(),
-  limit: z.number().optional(),
-  offset: z.number().optional(),
-  sortBy: z.enum(["name", "price", "created", "updated"]).optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional(),
-  userLat: z.number().optional(),
-  userLng: z.number().optional(),
-  radiusKm: z.number().optional(),
-  combinations: VariantCombinationSchema.optional(),
-});
+// ============================================
+// Type Exports
+// ============================================
 
-export type CreateCollectionSchemaType = z.infer<typeof CollectionSchema>;
-export type UpdateCollectionSchemaType = z.infer<typeof UpdateCollectionForm>;
-export type SaveCollectionGroupsTypes = z.infer<
-  typeof SaveCollectionGroupsSchema
->;
+export type CreateProductSchema = z.infer<typeof CreateProductSchema>;
+export type UpdateProductSchema = z.infer<typeof UpdateProductSchema>;
+export type DeleteProductSchema = z.infer<typeof DeleteProductSchema>;
+export type VariantSchema = z.infer<typeof VariantSchema>;
+export type VariantValueSchema = z.infer<typeof VariantValueSchema>;
+export type ProductCombinationSchema = z.infer<typeof ProductCombinationSchema>;
+export type ColorVariantSchema = z.infer<typeof ColorVariantSchema>;
+export type CreateColorVariantData = z.infer<typeof CreateColorVariantData>;
+export type UpdateColorVariantData = z.infer<typeof UpdateColorVariantData>;
+export type ColorVariantUpdateSchema = z.infer<typeof ColorVariantUpdateSchema>;
+
+// Step schemas
+export type BasicInfoStepSchema = z.infer<typeof BasicInfoStepSchema>;
+export type CategoryStepSchema = z.infer<typeof CategoryStepSchema>;
+export type VariantsStepSchema = z.infer<typeof VariantsStepSchema>;
+export type ImagesStepSchema = z.infer<typeof ImagesStepSchema>;

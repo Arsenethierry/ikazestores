@@ -1,63 +1,141 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from "@/components/ui/card";
-import {
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage
-} from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateProductSchema } from "@/lib/schemas/products-schems";
-import { Category, ProductType, Subcategory, VariantTemplate } from "@/lib/types/catalog-types";
-import { Zap } from "lucide-react";
-import React from "react";
+import { Zap, Loader2 } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
+import { useAction } from "next-safe-action/hooks";
 import z from "zod";
+import { toast } from "sonner";
+import { getVariantTemplatesForProductType } from "@/lib/actions/original-products-actions";
+import { AsyncCategorySelect, AsyncProductTypeSelect, AsyncSubcategorySelect } from "@/features/catalog/async-catalog-select";
+import { CatalogVariantOptions } from "@/lib/types/appwrite/appwrite";
 
 type ProductFormData = z.infer<typeof CreateProductSchema>;
 
+interface SelectOption {
+    value: string;
+    label: string;
+    description?: string | null;
+}
+
+interface VariantTemplate {
+    id: string;
+    name: string;
+    description: string | null;
+    inputType: string;
+    isRequired: boolean;
+    sortOrder: number;
+    variantOptions: CatalogVariantOptions[];
+}
+
 interface CategoryStepProps {
     form: UseFormReturn<ProductFormData>;
-    categories: Category[];
-    subcategories: Subcategory[];
-    productTypes: ProductType[];
-    selectedCategory: string;
-    selectedSubcategory: string;
-    selectedProductType: string;
-    availableVariants: VariantTemplate[];
     currentTag: string;
     setCurrentTag: (tag: string) => void;
-    handleCategoryChange: (categoryId: string) => void;
-    handleSubcategoryChange: (subcategoryId: string) => void;
-    handleProductTypeChange: (productTypeId: string) => void;
     addTag: () => void;
     removeTag: (tag: string) => void;
+    onVariantTemplatesLoaded?: (templates: VariantTemplate[]) => void;
+    onCategoryNamesChange?: (names: {
+        categoryName?: string;
+        subcategoryName?: string;
+        productTypeName?: string;
+    }) => void;
 }
+
 export const CategoryStep: React.FC<CategoryStepProps> = ({
     form,
-    categories,
-    subcategories,
-    productTypes,
-    selectedCategory,
-    selectedSubcategory,
-    selectedProductType,
-    availableVariants,
     currentTag,
     setCurrentTag,
-    handleCategoryChange,
-    handleSubcategoryChange,
-    handleProductTypeChange,
     addTag,
-    removeTag
+    removeTag,
+    onVariantTemplatesLoaded,
+    onCategoryNamesChange
 }) => {
+    const [selectedCategory, setSelectedCategory] = useState<SelectOption | null>(null);
+    const [selectedSubcategory, setSelectedSubcategory] = useState<SelectOption | null>(null);
+    const [selectedProductType, setSelectedProductType] = useState<SelectOption | null>(null);
+    const [availableVariants, setAvailableVariants] = useState<VariantTemplate[]>([]);
+    const [isLoadingVariants, setIsLoadingVariants] = useState(false);
+
+    const { execute: loadVariantTemplates, result } = useAction(getVariantTemplatesForProductType, {
+        onSuccess: ({ data }) => {
+            setIsLoadingVariants(false);
+            if (data?.success && data.data) {
+                setAvailableVariants(data.data as VariantTemplate[]);
+                onVariantTemplatesLoaded?.(data.data as VariantTemplate[]);
+            }
+        },
+        onError: ({ error }) => {
+            setIsLoadingVariants(false);
+            toast.error(error.serverError || "Failed to load variant templates");
+        },
+    });
+
+    useEffect(() => {
+        if (selectedProductType?.value) {
+            setIsLoadingVariants(true);
+            loadVariantTemplates({ productTypeId: selectedProductType.value });
+        } else {
+            setAvailableVariants([]);
+            onVariantTemplatesLoaded?.([]);
+        }
+    }, [selectedProductType?.value]);
+
+    const handleCategoryChange = (option: SelectOption | null) => {
+        setSelectedCategory(option);
+        setSelectedSubcategory(null);
+        setSelectedProductType(null);
+        setAvailableVariants([]);
+
+        form.setValue('categoryId', option?.value || '');
+        form.setValue('subcategoryId', '');
+        form.setValue('productTypeId', '');
+        form.setValue('variants', []);
+        form.setValue('productCombinations', []);
+
+        onCategoryNamesChange?.({
+            categoryName: option?.label || undefined,
+            subcategoryName: selectedSubcategory?.label || undefined,
+            productTypeName: selectedProductType?.label || undefined,
+        });
+    };
+
+    const handleSubcategoryChange = (option: SelectOption | null) => {
+        setSelectedSubcategory(option);
+        setSelectedProductType(null);
+        setAvailableVariants([]);
+
+        form.setValue('subcategoryId', option?.value || '');
+        form.setValue('productTypeId', '');
+        form.setValue('variants', []);
+        form.setValue('productCombinations', []);
+
+        onCategoryNamesChange?.({
+            categoryName: selectedCategory?.label || undefined,
+            subcategoryName: option?.label || undefined,
+            productTypeName: selectedProductType?.label || undefined,
+        });
+    };
+
+    const handleProductTypeChange = (option: SelectOption | null) => {
+        setSelectedProductType(option);
+        form.setValue('productTypeId', option?.value || '');
+        form.setValue('variants', []);
+        form.setValue('productCombinations', []);
+
+        onCategoryNamesChange?.({
+            categoryName: selectedCategory?.label || undefined,
+            subcategoryName: selectedSubcategory?.label || undefined,
+            productTypeName: option?.label || undefined,
+        });
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -72,23 +150,16 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                         <FormField
                             control={form.control}
                             name="categoryId"
-                            render={() => (
+                            render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    <Select onValueChange={handleCategoryChange} value={selectedCategory}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {categories.map((category: Category) => (
-                                                <SelectItem key={category.id} value={category.id}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <FormLabel>Category *</FormLabel>
+                                    <FormControl>
+                                        <AsyncCategorySelect
+                                            value={selectedCategory}
+                                            onChange={handleCategoryChange}
+                                            placeholder="Search categories..."
+                                        />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -97,27 +168,18 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                         <FormField
                             control={form.control}
                             name="subcategoryId"
-                            render={() => (
+                            render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Subcategory</FormLabel>
-                                    <Select
-                                        onValueChange={handleSubcategoryChange}
-                                        value={selectedSubcategory}
-                                        disabled={!selectedCategory}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select subcategory" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {subcategories.map((subcategory: Subcategory) => (
-                                                <SelectItem key={subcategory.id} value={subcategory.id}>
-                                                    {subcategory.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <FormLabel>Subcategory *</FormLabel>
+                                    <FormControl>
+                                        <AsyncSubcategorySelect
+                                            categoryId={selectedCategory?.value || null}
+                                            value={selectedSubcategory}
+                                            onChange={handleSubcategoryChange}
+                                            placeholder="Search subcategories..."
+                                            isDisabled={!selectedCategory}
+                                        />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -126,34 +188,32 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                         <FormField
                             control={form.control}
                             name="productTypeId"
-                            render={() => (
+                            render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Product Type</FormLabel>
-                                    <Select
-                                        onValueChange={handleProductTypeChange}
-                                        value={selectedProductType}
-                                        disabled={!selectedSubcategory}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select product type" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {productTypes.map((productType: ProductType) => (
-                                                <SelectItem key={productType.id} value={productType.id}>
-                                                    {productType.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <FormLabel>Product Type *</FormLabel>
+                                    <FormControl>
+                                        <AsyncProductTypeSelect
+                                            subcategoryId={selectedSubcategory?.value || null}
+                                            value={selectedProductType}
+                                            onChange={handleProductTypeChange}
+                                            placeholder="Search product types..."
+                                            isDisabled={!selectedSubcategory}
+                                        />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                     </div>
 
-                    {selectedProductType && availableVariants.length > 0 && (
+                    {isLoadingVariants && (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 flex items-center gap-3">
+                            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                            <p className="text-sm text-blue-700">Loading variant templates...</p>
+                        </div>
+                    )}
+
+                    {!isLoadingVariants && selectedProductType && availableVariants.length > 0 && (
                         <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                             <div className="flex items-center gap-2 mb-2">
                                 <Zap className="h-4 w-4 text-blue-600" />
@@ -162,10 +222,11 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                                 </h4>
                             </div>
                             <p className="text-xs text-blue-700 mb-3">
-                                {availableVariants.length} relevant variants available for {productTypes.find(pt => pt.id === selectedProductType)?.name}. Configure them in the next step.
+                                {availableVariants.length} relevant variants available for {selectedProductType.label}.
+                                Configure them in the next step.
                             </p>
                             <div className="flex flex-wrap gap-1">
-                                {availableVariants.slice(0, 6).map(variant => (
+                                {availableVariants.slice(0, 6).map((variant) => (
                                     <Badge key={variant.id} variant="secondary" className="text-xs">
                                         {variant.name}
                                         {variant.isRequired && <span className="text-red-500 ml-1">*</span>}
@@ -177,6 +238,15 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                                     </Badge>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {!isLoadingVariants && selectedProductType && availableVariants.length === 0 && (
+                        <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <p className="text-xs text-yellow-700">
+                                No variant templates configured for this product type. You can still create the product
+                                without variants or contact an admin to configure variant templates.
+                            </p>
                         </div>
                     )}
                 </CardContent>
@@ -206,7 +276,7 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                                     onClick={() => removeTag(tag)}
                                     className="ml-1 text-xs hover:text-red-500"
                                 >
-                                    x
+                                    ×
                                 </button>
                             </Badge>
                         ))}
@@ -214,5 +284,5 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
                 </CardContent>
             </Card>
         </div>
-    )
-}
+    );
+};

@@ -42,10 +42,6 @@ export class OrderModel extends BaseModel<Orders> {
     super(ORDERS_COLLECTION_ID);
   }
 
-  private get virtualStoreModel() {
-    return new VirtualStore();
-  }
-
   private get notificationService() {
     return new OrderNotificationService();
   }

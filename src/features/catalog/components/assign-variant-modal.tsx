@@ -41,7 +41,7 @@ export default function AssignVariantModal({
     productTypeId,
     open,
     onOpenChange,
-    onSuccess
+    onSuccess,
 }: AssignVariantModalProps) {
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ export default function AssignVariantModal({
             productTypeId,
             isRequired: false,
             sortOrder: 0,
-        }
+        },
     });
 
     useEffect(() => {
@@ -70,7 +70,7 @@ export default function AssignVariantModal({
                     setLoading(true);
                     const result = await getCatalogVariantTemplates({
                         includeInactive: false,
-                        limit: 100
+                        limit: 100,
                     });
                     if (result.success && result.data) {
                         setAvailableTemplates(result.data.documents || []);
@@ -85,39 +85,53 @@ export default function AssignVariantModal({
         }
     }, [open]);
 
-    const onSubmit = useCallback(async (data: FormData) => {
-        try {
-            await assignVariant(data);
-            if (result && onSuccess) {
-                onSuccess(result);
+    const onSubmit = useCallback(
+        async (data: FormData) => {
+            try {
+                await assignVariant(data);
+                if (result && onSuccess) {
+                    onSuccess(result);
+                }
+                onOpenChange(false);
+                reset();
+            } catch (error) {
+                console.error('Assignment failed:', error);
             }
-            onOpenChange(false);
-            reset();
-        } catch (error) {
-            console.error('Assignment failed:', error);
-        }
-    }, [assignVariant, onSuccess, onOpenChange, reset]);
+        },
+        [assignVariant, onSuccess, onOpenChange, reset, result]
+    );
 
-    const handleOpenChange = useCallback((newOpen: boolean) => {
-        onOpenChange(newOpen);
-        if (!newOpen) {
-            reset();
-        }
-    }, [onOpenChange, reset]);
+    const handleOpenChange = useCallback(
+        (newOpen: boolean) => {
+            onOpenChange(newOpen);
+            if (!newOpen) reset();
+        },
+        [onOpenChange, reset]
+    );
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent
+                className="w-auto max-w-[min(95vw,48rem)] overflow-x-hidden overflow-y-auto p-6"
+            >
                 <DialogHeader>
-                    <DialogTitle>Assign Variant Template</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="whitespace-normal break-words">
+                        Assign Variant Template
+                    </DialogTitle>
+                    <DialogDescription className="whitespace-normal break-words">
                         Choose a variant template to assign to this product type
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="variantTemplateId">Variant Template *</Label>
+                        <Label
+                            htmlFor="variantTemplateId"
+                            className="whitespace-normal break-words"
+                        >
+                            Variant Template *
+                        </Label>
+
                         <Controller
                             control={control}
                             name="variantTemplateId"
@@ -127,16 +141,23 @@ export default function AssignVariantModal({
                                     onValueChange={field.onChange}
                                     disabled={loading}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={loading ? "Loading templates..." : "Select a template"} />
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue
+                                            placeholder={loading ? 'Loading templates...' : 'Select a template'}
+                                        />
                                     </SelectTrigger>
-                                    <SelectContent>
-                                        {availableTemplates.map((template) => (
-                                            <SelectItem key={template.$id} value={template.$id}>
-                                                <div>
-                                                    <div className="font-medium">{template.variantTemplateName}</div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {template.inputType} • {template.description}
+
+                                    {/* Match trigger width; scroll vertically if many options */}
+                                    <SelectContent className="w-[var(--radix-select-trigger-width)] max-h-72">
+                                        {availableTemplates.map((t) => (
+                                            <SelectItem key={t.$id} value={t.$id}>
+                                                <div className="min-w-0">
+                                                    <div className="font-medium truncate">
+                                                        {t.variantTemplateName}
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground break-words">
+                                                        {t.inputType}
+                                                        {t.description ? ` • ${t.description}` : ''}
                                                     </div>
                                                 </div>
                                             </SelectItem>
@@ -150,7 +171,8 @@ export default function AssignVariantModal({
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* 1 col on mobile, 2 cols on sm+ */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="sortOrder">Sort Order</Label>
                             <Input
@@ -158,37 +180,30 @@ export default function AssignVariantModal({
                                 type="number"
                                 {...register('sortOrder', { valueAsNumber: true })}
                                 min="0"
+                                inputMode="numeric"
                             />
                         </div>
 
-                        <div className="flex items-center space-x-2 pt-7">
+                        <div className="flex items-center space-x-2 sm:pt-7">
                             <Controller
                                 control={control}
                                 name="isRequired"
                                 render={({ field }) => (
-                                    <Switch
-                                        id="isRequired"
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
+                                    <Switch id="isRequired" checked={field.value} onCheckedChange={field.onChange} />
                                 )}
                             />
                             <Label htmlFor="isRequired">Required Field</Label>
                         </div>
                     </div>
 
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
+                    <DialogFooter className="gap-2 sm:justify-end">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancel
                         </Button>
                         <Button type="submit" disabled={isExecuting || loading}>
                             {isExecuting ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Assigning...
                                 </>
                             ) : (
@@ -199,5 +214,6 @@ export default function AssignVariantModal({
                 </form>
             </DialogContent>
         </Dialog>
-    )
+
+    );
 }

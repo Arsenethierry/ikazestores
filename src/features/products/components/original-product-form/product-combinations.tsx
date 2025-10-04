@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProductCombination } from '@/lib/schemas/product-variants-schema';
-import { AlertCircle, DollarSign, Download, Hash, ImageDown, Package, Plus, RefreshCw, Ruler, Trash2, Upload, Weight } from 'lucide-react';
+import { AlertCircle, DollarSign, Download, Hash, Package, Plus, RefreshCw, Ruler, Trash2, Upload, Weight } from 'lucide-react';
 import React, { useState } from 'react';
 import { Control, useFieldArray, useFormContext } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -37,7 +37,6 @@ interface CustomCombinationInput {
     quantity: number;
     weight: number;
     dimensions?: { length?: number; width?: number; height?: number };
-    images?: File[];
 }
 
 export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
@@ -130,15 +129,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
         updateCombination(index, updatedCombination);
     };
 
-    const handleImageChange = (index: number, files: File[]) => {
-        if (files.length > 3) {
-            toast.error("Maximum 3 images per combination");
-            return;
-        }
-        const updatedCombination = { ...combinations[index], images: files };
-        updateCombination(index, updatedCombination);
-    };
-
     const toggleDefault = (index: number) => {
         const updatedCombinations = combinations.map((combo: ProductCombination, i: number) => ({
             ...combo,
@@ -171,7 +161,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
             dimensions: customCombination.dimensions
                 ? `${customCombination.dimensions.length || 0}x${customCombination.dimensions.width || 0}x${customCombination.dimensions.height || 0}`
                 : undefined,
-            images: customCombination.images,
             isActive: combinations.length === 0,
             isDefault: combinations.length === 0,
             variantStrings: Object.entries(customCombination.variantValues).map(([variantId, value]) =>
@@ -474,7 +463,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                         <TableHead>Quantity</TableHead>
                                         <TableHead>Weight (kg)</TableHead>
                                         <TableHead>Dimensions (cm)</TableHead>
-                                        <TableHead>Images</TableHead>
                                         <TableHead>Default</TableHead>
                                         <TableHead className="w-[100px]">Actions</TableHead>
                                     </TableRow>
@@ -566,21 +554,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                                 placeholder="H"
                                                             />
                                                         </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <ImageDown className="h-3 w-3 text-muted-foreground" />
-                                                        <Input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            multiple
-                                                            onChange={(e) => handleImageChange(index, Array.from(e.target.files || []))}
-                                                            className="text-xs"
-                                                        />
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {combination.images?.length || 0}/3
-                                                        </Badge>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -691,21 +664,6 @@ export const ProductCombinations: React.FC<ProductCombinationsProps> = ({
                                                                 onChange={(e) => handleDimensionChange(index, 'height', parseFloat(e.target.value) || 0)}
                                                                 placeholder="Height"
                                                             />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-span-2">
-                                                        <Label className="text-xs text-muted-foreground">Variant Images</Label>
-                                                        <div className="flex items-center gap-2">
-                                                            <Input
-                                                                type="file"
-                                                                accept="image/*"
-                                                                multiple
-                                                                onChange={(e) => handleImageChange(index, Array.from(e.target.files || []))}
-                                                                className="text-xs"
-                                                            />
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {combination.images?.length || 0}/3
-                                                            </Badge>
                                                         </div>
                                                     </div>
                                                 </div>

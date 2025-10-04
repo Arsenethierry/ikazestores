@@ -247,26 +247,26 @@ export function OrderDetailsDialog({
                                         <div className="space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Subtotal</span>
-                                                <span>{order.subtotal.toFixed(2)} {order.currency}</span>
+                                                <span>{order.subtotal} {order.currency}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Shipping</span>
-                                                <span>{order.shippingCost.toFixed(2)} {order.currency}</span>
+                                                <span>{order.shippingCost} {order.currency}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Tax</span>
-                                                <span>{order.taxAmount.toFixed(2)} {order.currency}</span>
+                                                <span>{order.taxAmount} {order.currency}</span>
                                             </div>
                                             {order.discountAmount > 0 && (
                                                 <div className="flex justify-between text-sm text-green-600">
                                                     <span>Discount</span>
-                                                    <span>-{order.discountAmount.toFixed(2)} {order.currency}</span>
+                                                    <span>-{order.discountAmount} {order.currency}</span>
                                                 </div>
                                             )}
                                             <Separator />
                                             <div className="flex justify-between font-semibold">
                                                 <span>Total</span>
-                                                <span>{order.totalAmount.toFixed(2)} {order.currency}</span>
+                                                <span>{order.totalAmount} {order.currency}</span>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -349,16 +349,16 @@ export function OrderDetailsDialog({
                                                     </div>
                                                     {item.commission > 0 && (
                                                         <Badge variant="outline" className="text-xs">
-                                                            Commission: {item.commission.toFixed(2)} {order.currency}
+                                                            Commission: {item.commission} {order.currency}
                                                         </Badge>
                                                     )}
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="font-semibold">
-                                                        {item.subtotal.toFixed(2)} {order.currency}
+                                                        {item.subtotal} {order.currency}
                                                     </p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {item.sellingPrice.toFixed(2)} each
+                                                        {item.sellingPrice} each
                                                     </p>
                                                 </div>
                                             </div>
@@ -453,10 +453,10 @@ export function OrderDetailsDialog({
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="font-semibold">
-                                                            {record.totalCommission.toFixed(2)} {order.currency}
+                                                            {record.totalCommission} {order.currency}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Order Value: {record.orderValue.toFixed(2)}
+                                                            Order Value: {record.orderValue}
                                                         </p>
                                                     </div>
                                                 </div>

@@ -1,469 +1,332 @@
+"use client";
+
+import * as React from "react";
+import { UseFormReturn } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle2, Pencil, Package, Tag } from "lucide-react";
+import type { PhysicalStoreTypes } from "@/lib/types";
 import { CreateProductSchema } from "@/lib/schemas/products-schems";
-import { PhysicalStoreTypes } from "@/lib/types";
-import { Category, ProductType } from "@/lib/types/catalog-types";
-import { CheckCircle, Images, Zap, AlertTriangle, ArrowLeft, ExternalLink, Package, Settings, Palette } from "lucide-react";
-import Image from "next/image";
-import { UseFormReturn } from "react-hook-form";
-import z from "zod";
 
-type ProductFormData = z.infer<typeof CreateProductSchema>;
+type Category = { id: string; name: string };
+type ProductType = { id: string; name: string };
 
 interface ReviewStepProps {
-    form: UseFormReturn<ProductFormData>;
-    storeData: PhysicalStoreTypes;
-    categories: Category[];
-    productTypes: ProductType[];
-    selectedCategory: string;
-    selectedProductType: string;
-    previewImages: string[];
-    onGoToStep?: (step: number) => void; // Add this prop to navigate to specific steps
+  form: UseFormReturn<CreateProductSchema>;
+  storeData: PhysicalStoreTypes;
+  previewImages: string[];
+  onGoToStep?: (step: number) => void;
+
+  // Made optional to match the way you call <ReviewStep />
+  categories?: Category[];
+  productTypes?: ProductType[];
+  selectedCategory?: string;
+  selectedProductType?: string;
 }
 
-// Helper function to get step number for field names
-const getStepForField = (fieldName: string): number => {
-    const stepMapping: Record<string, number> = {
-        // Step 1 - Basic Info
-        'name': 1,
-        'description': 1,
-        'shortDescription': 1,
-        'sku': 1,
-        'basePrice': 1,
-        'currency': 1,
-        'status': 1,
-        'featured': 1,
-        
-        // Step 2 - Category
-        'categoryId': 2,
-        'subcategoryId': 2,
-        'productTypeId': 2,
-        'tags': 2,
-        
-        // Step 3 - Variants
-        'hasVariants': 3,
-        'variants': 3,
-        'productCombinations': 3,
-        
-        // Step 4 - Images & Colors
-        'images': 4,
-        'enableColors': 4,
-        'colorVariants': 4,
-        'hasColorVariants': 4,
-    };
-    
-    return stepMapping[fieldName] || 5;
-};
-
-// Helper function to get user-friendly field names
-const getFieldDisplayName = (fieldName: string): string => {
-    const fieldNames: Record<string, string> = {
-        'name': 'Product Name',
-        'description': 'Description',
-        'shortDescription': 'Short Description',
-        'sku': 'SKU',
-        'basePrice': 'Base Price',
-        'currency': 'Currency',
-        'status': 'Status',
-        'featured': 'Featured',
-        'categoryId': 'Category',
-        'subcategoryId': 'Subcategory',
-        'productTypeId': 'Product Type',
-        'tags': 'Tags',
-        'hasVariants': 'Enable Variants',
-        'variants': 'Product Variants',
-        'productCombinations': 'Product Combinations',
-        'images': 'Product Images',
-        'enableColors': 'Enable Colors',
-        'colorVariants': 'Color Variants',
-        'hasColorVariants': 'Has Color Variants',
-    };
-    
-    return fieldNames[fieldName] || fieldName;
-};
-
-// Helper function to get step icon
-const getStepIcon = (step: number) => {
-    const icons = {
-        1: Package,
-        2: Settings,
-        3: Zap,
-        4: Images,
-        5: CheckCircle
-    };
-    return icons[step as keyof typeof icons] || Package;
-};
-
-// Helper function to get step name
-const getStepName = (step: number): string => {
-    const stepNames = {
-        1: 'Basic Info',
-        2: 'Category',
-        3: 'Variants',
-        4: 'Images & Colors',
-        5: 'Review'
-    };
-    return stepNames[step as keyof typeof stepNames] || 'Unknown';
-};
-
 export const ReviewStep: React.FC<ReviewStepProps> = ({
-    form,
-    storeData,
-    categories,
-    productTypes,
-    selectedCategory,
-    selectedProductType,
-    previewImages,
-    onGoToStep
+  form,
+  storeData,
+  previewImages,
+  onGoToStep,
+  categories,
+  productTypes,
+  selectedCategory,
+  selectedProductType,
 }) => {
-    const combinationFields = form.watch('productCombinations') || [];
-    const formErrors = form.formState.errors;
-    
-    // Process form errors into a more user-friendly format
-    const processedErrors = Object.entries(formErrors).map(([fieldName, error]) => {
-        const step = getStepForField(fieldName);
-        const displayName = getFieldDisplayName(fieldName);
-        let message = '';
-        
-        if (error && typeof error === 'object') {
-            if ('message' in error && typeof error.message === 'string') {
-                message = error.message;
-            } else if (Array.isArray(error)) {
-                // Handle array errors (like combinations)
-                message = `Multiple issues found in ${displayName}`;
-            } else {
-                message = `Invalid ${displayName}`;
-            }
-        } else {
-            message = `Invalid ${displayName}`;
-        }
-        
-        return {
-            field: fieldName,
-            displayName,
-            message,
-            step,
-            stepName: getStepName(step)
-        };
-    });
-    
-    // Group errors by step
-    const errorsByStep = processedErrors.reduce((acc, error) => {
-        if (!acc[error.step]) {
-            acc[error.step] = [];
-        }
-        acc[error.step].push(error);
-        return acc;
-    }, {} as Record<number, typeof processedErrors>);
-    
-    const hasErrors = Object.keys(formErrors).length > 0;
+  const values = form.getValues();
 
-    return (
-        <div className="space-y-6">
-            {/* Error Summary Card */}
-            {hasErrors && (
-                <Card className="border-red-200 bg-red-50">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-red-800">
-                            <AlertTriangle className="h-5 w-5" />
-                            Form Validation Errors ({processedErrors.length})
-                        </CardTitle>
-                        <p className="text-sm text-red-700">
-                            Please fix the following errors before submitting your product:
-                        </p>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {Object.entries(errorsByStep).map(([stepNumber, stepErrors]) => {
-                            const step = parseInt(stepNumber);
-                            const StepIcon = getStepIcon(step);
-                            
-                            return (
-                                <div key={step} className="border border-red-200 rounded-lg p-4 bg-white">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <StepIcon className="h-4 w-4 text-red-600" />
-                                            <span className="font-medium text-red-800">
-                                                Step {step}: {getStepName(step)}
-                                            </span>
-                                            <Badge variant="destructive" className="text-xs">
-                                                {stepErrors.length} error{stepErrors.length !== 1 ? 's' : ''}
-                                            </Badge>
-                                        </div>
-                                        {onGoToStep && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => onGoToStep(step)}
-                                                className="text-red-600 border-red-300 hover:bg-red-100"
-                                            >
-                                                <ArrowLeft className="h-3 w-3 mr-1" />
-                                                Fix Errors
-                                            </Button>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                        {stepErrors.map((error, index) => (
-                                            <Alert key={index} variant="destructive" className="py-2">
-                                                <AlertTriangle className="h-3 w-3" />
-                                                <AlertDescription className="text-sm">
-                                                    <span className="font-medium">{error.displayName}:</span> {error.message}
-                                                </AlertDescription>
-                                            </Alert>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        
-                        <div className="flex items-center justify-between p-3 bg-red-100 rounded-lg border border-red-200">
-                            <div className="flex items-center gap-2 text-red-800">
-                                <AlertTriangle className="h-4 w-4" />
-                                <span className="text-sm font-medium">
-                                    Complete all required fields to enable product submission
-                                </span>
-                            </div>
-                            {onGoToStep && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        const firstErrorStep = Math.min(...Object.keys(errorsByStep).map(Number));
-                                        onGoToStep(firstErrorStep);
-                                    }}
-                                    className="text-red-600 border-red-300 hover:bg-red-200"
-                                >
-                                    <ExternalLink className="h-3 w-3 mr-1" />
-                                    Go to First Error
-                                </Button>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+  const categoryId = selectedCategory ?? values.categoryId;
+  const productTypeId = selectedProductType ?? values.productTypeId;
+
+  const categoryName =
+    categories?.find((c) => c.id === categoryId)?.name ||
+    categoryId ||
+    "Not selected";
+  const productTypeName =
+    productTypes?.find((p) => p.id === productTypeId)?.name ||
+    productTypeId ||
+    "Not selected";
+
+  const totalCombinations = values.productCombinations?.length || 0;
+  const defaultCombination =
+    values.productCombinations?.find((c) => c.isDefault) ?? null;
+
+  const totalColorVariants = values.colorVariants?.length || 0;
+  const defaultColor =
+    values.colorVariants?.find((c) => c.isDefault)?.colorName || null;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Summary</CardTitle>
+          {onGoToStep && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onGoToStep(1)}
+                title="Edit Basic Info"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Basic Info
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onGoToStep(2)}
+                title="Edit Category"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Category
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onGoToStep(3)}
+                title="Edit Variants"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Variants
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onGoToStep(4)}
+                title="Edit Images & Colors"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Images & Colors
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Basic Info */}
+          <section>
+            <h3 className="font-semibold text-sm mb-3">Basic Info</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Name</p>
+                <p className="font-medium">{values.name || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">SKU</p>
+                <p className="font-medium">{values.sku || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Base Price</p>
+                <p className="font-medium">
+                  {values.basePrice} {values.currency}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Status</p>
+                <Badge variant="outline" className="font-medium">
+                  {values.status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Featured</p>
+                {values.featured ? (
+                  <Badge className="gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Yes
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">No</Badge>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Dropshipping</p>
+                {values.isDropshippingEnabled ? (
+                  <Badge className="gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Enabled
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">Disabled</Badge>
+                )}
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-xs text-muted-foreground">Description</p>
+              <p className="whitespace-pre-wrap">{values.description}</p>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Category */}
+          <section>
+            <h3 className="font-semibold text-sm mb-3">Category</h3>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Category</p>
+                <p className="font-medium">{categoryName}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Subcategory</p>
+                <p className="font-medium">
+                  {values.subcategoryId || "Not selected"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Product Type</p>
+                <p className="font-medium">{productTypeName}</p>
+              </div>
+            </div>
+            {!!values.tags?.length && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {values.tags.map((t) => (
+                  <Badge key={t} variant="secondary" className="gap-1">
+                    <Tag className="h-3 w-3" />
+                    {t}
+                  </Badge>
+                ))}
+              </div>
             )}
+          </section>
 
-            {/* Success Summary Card - Only show when no errors */}
-            {!hasErrors && (
-                <Card className="border-green-200 bg-green-50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-green-800">
-                            <CheckCircle className="h-5 w-5" />
-                            Product Ready for Submission ✅
-                        </CardTitle>
-                        <p className="text-sm text-green-700">
-                            All required fields are completed. Your product is ready to be created!
-                        </p>
-                    </CardHeader>
-                </Card>
-            )}
+          <Separator />
 
-            {/* Product Summary Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        Product Summary
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Product Name:</span>
-                                <p className="font-medium">{form.watch('name') || 'Not set'}</p>
+          {/* Variants & Combinations */}
+          <section>
+            <h3 className="font-semibold text-sm mb-3">Variants</h3>
+            <div className="grid gap-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="gap-1">
+                  <Package className="h-3 w-3" />
+                  {values.hasVariants ? "Has variants" : "No variants"}
+                </Badge>
+                {!!totalCombinations && (
+                  <Badge>{totalCombinations} combinations</Badge>
+                )}
+              </div>
+
+              {values.hasVariants && (
+                <>
+                  {!!values.variants?.length && (
+                    <div className="space-y-2">
+                      {values.variants
+                        .filter((v) => v?.values?.length)
+                        .map((v) => (
+                          <div key={v.templateId}>
+                            <p className="text-sm font-medium">{v.name}</p>
+                            <div className="text-xs text-muted-foreground">
+                              {v.values
+                                .map((opt) => opt.label || opt.value)
+                                .join(", ")}
                             </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">SKU:</span>
-                                <p className="font-medium font-mono text-sm">{form.watch('sku') || 'Not set'}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Base Price:</span>
-                                <p className="font-medium text-lg">{form.watch('basePrice') || 0} {storeData.currency}</p>
-                            </div>
-                        </div>
-                        <div className="space-y-3">
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Category:</span>
-                                <p className="font-medium">
-                                    {categories.find(c => c.id === selectedCategory)?.name || 'Not selected'}
-                                </p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Product Type:</span>
-                                <p className="font-medium">
-                                    {productTypes.find(pt => pt.id === selectedProductType)?.name || 'Not selected'}
-                                </p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Variants:</span>
-                                <p className="font-medium">
-                                    {form.watch('hasVariants') ?
-                                        `${combinationFields.length} combinations` :
-                                        'No variants'
-                                    }
-                                </p>
-                            </div>
-                        </div>
+                          </div>
+                        ))}
                     </div>
+                  )}
 
-                    <div className="mt-4 pt-4 border-t">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Status:</span>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className={`w-2 h-2 rounded-full ${form.watch('status') === 'active' ? 'bg-green-500' :
-                                        form.watch('status') === 'draft' ? 'bg-yellow-500' : 'bg-gray-500'
-                                        }`} />
-                                    <p className="font-medium capitalize">{form.watch('status')}</p>
-                                    {form.watch('featured') && (
-                                        <Badge variant="secondary" className="text-xs">Featured</Badge>
-                                    )}
-                                </div>
+                  {!!values.productCombinations?.length && (
+                    <div className="mt-2 rounded-md border p-3">
+                      <p className="text-xs font-medium mb-2">Combinations</p>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {values.productCombinations.slice(0, 10).map((c) => (
+                          <div
+                            key={c.sku}
+                            className="rounded border p-2 text-sm space-y-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{c.sku}</span>
+                              {c.isDefault && (
+                                <Badge className="h-5 py-0">Default</Badge>
+                              )}
                             </div>
-                            <div>
-                                <span className="text-sm font-medium text-muted-foreground">Dropshipping:</span>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className={`w-2 h-2 rounded-full ${form.watch('isDropshippingEnabled') ? 'bg-green-500' : 'bg-gray-500'}`} />
-                                    <p className="font-medium">
-                                        {form.watch('isDropshippingEnabled') ? 'Enabled' : 'Disabled'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {form.watch('tags') && form.watch('tags')!.length > 0 && (
-                        <div className="mt-4 pt-4 border-t">
-                            <span className="text-sm font-medium text-muted-foreground">Tags:</span>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                                {form.watch('tags')?.map((tag, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Product Combinations Preview */}
-            {combinationFields.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-blue-600" />
-                            Product Combinations Preview
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            These combinations will be stored in the product_combinations collection with variant filter strings.
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3 max-h-60 overflow-y-auto">
-                            {combinationFields.map((combo, index) => (
-                                <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-sm">Combination {index + 1}:</span>
-                                            {combo.isDefault && (
-                                                <Badge variant="default" className="text-xs">
-                                                    Default
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-muted-foreground">{combo.sku}</span>
-                                            <span className="text-sm font-medium">{combo.basePrice} {storeData.currency}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {combo.variantStrings?.map((str, strIndex) => (
-                                            <Badge key={strIndex} variant="secondary" className="text-xs">
-                                                {str}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Color Variants Preview */}
-            {form.watch('enableColors') && form.watch('colorVariants') && form.watch('colorVariants')!.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Palette className="h-5 w-5 text-purple-600" />
-                            Color Variants Preview
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {form.watch('colorVariants')?.map((color, index) => (
-                                <div key={index} className="p-3 border rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div
-                                            className="w-4 h-4 rounded border"
-                                            style={{ backgroundColor: color.colorCode }}
-                                        />
-                                        <span className="text-sm font-medium truncate">{color.colorName}</span>
-                                        {color.isDefault && (
-                                            <Badge variant="secondary" className="text-xs">Default</Badge>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {color.images?.length || 0} image{(color.images?.length || 0) !== 1 ? 's' : ''}
-                                        {color.additionalPrice && color.additionalPrice > 0 && (
-                                            <span> • +{color.additionalPrice} {storeData.currency}</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {previewImages.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Images className="h-5 w-5 text-purple-600" />
-                            Image Gallery Preview
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {previewImages.slice(0, 8).map((url, index) => (
-                                <div key={index} className="relative">
-                                    <Image
-                                        src={url}
-                                        width={150}
-                                        height={150}
-                                        alt={`Preview ${index + 1}`}
-                                        className="w-full h-24 object-cover rounded-lg border shadow-sm"
-                                    />
-                                    <div className="absolute bottom-1 left-1 bg-black/50 text-white text-xs px-1 rounded">
-                                        {index + 1}
-                                    </div>
-                                </div>
-                            ))}
-                            {previewImages.length > 8 && (
-                                <div className="flex items-center justify-center h-24 bg-gray-100 rounded-lg border">
-                                    <span className="text-sm text-muted-foreground">
-                                        +{previewImages.length - 8} more
-                                    </span>
-                                </div>
+                            {!!c.variantStrings?.length && (
+                              <div className="text-xs text-muted-foreground">
+                                {c.variantStrings.join(" • ")}
+                              </div>
                             )}
-                        </div>
-                    </CardContent>
-                </Card>
+                            <div className="text-xs">
+                              Price: {c.basePrice} {values.currency} · Stock:{" "}
+                              {c.stockQuantity ?? 0}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {values.productCombinations.length > 10 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Showing first 10…
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {defaultCombination && (
+                    <p className="text-xs text-muted-foreground">
+                      Default selection:{" "}
+                      <span className="font-medium">{defaultCombination.sku}</span>
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Images & Colors */}
+          <section>
+            <h3 className="font-semibold text-sm mb-3">Images & Colors</h3>
+
+            {!!previewImages.length && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {previewImages.slice(0, 8).map((src, idx) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`preview-${idx}`}
+                    className="h-24 w-full object-cover rounded-md border"
+                  />
+                ))}
+              </div>
             )}
-        </div>
-    );
+
+            <div className="mt-3 flex items-center gap-2">
+              <Badge variant="outline">
+                Colors: {values.enableColors ? "Enabled" : "Disabled"}
+              </Badge>
+              {values.enableColors && !!totalColorVariants && (
+                <Badge>{totalColorVariants} color(s)</Badge>
+              )}
+              {values.enableColors && defaultColor && (
+                <Badge variant="secondary">Default: {defaultColor}</Badge>
+              )}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Store */}
+          <section>
+            <h3 className="font-semibold text-sm mb-3">Store</h3>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Store</p>
+                <p className="font-medium">{storeData?.storeName || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Country</p>
+                <p className="font-medium">{values.storeCountry}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Location</p>
+                <p className="font-medium">
+                  {values.storeLatitude}, {values.storeLongitude}
+                </p>
+              </div>
+            </div>
+          </section>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };

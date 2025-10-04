@@ -93,7 +93,7 @@ const ProductTypeCard = React.memo<{
                         Slug: {productType.slug}
                     </div>
                     <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/catalog/product-types/${productType.$id}`}>
+                        <Link href={`/admin/sys-admin/catalog/product-types/${productType.$id}`}>
                             <Settings className="h-4 w-4 mr-1" />
                             Configure
                             <ArrowRight className="h-4 w-4 ml-1" />

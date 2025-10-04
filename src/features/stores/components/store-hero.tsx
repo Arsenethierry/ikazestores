@@ -1,4 +1,4 @@
-import { CategoriesCard } from '@/features/categories/components/category-hover-card'
+import { CategoriesCard } from '@/features/catalog/components/category-hover-card'
 import { StoreCarousel } from './store-carousel'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Suspense } from 'react'

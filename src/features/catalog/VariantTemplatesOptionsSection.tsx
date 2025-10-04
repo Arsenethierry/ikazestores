@@ -8,7 +8,6 @@ interface VariantTemplatesOptionsSectionProps {
     productTypeId: string;
 }
 
-// Loading skeleton for the variant templates section
 function VariantTemplatesOptionsLoading() {
     return (
         <Card>

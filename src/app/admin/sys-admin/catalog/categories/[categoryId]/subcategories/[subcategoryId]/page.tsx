@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { getCatalogProductTypes } from '@/lib/actions/catalog-server-actions';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductTypesListSkeleton } from '@/features/catalog/productTypes-list-container';
 import CreateProductTypeModal from '@/features/catalog/components/create-product-type-modal';
 import { ProductTypesGrid } from '@/features/catalog/producttypes-grid';

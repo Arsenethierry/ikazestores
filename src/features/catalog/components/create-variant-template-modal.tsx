@@ -89,7 +89,7 @@ export default function CreateVariantTemplateModal({ children }: CreateVariantTe
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-auto max-w-[min(95vw,48rem)] overflow-x-hidden overflow-y-auto p-6">
                 <DialogHeader>
                     <DialogTitle>Create Variant Template</DialogTitle>
                     <DialogDescription>

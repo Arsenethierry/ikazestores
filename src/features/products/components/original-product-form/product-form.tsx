@@ -1,9 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
@@ -25,34 +23,64 @@ import {
     ArrowRight,
     Zap,
     Loader2,
-    AlertCircle,
     Palette
 } from 'lucide-react';
 import { useFieldArray, useForm } from 'react-hook-form';
-import { CreateProductSchema } from '@/lib/schemas/products-schems';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-    generateCombinationsWithStrings,
-    getCategories,
-    getCategoryById,
-    getProductTypesBySubcategory,
-    getRecommendedVariantTemplates
-} from '@/features/variants management/ecommerce-catalog';
 import { PhysicalStoreTypes } from '@/lib/types';
-import { Category, VariantTemplate } from '@/lib/types/catalog-types';
 import { useRouter } from 'next/navigation';
-import { useCreateOriginalProduct } from '@/hooks/queries-and-mutations/use-original-products-queries';
+import { useAction } from 'next-safe-action/hooks';
 import { BasicInfoStep } from './steps/BasicInfoStep';
 import { CategoryStep } from './steps/CategoryStep';
 import { VariantsStep } from './steps/VariantsStep';
 import { ImagesStep } from './steps/ImagesStep';
 import { ReviewStep } from './steps/ReviewStep';
-import { ColorVariantInput } from './color-variant-manager';
+import z from 'zod';
+import { createProductAction } from '@/lib/actions/original-products-actions';
+import { BasicInfoStepSchema, CategoryStepSchema, CreateProductSchema, ImagesStepSchema, VariantsStepSchema } from '@/lib/schemas/products-schems';
+import { ProductCombination, ProductVariant, VariantOption } from '@/lib/schemas/product-variants-schema';
+import { computeProductDenormalizedFields, recomputeDenormalizedFields } from '@/lib/utils/product-utils';
 
 interface ProductFormProps {
     storeData: PhysicalStoreTypes;
 }
+
+type NonColorVariant = {
+    templateId: string;
+    name: string;
+    type: "number" | "boolean" | "text" | "range" | "select" | "multiselect";
+    values: {
+        value: string;
+        label: string;
+        additionalPrice: number;
+        metadata: { count: number };
+    }[];
+    required?: boolean;
+    sortOrder?: number;
+};
+
+const toNonColorVariants = (variants: any[]): NonColorVariant[] =>
+    (variants || [])
+        .filter((v) => v && !(
+            ["color", "colour", "hue", "shade", "tint", "paint"].some(k =>
+                (v.name ?? "").toLowerCase().includes(k) ||
+                (v.type ?? "").toLowerCase().includes(k) ||
+                (v.templateId ?? "").toLowerCase().includes(k)
+            )
+        ))
+        .map((v) => ({
+            templateId: v.templateId,
+            name: v.name,
+            type: (v.type === "color" ? "text" : v.type) as NonColorVariant["type"],
+            values: (v.values || []).map((opt: any) => ({
+                value: opt?.value ?? "",
+                label: opt?.label ?? opt?.value ?? "",
+                additionalPrice: typeof opt?.additionalPrice === "number" ? opt.additionalPrice : 0,
+                metadata: { count: opt?.metadata?.count ?? 0 },
+            })),
+            required: !!v.required,
+            sortOrder: typeof v.sortOrder === "number" ? v.sortOrder : 0,
+        }));
 
 const steps = [
     {
@@ -87,17 +115,31 @@ const steps = [
     },
 ];
 
+// Standardized color variant detection
+const isColorVariant = (variant: any): boolean => {
+    if (!variant) return false;
+    const name = variant.name?.toLowerCase() || '';
+    const type = variant.type?.toLowerCase() || '';
+    const templateId = variant.templateId?.toLowerCase() || '';
+    const colorKeywords = ['color', 'colour', 'hue', 'shade', 'tint', 'paint'];
+
+    return type === 'color' || colorKeywords.some(keyword =>
+        name.includes(keyword) || templateId.includes(keyword)
+    );
+};
+
 export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     const [currentStep, setCurrentStep] = useState(1);
-    const [selectedCategory, setSelectedCategory] = useState<string>('');
-    const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
-    const [selectedProductType, setSelectedProductType] = useState<string>('');
-    const [availableVariants, setAvailableVariants] = useState<VariantTemplate[]>([]);
     const [currentTag, setCurrentTag] = useState('');
     const [previewImages, setPreviewImages] = useState<string[]>([]);
+    const [availableVariants, setAvailableVariants] = useState<any[]>([]);
+    const [categoryNames, setCategoryNames] = useState<{
+        categoryName?: string;
+        subcategoryName?: string;
+        productTypeName?: string;
+    }>({});
 
     const router = useRouter();
-    const createProductMutation = useCreateOriginalProduct();
 
     const form = useForm<z.infer<typeof CreateProductSchema>>({
         resolver: zodResolver(CreateProductSchema),
@@ -112,7 +154,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             status: 'active',
             featured: false,
             enableColors: false,
-            hasVariants: true,
+            hasVariants: false,
             isDropshippingEnabled: true,
             images: [],
             tags: [],
@@ -120,6 +162,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             storeLatitude: storeData.latitude,
             storeLongitude: storeData.longitude,
             storeCountry: storeData.country,
+            categoryId: '',
+            subcategoryId: '',
+            productTypeId: '',
             variants: [],
             productCombinations: [],
             colorVariants: [],
@@ -132,24 +177,78 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         name: 'productCombinations'
     });
 
-    const categories = getCategories();
-    const subcategories = selectedCategory ?
-        getCategoryById(selectedCategory)?.subcategories || [] : [];
-    const productTypes = (selectedCategory && selectedSubcategory) ?
-        getProductTypesBySubcategory(selectedCategory, selectedSubcategory) : [];
+    const { execute: executeCreateProduct, status: createStatus } = useAction(createProductAction, {
+        onSuccess: ({ data }) => {
+            if (data?.success) {
+                toast.success(data.message);
+                // Clear draft from localStorage
+                localStorage.removeItem('draft-product');
+                router.push(`/admin/stores/${storeData.$id}/products`);
+            } else if (data?.error) {
+                toast.error(data.error);
+            }
+        },
+        onError: ({ error }) => {
+            toast.error(error.serverError || 'Failed to create product');
+        },
+    });
 
     const watchedImages = form.watch("images");
     const watchedHasVariants = form.watch("hasVariants");
     const watchedVariants = form.watch("variants") || [];
-    const watchedEnableColors = form.watch("enableColors");
     const watchedColorVariants = form.watch("colorVariants") || [];
+    const watchedCombinations = form.watch("productCombinations") || [];
 
+    // Auto-save draft to localStorage
     useEffect(() => {
-        if (selectedProductType) {
-            const variants = getRecommendedVariantTemplates(selectedProductType);
-            setAvailableVariants(variants);
+        const formData = form.getValues();
+        const draftData = {
+            ...formData,
+            images: [], // Don't save file objects
+            colorVariants: formData.colorVariants?.map(cv => ({
+                ...cv,
+                images: [] // Don't save file objects
+            }))
+        };
+        localStorage.setItem('draft-product', JSON.stringify(draftData));
+    }, [watchedVariants, watchedCombinations, watchedColorVariants, form]);
+
+    // Load draft on mount
+    useEffect(() => {
+        const draft = localStorage.getItem('draft-product');
+        if (draft) {
+            try {
+                const parsed = JSON.parse(draft);
+                if (parsed.name || parsed.sku) {
+                    toast.info('Draft loaded. Continue where you left off.');
+                    // Only restore non-file fields
+                    Object.keys(parsed).forEach(key => {
+                        if (key !== 'images' && key !== 'colorVariants') {
+                            form.setValue(key as any, parsed[key]);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load draft:', e);
+            }
         }
-    }, [selectedProductType]);
+    }, []);
+
+    // // Update stock calculations when combinations change
+    useEffect(() => {
+        if (watchedCombinations && watchedCombinations.length > 0) {
+            const totalStock = watchedCombinations.reduce(
+                (sum, combo) => sum + (combo.stockQuantity || 0),
+                0
+            );
+            const stockStatus = totalStock > 10 ? 'in_stock'
+                : totalStock > 0 ? 'low_stock'
+                    : 'out_of_stock';
+
+            form.setValue('totalStock', totalStock);
+            form.setValue('stockStatus', stockStatus);
+        }
+    }, [watchedCombinations, form]);
 
     useEffect(() => {
         if (watchedImages && watchedImages.length > 0) {
@@ -160,19 +259,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             setPreviewImages([]);
         }
     }, [watchedImages]);
-
-    const isColorVariant = useCallback((variant: any) => {
-        if (!variant) return false;
-        const name = variant.name?.toLowerCase() || '';
-        const type = variant.type?.toLowerCase() || '';
-        const templateId = variant.templateId?.toLowerCase() || '';
-        const colorKeywords = ['color', 'colour', 'hue', 'shade', 'tint'];
-        return colorKeywords.some(keyword =>
-            name.includes(keyword) ||
-            type.includes(keyword) ||
-            templateId.includes(keyword)
-        );
-    }, []);
 
     useEffect(() => {
         if (watchedHasVariants && watchedVariants && watchedVariants.length > 0) {
@@ -191,18 +277,161 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     }, [watchedVariants, watchedHasVariants]);
 
+    // Recompute denorm opportunistically when user toggles key parts
+    useEffect(() => {
+        const values = form.getValues();
+        const denorm = recomputeDenormalizedFields(
+            { ...values, denormalized: values.denormalized || {} },
+            {
+                // We only pass changed bits here; for “live” recompute we reuse
+                // your helper’s conditional logic.
+                variants: values.variants,
+                colorVariants: values.colorVariants,
+                enableColors: values.enableColors,
+                name: values.name,
+                description: values.description,
+                tags: values.tags,
+            },
+            categoryNames.categoryName
+                ? {
+                    categoryName: categoryNames.categoryName || "",
+                    subcategoryName: categoryNames.subcategoryName || "",
+                    productTypeName: categoryNames.productTypeName || "",
+                }
+                : undefined
+        );
+
+        if (Object.keys(denorm).length > 0) {
+            // @ts-ignore
+            form.setValue("denormalized", { ...(values.denormalized || {}), ...denorm }, { shouldDirty: true });
+        }
+    }, [
+        form,
+        // live recompute inputs:
+        form.watch("variants"),
+        form.watch("colorVariants"),
+        form.watch("enableColors"),
+        form.watch("name"),
+        form.watch("description"),
+        form.watch("tags"),
+        categoryNames,
+    ]);
+
+    function generateCombinationsWithStrings(
+        variants: ProductVariant[],
+        basePrice: number,
+        baseSku: string
+    ): ProductCombination[] {
+        const combinations: ProductCombination[] = [];
+        const seenSkus = new Set<string>();
+
+        if (variants.length === 0) {
+            return combinations;
+        }
+
+        const variantValues: VariantOption[][] = variants
+            .filter((v) => !!v && v.values.length > 0)
+            .map(v => v.values);
+
+        if (variantValues.length === 0) {
+            return combinations;
+        }
+
+        function cartesianProduct(arrays: VariantOption[][]): VariantOption[][] {
+            return arrays.reduce<VariantOption[][]>(
+                (acc, curr) => {
+                    const result: VariantOption[][] = [];
+                    acc.forEach(a => {
+                        curr.forEach(b => {
+                            result.push([...a, b]);
+                        });
+                    });
+                    return result;
+                },
+                [[]]
+            );
+        }
+
+        const products = cartesianProduct(variantValues);
+
+        products.forEach((combination, index) => {
+            const variantValuesMap: Record<string, string> = {};
+            const variantStrings: string[] = [];
+
+            combination.forEach((value, variantIndex) => {
+                const variant = variants[variantIndex];
+                variantValuesMap[variant.templateId] = value.value;
+                variantStrings.push(`${variant.name}: ${value.label || value.value}`);
+            });
+
+            // Calculate price based on additional prices
+            let calculatedPrice = basePrice;
+            combination.forEach((value) => {
+                if (value.additionalPrice) {
+                    calculatedPrice += value.additionalPrice;
+                }
+            });
+
+            // Generate SKU
+            const skuSuffixes: string[] = [];
+            combination.forEach((value, variantIndex) => {
+                const variant = variants[variantIndex];
+                let suffix = '';
+
+                const variantName = variant.name.toLowerCase();
+                if (variantName.includes('size')) {
+                    suffix = value.value.toUpperCase();
+                } else if (variantName.includes('storage')) {
+                    suffix = value.value.replace(/gb/i, 'G').replace(/tb/i, 'T').toUpperCase();
+                } else if (variantName.includes('ram') || variantName.includes('memory')) {
+                    suffix = value.value.replace(/gb/i, 'R').toUpperCase();
+                } else {
+                    suffix = value.value.substring(0, 3).toUpperCase();
+                }
+                skuSuffixes.push(suffix);
+            });
+
+            let generatedSKU = skuSuffixes.length > 0
+                ? `${baseSku}-${skuSuffixes.join('-')}`
+                : baseSku;
+
+            // Check for duplicate SKUs
+            if (seenSkus.has(generatedSKU)) {
+                console.warn(`Duplicate SKU detected: ${generatedSKU}`);
+                generatedSKU = `${generatedSKU}-${index}`;
+            }
+            seenSkus.add(generatedSKU);
+
+            const combinationData: ProductCombination = {
+                id: `combination-${index}`,
+                variantValues: variantValuesMap,
+                sku: generatedSKU,
+                basePrice: Math.max(0, calculatedPrice),
+                stockQuantity: 1,
+                isDefault: index === 0,
+                isActive: true,
+                variantStrings,
+            };
+
+            combinations.push(combinationData);
+        });
+
+        return combinations;
+    }
+
     const generateVariantCombinations = useCallback(() => {
-        const variants = form.getValues("variants") || [];
+        const rawVariants = form.getValues("variants") || [];
+        const normalized = toNonColorVariants(rawVariants);
+
         const basePrice = form.getValues("basePrice") || 0;
         const baseSku = form.getValues("sku") || '';
 
-        if (variants.length === 0) {
+        if (!normalized.length) {
             replaceCombinations([]);
             return;
         }
 
-        // Filter out color variants - they're managed separately
-        const validVariants = variants.filter((variant): variant is NonNullable<typeof variant> =>
+        const validVariants = rawVariants.filter((variant): variant is NonNullable<typeof variant> =>
             variant != null &&
             variant.values != null &&
             variant.values.length > 0 &&
@@ -217,8 +446,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
             return;
         }
 
+        // Validate all variants have values
+        const hasInvalidVariants = validVariants.some(v => !v.values || v.values.length === 0);
+        if (hasInvalidVariants) {
+            toast.error("All variants must have at least one value configured");
+            return;
+        }
+
         try {
-            const combinations = generateCombinationsWithStrings(validVariants, basePrice, baseSku);
+            const combinations = generateCombinationsWithStrings(normalized, basePrice, baseSku);
 
             const formCombinations = combinations.map((combo, index) => ({
                 variantStrings: combo.variantStrings,
@@ -227,7 +463,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 stockQuantity: combo.stockQuantity || 1,
                 weight: combo.weight,
                 dimensions: combo.dimensions,
-                images: combo.images as File[] | undefined,
                 variantValues: combo.variantValues,
                 isDefault: index === 0,
                 isActive: true
@@ -242,42 +477,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
             toast.success(`Generated ${formCombinations.length} variant combinations`);
         } catch (error) {
+            console.error('Combination generation error:', error);
             toast.error("Failed to generate variant combinations. Please check your variant configuration.");
             replaceCombinations([]);
         }
-    }, [form, isColorVariant, replaceCombinations]);
-
-    const handleCategoryChange = (categoryId: string) => {
-        setSelectedCategory(categoryId);
-        setSelectedSubcategory('');
-        setSelectedProductType('');
-        form.setValue('categoryId', categoryId);
-        form.setValue('subcategoryId', '');
-        form.setValue('productTypeId', '');
-        resetVariants();
-    };
-
-    const handleSubcategoryChange = (subcategoryId: string) => {
-        setSelectedSubcategory(subcategoryId);
-        setSelectedProductType('');
-        form.setValue('subcategoryId', subcategoryId);
-        form.setValue('productTypeId', '');
-        resetVariants();
-    };
-
-    const handleProductTypeChange = (productTypeId: string) => {
-        setSelectedProductType(productTypeId);
-        form.setValue('productTypeId', productTypeId);
-        resetVariants();
-    };
-
-    const resetVariants = () => {
-        form.setValue('variants', []);
-        form.setValue('productCombinations', []);
-        form.setValue('hasVariants', false);
-        form.setValue('enableColors', false);
-        form.setValue('colorVariants', []);
-    };
+    }, [form, replaceCombinations, availableVariants]);
 
     const addTag = () => {
         if (currentTag.trim()) {
@@ -296,159 +500,120 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
     const generateSKU = () => {
         const name = form.getValues('name');
-        const category = categories.find((c: Category) => c.id === selectedCategory)?.name || '';
         const timestamp = Date.now().toString().slice(-4);
-        const sku = `${category.slice(0, 3).toUpperCase()}-${name.slice(0, 3).toUpperCase()}-${timestamp}`;
+        const sku = `${name.slice(0, 3).toUpperCase()}-${timestamp}`;
         form.setValue('sku', sku);
     };
 
-    const validateColorVariants = (colorVariants: ColorVariantInput[]): string[] => {
-        const errors: string[] = [];
-
-        if (colorVariants.length === 0) {
-            return errors;
-        }
-
-        const hasDefault = colorVariants.some(color => color.isDefault);
-        if (!hasDefault) {
-            errors.push("At least one color must be set as default");
-        }
-
-        const names = colorVariants.map(c => c.colorName.toLowerCase());
-        const uniqueNames = new Set(names);
-        if (uniqueNames.size !== names.length) {
-            errors.push("Color names must be unique");
-        }
-
-        const colorsWithoutImages = colorVariants.filter(c => !c.images || c.images.length === 0);
-        if (colorsWithoutImages.length > 0) {
-            errors.push(`${colorsWithoutImages.length} color(s) are missing images`);
-        }
-
-        return errors;
-    };
-
-    const validateProductCombinations = (combinations: any[]): string[] => {
-        const errors: string[] = [];
-
-        if (!combinations || combinations.length === 0) {
-            return errors;
-        }
-
-        const skus = combinations
-            .map(c => c.sku)
-            .filter(sku => sku && sku.trim() !== '');
-        const uniqueSkus = new Set(skus);
-        if (uniqueSkus.size !== skus.length) {
-            errors.push("Product combination SKUs must be unique");
-        }
-
-        const validCombinations = combinations.filter(combo =>
-            combo &&
-            combo.sku &&
-            combo.sku.trim() !== '' &&
-            typeof combo.basePrice === 'number' &&
-            combo.basePrice >= 0
-        );
-
-        if (validCombinations.length > 0) {
-            const hasDefault = validCombinations.some(combo => combo.isDefault === true);
-            if (!hasDefault) {
-                errors.push("At least one combination must be set as default");
-            }
-        }
-
-        combinations.forEach((combo, index) => {
-            if (!combo) return;
-
-            if (!combo.sku || combo.sku.trim() === '') {
-                errors.push(`Combination ${index + 1}: SKU is required`);
-            }
-
-            if (typeof combo.basePrice !== 'number' || combo.basePrice < 0) {
-                errors.push(`Combination ${index + 1}: Valid price is required`);
-            }
-
-            if (combo.stockQuantity !== undefined && combo.stockQuantity !== null) {
-                if (typeof combo.stockQuantity !== 'number' || combo.stockQuantity < 0) {
-                    errors.push(`Combination ${index + 1}: Stock quantity must be a non-negative number`);
-                }
-            }
-
-            if (combo.weight !== undefined && combo.weight !== null) {
-                if (typeof combo.weight !== 'number' || combo.weight < 0) {
-                    errors.push(`Combination ${index + 1}: Weight must be a non-negative number`);
-                }
-            }
-        });
-
-        return errors;
-    };
-
     const validateStep = async (step: number): Promise<boolean> => {
-        const fieldsToValidate: (keyof z.infer<typeof CreateProductSchema>)[] = [];
+        const values = form.getValues();
 
-        switch (step) {
-            case 1:
-                fieldsToValidate.push('name', 'description', 'sku', 'basePrice');
-                break;
-            case 2:
-                fieldsToValidate.push('categoryId', 'subcategoryId', 'productTypeId');
-                break;
-            case 3:
-                const hasVariants = form.getValues('hasVariants');
-                const variants = form.getValues('variants') || [];
+        try {
+            switch (step) {
+                case 1: {
+                    const result = BasicInfoStepSchema.safeParse({
+                        name: values.name,
+                        description: values.description,
+                        shortDescription: values.shortDescription,
+                        sku: values.sku,
+                        basePrice: values.basePrice,
+                        currency: values.currency,
+                        status: values.status,
+                        featured: values.featured,
+                        isDropshippingEnabled: values.isDropshippingEnabled,
+                    });
 
-                const nonColorVariants = variants.filter((variant: any) => {
-                    if (!variant) return false;
-                    const name = variant.name?.toLowerCase() || '';
-                    const type = variant.type?.toLowerCase() || '';
-                    const templateId = variant.templateId?.toLowerCase() || '';
-                    const colorKeywords = ['color', 'colour', 'hue', 'shade', 'tint'];
-                    return !colorKeywords.some(keyword =>
-                        name.includes(keyword) ||
-                        type.includes(keyword) ||
-                        templateId.includes(keyword)
-                    );
-                });
+                    if (!result.success) {
+                        const errors = result.error.flatten().fieldErrors;
+                        const firstError = Object.values(errors)[0]?.[0];
+                        if (firstError) {
+                            toast.error(firstError);
+                        }
+                        return false;
+                    }
+                    return true;
+                }
 
-                if (hasVariants && nonColorVariants.length > 0) {
-                    const hasVariantWithValues = nonColorVariants.some((variant: any) =>
-                        variant && variant.values && variant.values.length > 0
-                    );
+                case 2: {
+                    const result = CategoryStepSchema.safeParse({
+                        categoryId: values.categoryId,
+                        subcategoryId: values.subcategoryId,
+                        productTypeId: values.productTypeId,
+                        tags: values.tags,
+                    });
 
-                    if (!hasVariantWithValues) {
-                        toast.error("Please configure at least one variant option before proceeding");
+                    if (!result.success) {
+                        const errors = result.error.flatten().fieldErrors;
+                        const firstError = Object.values(errors)[0]?.[0];
+                        if (firstError) {
+                            toast.error(firstError);
+                        }
+                        return false;
+                    }
+                    return true;
+                }
+
+                case 3: {
+                    const result = VariantsStepSchema.safeParse({
+                        hasVariants: values.hasVariants,
+                        variants: values.variants,
+                        productCombinations: values.productCombinations,
+                    });
+
+                    if (!result.success) {
+                        const errors = result.error.flatten();
+                        const firstError = errors.fieldErrors ?
+                            Object.values(errors.fieldErrors)[0]?.[0] :
+                            errors.formErrors[0];
+                        if (firstError) {
+                            toast.error(firstError);
+                        }
                         return false;
                     }
 
-                    const combinations = form.getValues('productCombinations') || [];
-
-                    if (combinations.length > 0) {
-                        const combinationErrors = validateProductCombinations(combinations);
-                        if (combinationErrors.length > 0) {
-                            toast.error(`Combination validation errors: ${combinationErrors.join(', ')}`);
+                    // Additional validation: check if at least one combination is default
+                    if (values.hasVariants && values.productCombinations && values.productCombinations.length > 0) {
+                        const hasDefault = values.productCombinations.some(c => c.isDefault);
+                        if (!hasDefault) {
+                            toast.error("At least one combination must be set as default");
                             return false;
                         }
                     }
-                }
-                break;
-            case 4:
-                fieldsToValidate.push('images');
 
-                if (watchedEnableColors) {
-                    const colorErrors = validateColorVariants(watchedColorVariants);
-                    if (colorErrors.length > 0) {
-                        toast.error(`Color validation errors: ${colorErrors.join(', ')}`);
+                    return true;
+                }
+
+                case 4: {
+                    const result = ImagesStepSchema.safeParse({
+                        images: values.images,
+                        enableColors: values.enableColors,
+                        colorVariants: values.colorVariants,
+                    });
+
+                    if (!result.success) {
+                        const errors = result.error.flatten();
+                        const firstError = errors.fieldErrors ?
+                            Object.values(errors.fieldErrors)[0]?.[0] :
+                            errors.formErrors[0];
+                        if (firstError) {
+                            toast.error(firstError);
+                        }
                         return false;
                     }
+                    return true;
                 }
-                break;
-            case 5:
-                return await form.trigger();
-        }
 
-        return fieldsToValidate.length > 0 ? await form.trigger(fieldsToValidate) : true;
+                case 5:
+                    return await form.trigger();
+
+                default:
+                    return true;
+            }
+        } catch (error) {
+            console.error('Validation error:', error);
+            toast.error('Validation failed. Please check your inputs.');
+            return false;
+        }
     };
 
     const handleNextStep = async () => {
@@ -465,49 +630,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
     };
 
     const onSubmit = async (values: z.infer<typeof CreateProductSchema>) => {
-        const isValid = await validateStep(currentStep);
-        if (!isValid) return;
+        try {
+            const denorm = await computeProductDenormalizedFields(values, {
+                categoryName: categoryNames.categoryName || "",
+                subcategoryName: categoryNames.subcategoryName || "",
+                productTypeName: categoryNames.productTypeName || "",
+            });
 
-        if (values.enableColors) {
-            const colorErrors = validateColorVariants(values.colorVariants || []);
-            if (colorErrors.length > 0) {
-                toast.error(`Please fix color issues: ${colorErrors.join(', ')}`);
-                return;
-            }
+            const transformedData = {
+                ...values,
+                hasColorVariants: values.enableColors && (values.colorVariants?.length || 0) > 0,
+                denormalized: {
+                    ...(values.denormalized || {}),
+                    ...denorm,
+                },
+            };
+
+            executeCreateProduct(transformedData);
+        } catch (error) {
+            toast.error("Failed to create product. Please try again.");
+            console.error("Submit error:", error);
         }
-
-        if (values.hasVariants) {
-            const combinationErrors = validateProductCombinations(values.productCombinations || []);
-            if (combinationErrors.length > 0) {
-                toast.error(`Please fix combination issues: ${combinationErrors.join(', ')}`);
-                return;
-            }
-        }
-
-        const transformedData = {
-            ...values,
-            hasColorVariants: values.enableColors && (values.colorVariants?.length || 0) > 0,
-            colorVariants: values.colorVariants || [],
-            variants: values.variants || [],
-            productCombinations: values.productCombinations || [],
-            tags: values.tags || [],
-            images: values.images || []
-        };
-
-        console.log("transformedData: ", transformedData)
-
-        createProductMutation.mutate(transformedData, {
-            onSuccess: (result) => {
-                if ('data' in result && result.data) {
-                    toast.success("Product created successfully!");
-                    router.push(`/admin/stores/${storeData.$id}/products`);
-                }
-            },
-            onError: (error) => {
-                console.error('Product creation failed:', error);
-                toast.error('Failed to create product. Please try again.');
-            }
-        });
     };
 
     const renderStepContent = () => {
@@ -524,20 +667,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                 return (
                     <CategoryStep
                         form={form}
-                        categories={categories}
-                        subcategories={subcategories}
-                        productTypes={productTypes}
-                        selectedCategory={selectedCategory}
-                        selectedSubcategory={selectedSubcategory}
-                        selectedProductType={selectedProductType}
-                        availableVariants={availableVariants}
                         currentTag={currentTag}
                         setCurrentTag={setCurrentTag}
-                        handleCategoryChange={handleCategoryChange}
-                        handleSubcategoryChange={handleSubcategoryChange}
-                        handleProductTypeChange={handleProductTypeChange}
                         addTag={addTag}
                         removeTag={removeTag}
+                        onVariantTemplatesLoaded={setAvailableVariants}
+                        onCategoryNamesChange={(names) => setCategoryNames(names)}
                     />
                 );
             case 3:
@@ -560,11 +695,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                     <ReviewStep
                         form={form}
                         storeData={storeData}
-                        categories={categories}
-                        productTypes={productTypes}
-                        selectedCategory={selectedCategory}
-                        selectedProductType={selectedProductType}
                         previewImages={previewImages}
+                        onGoToStep={setCurrentStep}
                     />
                 );
             default:
@@ -572,16 +704,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
         }
     };
 
-    // Get summary counts for the stepper
     const getVariantSummary = () => {
         const colorCount = watchedColorVariants.length;
         const variantCount = watchedVariants.filter(v => !isColorVariant(v)).length;
         const combinationCount = combinationFields.length;
-
         return { colorCount, variantCount, combinationCount };
     };
 
     const { colorCount, variantCount, combinationCount } = getVariantSummary();
+    const isSubmitting = createStatus === 'executing';
 
     return (
         <div className="mx-auto p-6 space-y-8">
@@ -624,38 +755,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
 
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {createProductMutation.isPending && (
+                    {isSubmitting && (
                         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg shadow-xl">
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl">
                                 <Loader2 className="h-12 w-12 animate-spin mx-auto" />
                                 <p className="mt-4 text-center">Creating product...</p>
                             </div>
                         </div>
                     )}
 
-                    {createProductMutation.isError && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>
-                                {createProductMutation.error instanceof Error
-                                    ? createProductMutation.error.message
-                                    : "Failed to create product. Please try again."
-                                }
-                            </AlertDescription>
-                        </Alert>
-                    )}
-
                     <div className="min-h-[500px]">
                         {renderStepContent()}
                     </div>
 
-                    <div className="flex justify-between items-center pt-6 border-t bg-background sticky bottom-0">
+                    <div className="flex justify-between items-center pt-6 border-t bg-background sticky bottom-0 pb-4">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={handlePrevStep}
-                            disabled={currentStep === 1 || createProductMutation.isPending}
+                            disabled={currentStep === 1 || isSubmitting}
                             className="flex items-center gap-2"
                         >
                             <ArrowLeft className="h-4 w-4" />
@@ -667,7 +785,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                                 Step {currentStep} of {steps.length}
                             </span>
 
-                            {/* Enhanced summary badges */}
                             <div className="flex gap-1">
                                 {colorCount > 0 && (
                                     <Badge variant="secondary" className="text-xs flex items-center gap-1">
@@ -694,7 +811,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                             <Button
                                 type="button"
                                 onClick={handleNextStep}
-                                disabled={createProductMutation.isPending}
+                                disabled={isSubmitting}
                                 className="flex items-center gap-2"
                             >
                                 Next
@@ -703,11 +820,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ storeData }) => {
                         ) : (
                             <Button
                                 type="submit"
-                                disabled={createProductMutation.isPending}
+                                disabled={isSubmitting}
                                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
                             >
-                                {createProductMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Creating...
+                                    </>
                                 ) : (
                                     <>
                                         Create Product

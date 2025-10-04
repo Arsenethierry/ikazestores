@@ -1394,3 +1394,53 @@ export const getVariantsForProductType = async ({
     };
   }
 };
+
+export async function getCategoriesWithInheritance(storeId: string | null) {
+  try {
+    const categoriesRes = await categoryModel.findMany({
+      filters: [{ field: "isActive", operator: "equal", value: true }],
+      orderBy: "sortOrder",
+      orderType: "asc",
+      limit: 50,
+    });
+
+    const categories = categoriesRes.documents;
+
+    const subcatsRes = await subcategoryModel.findMany({
+      filters: [{ field: "isActive", operator: "equal", value: true }],
+      orderBy: "sortOrder",
+      orderType: "asc",
+      limit: 50,
+    });
+
+    const bucket = new Map<string, any[]>();
+    for (const s of subcatsRes.documents) {
+      if (!bucket.has(s.categoryId)) bucket.set(s.categoryId, []);
+      bucket.get(s.categoryId)!.push(s);
+    }
+
+    const tree = categories.map((c) => ({
+      $id: c.$id,
+      categoryName: c.categoryName,
+      slug: c.slug ?? null,
+      iconUrl: c.iconUrl ?? null,
+      description: c.description ?? null,
+      storeId: c.storeId ?? null,
+      children: (bucket.get(c.$id) ?? []).map((s) => ({
+        $id: s.$id,
+        subCategoryName: s.subCategoryName,
+        slug: s.slug ?? null,
+        description: s.description ?? null,
+        iconUrl: s.iconUrl ?? null,
+      })),
+    }));
+
+    return { documents: tree, error: null as string | null };
+  } catch (error) {
+    return {
+      documents: [] as any[],
+      error:
+        error instanceof Error ? error?.message : "Failed to load categories",
+    };
+  }
+}

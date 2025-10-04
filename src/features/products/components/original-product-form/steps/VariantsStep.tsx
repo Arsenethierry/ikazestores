@@ -4,7 +4,6 @@ import { FormControl, FormField, FormItem, FormLabel } from "@/components/ui/for
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { VariantConfig } from "@/features/variants management/variant-config";
 import { CreateProductSchema } from "@/lib/schemas/products-schems";
 import { VariantTemplate } from "@/lib/types/catalog-types";
 import { UseFormReturn } from "react-hook-form";
@@ -12,6 +11,7 @@ import { ProductCombinations } from "../product-combinations";
 import { RefreshCw, AlertCircle, Package, Info, Settings } from "lucide-react";
 import { useMemo } from "react";
 import z from "zod";
+import { VariantConfig } from "../VariantConfig";
 
 type ProductFormData = z.infer<typeof CreateProductSchema>;
 
