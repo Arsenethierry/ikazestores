@@ -15,11 +15,12 @@ import { useEffect, useState } from "react";
 import { ResponsiveModal } from "@/components/responsive-modal";
 import { useRouter } from "next/navigation";
 import SpinningLoader from "@/components/spinning-loader";
-import { useCheckProductSyncStatus, useImportProductToVirtualStore } from "@/hooks/queries-and-mutations/use-affliate-products";
 import { ProductDescription } from "../product-description";
-import { CreateAffiliateImportSchema } from "@/lib/schemas/products-schems";
 import { ProductCombinations } from "@/lib/types/appwrite/appwrite";
-import { useGetProductsCombinations } from "@/hooks/queries-and-mutations/use-original-products-queries";
+import { CreateAffiliateImportSchema } from "@/lib/schemas/products-schems";
+import { useAction } from "next-safe-action/hooks";
+import { checkProductSyncStatus, importProductAction } from "@/lib/actions/affiliate-product-actions";
+import { getProductsCombinations } from "@/lib/actions/original-products-actions";
 
 type CloneProductProps = {
     currentUser: CurrentUserType,
@@ -30,28 +31,66 @@ type CloneProductProps = {
 export const CloneProductModal = ({ currentUser, product, virtualStoreId }: CloneProductProps) => {
     const [open, setOpen] = useState(false);
     const [overriddenCombinations, setOverriddenCombinations] = useState<Set<string>>(new Set());
+    const [combinations, setCombinations] = useState<ProductCombinations[]>([]);
+    const [isLoadingCombinations, setIsLoadingCombinations] = useState(false);
+    const [combinationsError, setCombinationsError] = useState<string | null>(null);
+    const [combinationsCount, setCombinationsCount] = useState(0);
+    const [importStatus, setImportStatus] = useState<{ isCloned: boolean } | null>(null);
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
     const router = useRouter();
 
-    const {
-        data: combinationsData,
-        isLoading: isLoadingCombinations,
-        error: combinationsError
-    } = useGetProductsCombinations(
-        product.$id,
-        {
-            limit: 100,
-            activeOnly: true,
-            orderBy: '$createdAt',
-            orderType: 'asc'
-        },
-        {
-            enabled: open && product.hasVariants
+    // Fetch combinations when modal opens
+    useEffect(() => {
+        if (open && product.hasVariants) {
+            loadCombinations();
         }
-    );
+    }, [open, product.hasVariants, product.$id]);
 
-    const combinations: ProductCombinations[] = combinationsData?.combinations || [];
-    const combinationsCount = combinationsData?.total || 0;
+    // Check import status when modal opens
+    useEffect(() => {
+        if (open) {
+            checkImportStatus();
+        }
+    }, [open]);
+
+    const loadCombinations = async () => {
+        setIsLoadingCombinations(true);
+        setCombinationsError(null);
+
+        try {
+            const result = await getProductsCombinations(product.$id, {
+                limit: 100,
+                activeOnly: true,
+                orderBy: '$createdAt',
+                orderType: 'asc'
+            });
+
+            if (result.success) {
+                setCombinations(result.combinations);
+                setCombinationsCount(result.total);
+            } else {
+                setCombinationsError(result.error || 'Failed to load combinations');
+            }
+        } catch (error) {
+            console.error('Error loading combinations:', error);
+            setCombinationsError('Failed to load combinations');
+        } finally {
+            setIsLoadingCombinations(false);
+        }
+    };
+
+    const checkImportStatus = async () => {
+        setIsCheckingStatus(true);
+        try {
+            const result = await checkProductSyncStatus(product.$id, virtualStoreId);
+            setImportStatus({ isCloned: result.isCloned });
+        } catch (error) {
+            console.error('Error checking import status:', error);
+        } finally {
+            setIsCheckingStatus(false);
+        }
+    };
 
     const form = useForm<z.infer<typeof CreateAffiliateImportSchema>>({
         resolver: zodResolver(CreateAffiliateImportSchema),
@@ -98,9 +137,22 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
         form.setValue("customCombinationPricing", updatedCombinations);
     }, [commission, form, overriddenCombinations]);
 
-    const { mutateAsync: importProduct, isPending } = useImportProductToVirtualStore();
+    const { execute: importProduct, status, result } = useAction(importProductAction, {
+        onSuccess: ({ data }) => {
+            setOpen(false);
+            toast.success(data?.message || `Product imported with ${selectedCombinations.length} combination(s)!`);
+            router.refresh();
+            form.reset();
+            setOverriddenCombinations(new Set());
+            checkImportStatus();
+        },
+        onError: ({ error }) => {
+            console.error("Import product error:", error);
+            toast.error(error.serverError || "Failed to import product");
+        },
+    });
 
-    const { data: importStatus, isSuccess: importStatusSuccess, isPending: importStatusPending, refetch: recheckProdStatus } = useCheckProductSyncStatus(product.$id, virtualStoreId);
+    const isPending = status === "executing";
 
     const onSubmit = async (values: z.infer<typeof CreateAffiliateImportSchema>) => {
         if (!currentUser) {
@@ -123,23 +175,13 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                     : undefined
             };
 
-            const result = await importProduct(importData);
-
-            if (result && 'success' in result) {
-                setOpen(false);
-                toast.success(`Product imported with ${values.selectedCombinations.length} combination(s)!`);
-                router.refresh();
-                form.reset();
-                setOverriddenCombinations(new Set());
-                recheckProdStatus()
-            }
+            importProduct(importData);
         } catch (error) {
-            console.error("Import product error:", error);
-            toast.error(error instanceof Error ? error.message : "Failed to import product");
+            console.error("Submit error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to submit");
         }
     };
 
-    // Handle select/deselect all combinations
     const handleSelectAllCombinations = (checked: boolean) => {
         if (checked) {
             form.setValue("selectedCombinations", combinations.map((comb: ProductCombinations) => comb.$id));
@@ -148,7 +190,6 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
         }
     };
 
-    // Handle individual combination selection
     const handleCombinationToggle = (combinationId: string, checked: boolean) => {
         const current = form.getValues("selectedCombinations");
         if (checked) {
@@ -158,11 +199,10 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
         }
     };
 
-    const isAlreadyImported = importStatusSuccess && importStatus?.isCloned;
+    const isAlreadyImported = importStatus?.isCloned;
     const allCombinationsSelected = selectedCombinations.length === combinations.length;
     const noCombinationsSelected = selectedCombinations.length === 0;
 
-    // Show combinations count or loading state
     const getCombinationsDisplayText = () => {
         if (!product.hasVariants) return "No variants";
         if (isLoadingCombinations) return "Loading...";
@@ -175,10 +215,10 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
             <Button
                 variant="outline"
                 size="sm"
-                disabled={isAlreadyImported || importStatusPending}
+                disabled={isAlreadyImported || isCheckingStatus}
                 onClick={() => setOpen(true)}
             >
-                {importStatusPending ? <SpinningLoader /> : isAlreadyImported ? 'Added' : 'Import'}
+                {isCheckingStatus ? <SpinningLoader /> : isAlreadyImported ? 'Added' : 'Import'}
             </Button>
 
             <ResponsiveModal open={open} onOpenChange={setOpen}>
@@ -282,7 +322,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                             Base: {product.basePrice} {product.currency}
                                                         </span>
                                                         <span className="text-sm font-semibold text-green-600">
-                                                            Final: {finalPrice} {product.currency}
+                                                            Final: {finalPrice.toFixed(2)} {product.currency}
                                                         </span>
                                                     </div>
                                                 </FormDescription>
@@ -333,12 +373,12 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                             {/* Error State */}
                                             {combinationsError && (
                                                 <div className="text-center py-8">
-                                                    <p className="text-sm text-red-600">Failed to load combinations</p>
+                                                    <p className="text-sm text-red-600">{combinationsError}</p>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
                                                         className="mt-2"
-                                                        onClick={() => window.location.reload()}
+                                                        onClick={loadCombinations}
                                                     >
                                                         Retry
                                                     </Button>
@@ -407,7 +447,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                                                             <div>
                                                                                                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Base Price</span>
                                                                                                 <div className="text-sm font-semibold text-gray-900 mt-1">
-                                                                                                    {combination.basePrice} {product.currency}
+                                                                                                    {combination.basePrice.toFixed(2)} {product.currency}
                                                                                                 </div>
                                                                                             </div>
 
@@ -434,7 +474,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                                                             <div>
                                                                                                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Final Price</span>
                                                                                                 <div className="text-sm font-semibold text-green-600 mt-1">
-                                                                                                    {finalCombinationPrice} {product.currency}
+                                                                                                    {finalCombinationPrice.toFixed(2)} {product.currency}
                                                                                                 </div>
                                                                                             </div>
 
@@ -464,7 +504,6 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                                                         </div>
                                                                                     )}
 
-                                                                                    {/* Show combination images if available */}
                                                                                     {isSelected && combination.images && combination.images.length > 0 && (
                                                                                         <div className="flex gap-2 mt-2">
                                                                                             {combination.images.slice(0, 3).map((imageUrl: string, imgIdx: number) => (
@@ -562,7 +601,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                 {isPending ? (
                                     <>
                                         <SpinningLoader />
-                                        Importing...
+                                        <span className="ml-2">Importing...</span>
                                     </>
                                 ) : (
                                     `Import ${selectedCombinations.length} Item${selectedCombinations.length !== 1 ? 's' : ''}`

@@ -1,5 +1,6 @@
 "use server";
 
+import { createSafeActionClient } from "next-safe-action";
 import { PaginationResult, QueryOptions } from "../core/database";
 import { AffiliateProductModel } from "../models/AffliateProductModel";
 import {
@@ -7,69 +8,112 @@ import {
   UpdateAffiliateImportSchema,
 } from "../schemas/products-schems";
 import { VirtualProductTypes } from "../types";
+import { authMiddleware } from "./middlewares";
+import { revalidatePath } from "next/cache";
+import z from "zod";
+
+const action = createSafeActionClient({
+  handleServerError: (error) => {
+    console.error("Server action error:", error);
+    return error.message;
+  },
+});
 
 const affiliateProductModel = new AffiliateProductModel();
 
-export async function importProductToVirtualStore(
-  data: CreateAffiliateImportSchema
-) {
-  try {
-    const result = await affiliateProductModel.importProduct(data);
-    if ("error" in result) {
-      return { error: result.error };
-    }
+export const importProductAction = action
+  .schema(CreateAffiliateImportSchema)
+  .use(authMiddleware)
+  .action(async ({ parsedInput: data, ctx }) => {
+    const { user } = ctx;
 
-    return {
-      success: "Product imported successfully!",
-      data: result,
-    };
-  } catch (error) {
-    console.error("importProductToVirtualStore action error: ", error);
-    if (error instanceof Error) {
-      return { error: error.message };
-    }
-    return { error: "Failed to import product" };
-  }
-}
+    try {
+      const result = await affiliateProductModel.importProduct(data);
 
-export async function updateAffiliateImport(
-  importId: string,
-  data: UpdateAffiliateImportSchema
-) {
-  try {
-    const result = await affiliateProductModel.updateImport(importId, data);
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
 
-    if ("error" in result) {
-      return { error: result.error };
-    }
+      revalidatePath(`/store/${data.virtualStoreId}/products`);
+      revalidatePath("/admin/products");
 
-    return {
-      success: "Import updated successfully!",
-      data: result,
-    };
-  } catch (error) {
-    console.error("updateAffiliateImport action error: ", error);
-    if (error instanceof Error) {
-      return { error: error.message };
+      return {
+        success: true,
+        data: result,
+        message: "Product imported successfully!",
+      };
+    } catch (error) {
+      console.error("importProductAction error:", error);
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to import product"
+      );
     }
-    return { error: "Failed to update import" };
-  }
-}
+  });
 
-export async function removeProductFromVirtualStore(importId: string) {
-  try {
-    const result = await affiliateProductModel.removeImport(importId);
-    if (result.error) {
-      return { error: result.error };
+export const updateAffiliateImportAction = action
+  .schema(
+    z.object({
+      importId: z.string(),
+      data: UpdateAffiliateImportSchema,
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { importId, data } }) => {
+    try {
+      const result = await affiliateProductModel.updateImport(importId, data);
+
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      revalidatePath(`/store/${result.virtualStoreId}/products`);
+      revalidatePath(`/admin/products/${importId}`);
+
+      return {
+        success: true,
+        data: result,
+        message: "Import updated successfully!",
+      };
+    } catch (error) {
+      console.error("updateAffiliateImportAction error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update import",
+      };
     }
-  } catch (error) {
-    console.error("bulkUpdateCommissionRates action error: ", error);
-    if (error instanceof Error) {
-      return { error: error.message };
+  });
+
+export const removeProductAction = action
+  .schema(
+    z.object({
+      importId: z.string(),
+      virtualStoreId: z.string(),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { importId, virtualStoreId } }) => {
+    try {
+      const result = await affiliateProductModel.removeImport(importId);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      revalidatePath(`/store/${virtualStoreId}/products`);
+      revalidatePath("/admin/products");
+
+      return {
+        success: true,
+        message: "Product removed successfully!",
+      };
+    } catch (error) {
+      console.error("removeProductAction error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to remove product",
+      };
     }
-    return { error: "Failed to update commission rates" };
-  }
-}
+  });
 
 export async function checkProductSyncStatus(
   productId: string,
@@ -83,7 +127,7 @@ export async function checkProductSyncStatus(
 
     return {
       isCloned: !!existingImport,
-      importData: existingImport,
+      importData: existingImport ?? null,
     };
   } catch (error) {
     console.error("checkProductSyncStatus action error: ", error);
@@ -94,6 +138,42 @@ export async function checkProductSyncStatus(
     };
   }
 }
+
+export const bulkUpdateCommissionAction = action
+  .schema(
+    z.object({
+      virtualStoreId: z.string(),
+      newRate: z.number().min(0).max(100),
+    })
+  )
+  .use(authMiddleware)
+  .action(async ({ parsedInput: { virtualStoreId, newRate } }) => {
+    try {
+      const result = await affiliateProductModel.bulkUpdateCommissions(
+        virtualStoreId,
+        newRate
+      );
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      revalidatePath(`/store/${virtualStoreId}/products`);
+      revalidatePath("/admin/products");
+
+      return {
+        success: true,
+        message: `Commission rates updated to ${newRate}%`,
+      };
+    } catch (error) {
+      console.error("bulkUpdateCommissionAction error:", error);
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update commission rates"
+      );
+    }
+  });
 
 export async function getAffiliateImportAnalytics(virtualStoreId: string) {
   try {

@@ -13,7 +13,6 @@ import {
 } from "../core/database";
 import {
   DATABASE_ID,
-  PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
   PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
   PRODUCTS_BUCKET_ID,
   PRODUCTS_COLLECTION_ID,
@@ -23,6 +22,7 @@ import {
   CreateColorVariantData,
   CreateProductSchema,
   ProductCombinationSchema,
+  UpdateCombinationData,
   UpdateProductSchema,
 } from "../schemas/products-schems";
 import {
@@ -46,6 +46,10 @@ export class ProductModel extends BaseModel<Products> {
 
   private get colorVariantsModel() {
     return new ColorVariantsModel();
+  }
+
+  private get combinationsModel() {
+    return new ProductCombinationsModel();
   }
 
   async findProductById(productId: string): Promise<Products | null> {
@@ -160,14 +164,6 @@ export class ProductModel extends BaseModel<Products> {
     error?: string;
   }> {
     try {
-      const {
-        limit = 50,
-        offset = 0,
-        activeOnly = true,
-        orderBy = "$createdAt",
-        orderType = "asc",
-      } = options;
-      const { databases } = await createSessionClient();
       if (!productId) {
         return {
           success: true,
@@ -177,33 +173,19 @@ export class ProductModel extends BaseModel<Products> {
         };
       }
 
-      const queries = [
-        Query.equal("productId", productId),
-        Query.limit(limit),
-        Query.offset(offset),
-      ];
-
-      if (orderType === "desc") {
-        queries.push(Query.orderDesc(orderBy));
-      } else {
-        queries.push(Query.orderAsc(orderBy));
-      }
-
-      if (activeOnly) {
-        queries.push(Query.equal("isActive", true));
-      }
-
-      const result = await databases.listDocuments<ProductCombinations>(
-        DATABASE_ID,
-        VARIANT_COMBINATIONS_COLLECTION_ID,
-        queries
-      );
+      const result = await this.combinationsModel.findByProduct(productId, {
+        limit: options.limit || 50,
+        offset: options.offset || 0,
+        orderBy: options.orderBy || "$createdAt",
+        orderType: options.orderType || "asc",
+        activeOnly: options.activeOnly ?? true,
+      });
 
       return {
         success: true,
         combinations: result.documents,
         total: result.total,
-        hasMore: offset + result.documents.length < result.total,
+        hasMore: result.hasMore,
       };
     } catch (error) {
       console.error("getProductsCombinations error: ", error);
@@ -460,30 +442,6 @@ export class ProductModel extends BaseModel<Products> {
             PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
             variantId
           );
-
-          // Create variant options
-          // if (variant.values && variant.values.length > 0) {
-          //   for (const option of variant.values) {
-          //     const optionId = ID.unique();
-          //     await databases.createDocument(
-          //       DATABASE_ID,
-          //       PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
-          //       optionId,
-          //       {
-          //         variantId,
-          //         value: option.value || "",
-          //         label: option.label || option.value || "",
-          //         colorCode: option.colorCode || "",
-          //         additionalPrice: option.additionalPrice || 0,
-          //         isDefault: option.isDefault || false,
-          //       }
-          //     );
-          //     await rollback.trackDocument(
-          //       PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
-          //       optionId
-          //     );
-          //   }
-          // }
         }
       }
 
@@ -493,58 +451,21 @@ export class ProductModel extends BaseModel<Products> {
         data.productCombinations &&
         data.productCombinations.length > 0
       ) {
-        let totalStock = 0;
-
         for (const combination of data.productCombinations) {
-          const combinationId = ID.unique();
+          const result = await this.combinationsModel.createCombination(
+            combination,
+            productId
+          );
 
-          // Upload combination-specific images
-          const combinationImageUrls: string[] = [];
-          if (combination.images && combination.images.length > 0) {
-            for (const image of combination.images) {
-              if (image instanceof File) {
-                const uploadedImage = await this.storageService.uploadFile(
-                  image
-                );
-                await rollback.trackFile(PRODUCTS_BUCKET_ID, uploadedImage.$id);
-                const imageUrl = await this.storageService.getFileUrl(
-                  uploadedImage.$id,
-                  "view"
-                );
-                combinationImageUrls.push(imageUrl);
-              }
-            }
+          if ("error" in result) {
+            throw new Error(result.error);
           }
-
-          // Create combination document
-          await databases.createDocument(
-            DATABASE_ID,
-            VARIANT_COMBINATIONS_COLLECTION_ID,
-            combinationId,
-            {
-              productId,
-              variantStrings: combination.variantStrings || [],
-              sku: combination.sku,
-              basePrice: combination.basePrice,
-              stockQuantity: combination.stockQuantity || 0,
-              isActive: combination.isActive !== false,
-              weight: combination.weight || 0,
-              dimensions: combination.dimensions || "",
-              images: combinationImageUrls,
-              variantValues: JSON.stringify(combination.variantValues),
-            },
-            documentPermissions
-          );
-          await rollback.trackDocument(
-            VARIANT_COMBINATIONS_COLLECTION_ID,
-            combinationId
-          );
-
-          // Track stock
-          totalStock += combination.stockQuantity || 0;
         }
 
-        // Update product with total stock
+        // Calculate and update total stock
+        const totalStock = await this.combinationsModel.calculateTotalStock(
+          productId
+        );
         await databases.updateDocument(
           DATABASE_ID,
           PRODUCTS_COLLECTION_ID,
@@ -595,6 +516,9 @@ export class ProductModel extends BaseModel<Products> {
     productId: string,
     data: UpdateProductSchema
   ): Promise<Products | { error: string }> {
+    const { databases, storage } = await createAdminClient();
+    const rollback = new AppwriteRollback(storage, databases);
+
     try {
       const { user } = await getAuthState();
       if (!user) {
@@ -606,7 +530,181 @@ export class ProductModel extends BaseModel<Products> {
         return { error: "Product not found" };
       }
 
-      const updatedProduct = await this.update(productId, data);
+      const oldImages = existingProduct.images || [];
+      const newImagesFiles =
+        data.images?.filter((img) => img instanceof File) || [];
+      const existingImageUrls =
+        data.images?.filter((img) => typeof img === "string") || [];
+
+      const uploadedImageUrls: string[] = [];
+      for (const imageFile of newImagesFiles) {
+        const uploaded = await this.storageService.uploadFile(
+          imageFile as File
+        );
+        await rollback.trackFile(PRODUCTS_BUCKET_ID, uploaded.$id);
+        const imageUrl = await this.storageService.getFileUrl(
+          uploaded.$id,
+          "view"
+        );
+        uploadedImageUrls.push(imageUrl);
+      }
+
+      const imagesToDelete = oldImages.filter(
+        (url) => !existingImageUrls.includes(url as never)
+      );
+      for (const imageUrl of imagesToDelete) {
+        const fileId = extractFileIdFromUrl(imageUrl);
+        if (fileId) await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId);
+      }
+
+      const updatedImages = [...existingImageUrls, ...uploadedImageUrls];
+
+      // Update main product document with updated images and other data
+      const updateData = { ...data, images: updatedImages };
+
+      await rollback.trackDocument(PRODUCTS_COLLECTION_ID, productId);
+      const updatedProduct = await this.update(productId, updateData);
+
+      // Update color variants: remove missing, update existing, create new
+      if (data.colorVariants) {
+        const existingColors = await this.colorVariantsModel.findByProduct(
+          productId
+        );
+        const incomingColorIds = data.colorVariants
+          .map((cv) => cv.$id)
+          .filter(Boolean);
+        for (const color of existingColors.documents) {
+          if (!incomingColorIds.includes(color.$id)) {
+            await this.colorVariantsModel.deleteColorVariant(color.$id);
+          }
+        }
+        for (const colorVariant of data.colorVariants) {
+          if (colorVariant.$id) {
+            await this.colorVariantsModel.updateColorVariant(
+              colorVariant.$id,
+              colorVariant
+            );
+          } else {
+            const created = await this.colorVariantsModel.createColorVariant(
+              { ...colorVariant, productId },
+              user.$id
+            );
+            if ("error" in created) throw new Error(created.error);
+          }
+        }
+      }
+
+      // Update non-color variants similarly
+      if (data.variants) {
+        const existingVariants = await databases.listDocuments(
+          DATABASE_ID,
+          PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
+          [Query.equal("productId", productId)]
+        );
+        const incomingVariantIds = data.variants
+          .map((v) => v.$id)
+          .filter(Boolean);
+        for (const variant of existingVariants.documents) {
+          if (!incomingVariantIds.includes(variant.$id)) {
+            await databases.deleteDocument(
+              DATABASE_ID,
+              PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
+              variant.$id
+            );
+          }
+        }
+        for (const variant of data.variants) {
+          if (variant.$id) {
+            await databases.updateDocument(
+              DATABASE_ID,
+              PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
+              variant.$id,
+              {
+                catalogVariantTemplateId: variant.templateId,
+                variantName: variant.name,
+                inputType: variant.type,
+                values: JSON.stringify(variant.values),
+              }
+            );
+          } else {
+            const variantId = ID.unique();
+            await databases.createDocument(
+              DATABASE_ID,
+              PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
+              variantId,
+              {
+                productId,
+                catalogVariantTemplateId: variant.templateId,
+                variantName: variant.name,
+                inputType: variant.type,
+                values: JSON.stringify(variant.values),
+              }
+            );
+          }
+        }
+      }
+
+      // Update product combinations using ProductCombinationsModel
+      if (data.productCombinations) {
+        const existingCombinations = await this.combinationsModel.findByProduct(
+          productId,
+          { limit: 1000 }
+        );
+
+        const incomingComboIds = data.productCombinations
+          .map((c) => c.$id)
+          .filter(Boolean);
+
+        // Delete combinations not in the incoming list
+        for (const combo of existingCombinations.documents) {
+          if (!incomingComboIds.includes(combo.$id)) {
+            await this.combinationsModel.deleteCombination(combo.$id);
+          }
+        }
+
+        // Update existing or create new combinations
+        for (const combination of data.productCombinations) {
+          if (combination.$id) {
+            // Update existing combination
+            const result = await this.combinationsModel.updateCombination(
+              combination.$id,
+              combination
+            );
+            if ("error" in result) {
+              throw new Error(result.error);
+            }
+          } else {
+            // Create new combination
+            const result = await this.combinationsModel.createCombination(
+              combination,
+              productId,
+            );
+            if ("error" in result) {
+              throw new Error(result.error);
+            }
+          }
+        }
+
+        // Recalculate total stock
+        const totalStock = await this.combinationsModel.calculateTotalStock(
+          productId
+        );
+        await databases.updateDocument(
+          DATABASE_ID,
+          PRODUCTS_COLLECTION_ID,
+          productId,
+          {
+            totalStock,
+            stockStatus:
+              totalStock > 10
+                ? "in_stock"
+                : totalStock > 0
+                ? "low_stock"
+                : "out_of_stock",
+          }
+        );
+      }
+
       return updatedProduct;
     } catch (error) {
       console.error("updateProduct error: ", error);
@@ -659,32 +757,7 @@ export class ProductModel extends BaseModel<Products> {
               );
             }
 
-            const combinations = await databases.listDocuments(
-              DATABASE_ID,
-              VARIANT_COMBINATIONS_COLLECTION_ID,
-              [Query.equal("productId", productId)]
-            );
-
-            await Promise.all(
-              combinations.documents.map(async (combination) => {
-                if (combination.images && combination.images.length > 0) {
-                  await Promise.all(
-                    combination.images.map(async (imageUrl: string) => {
-                      const fileId = extractFileIdFromUrl(imageUrl);
-                      if (fileId) {
-                        await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId);
-                      }
-                    })
-                  );
-                }
-
-                await databases.deleteDocument(
-                  DATABASE_ID,
-                  VARIANT_COMBINATIONS_COLLECTION_ID,
-                  combination.$id
-                );
-              })
-            );
+            await this.combinationsModel.deleteCombinationsByProduct(productId);
 
             const variants = await databases.listDocuments(
               DATABASE_ID,
@@ -694,20 +767,6 @@ export class ProductModel extends BaseModel<Products> {
 
             await Promise.all(
               variants.documents.map(async (variant) => {
-                // const options = await databases.listDocuments(
-                //   DATABASE_ID,
-                //   PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
-                //   [Query.equal("variantId", variant.$id)]
-                // );
-
-                // for (const option of options.documents) {
-                //   await databases.deleteDocument(
-                //     DATABASE_ID,
-                //     PRODUCT_VARIANT_OPTIONS_COLLECTION_ID,
-                //     option.$id
-                //   );
-                // }
-
                 await databases.deleteDocument(
                   DATABASE_ID,
                   PRODUCT_VARIANTS_VALUES_COLLECTION_ID,
@@ -827,6 +886,468 @@ export class ProductModel extends BaseModel<Products> {
         return { error: error.message };
       }
       return { error: "Failed to get product statistics" };
+    }
+  }
+}
+
+export class ProductCombinationsModel extends BaseModel<ProductCombinations> {
+  constructor() {
+    super(VARIANT_COMBINATIONS_COLLECTION_ID);
+  }
+
+  private get storageService() {
+    return new ProductsStorageService();
+  }
+
+  async findByProduct(
+    productId: string,
+    options: QueryOptions & { activeOnly?: boolean } = {}
+  ): Promise<PaginationResult<ProductCombinations>> {
+    const filters: QueryFilter[] = [
+      { field: "productId", operator: "equal", value: productId },
+      ...(options.filters || []),
+    ];
+
+    if (options.activeOnly) {
+      filters.push({ field: "isActive", operator: "equal", value: true });
+    }
+
+    return this.findMany({
+      ...options,
+      filters,
+      orderBy: options.orderBy || "$createdAt",
+      orderType: options.orderType || "asc",
+    });
+  }
+
+  async findBySku(sku: string): Promise<ProductCombinations | null> {
+    return this.findOne([{ field: "sku", operator: "equal", value: sku }]);
+  }
+
+  async findByVariantStrings(
+    productId: string,
+    variantStrings: string[]
+  ): Promise<ProductCombinations | null> {
+    const allCombinations = await this.findByProduct(productId);
+
+    return (
+      allCombinations.documents.find((combo) => {
+        const comboStrings = combo.variantStrings || [];
+        return (
+          comboStrings.length === variantStrings.length &&
+          variantStrings.every((vs) => comboStrings.includes(vs))
+        );
+      }) || null
+    );
+  }
+
+  async findLowStock(
+    productId: string,
+    threshold: number = 10,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<ProductCombinations>> {
+    const filters: QueryFilter[] = [
+      { field: "productId", operator: "equal", value: productId },
+      { field: "stockQuantity", operator: "lessThanEqual", value: threshold },
+      { field: "stockQuantity", operator: "greaterThan", value: 0 },
+      { field: "isActive", operator: "equal", value: true },
+      ...(options.filters || []),
+    ];
+
+    return this.findMany({
+      ...options,
+      filters,
+    });
+  }
+
+  async findOutOfStock(
+    productId: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<ProductCombinations>> {
+    const filters: QueryFilter[] = [
+      { field: "productId", operator: "equal", value: productId },
+      { field: "stockQuantity", operator: "equal", value: 0 },
+      ...(options.filters || []),
+    ];
+
+    return this.findMany({
+      ...options,
+      filters,
+    });
+  }
+
+  async createCombination(
+    data: ProductCombinationSchema,
+    productId: string
+  ): Promise<ProductCombinations | { error: string }> {
+    const { storage, databases } = await createAdminClient();
+    const rollback = new AppwriteRollback(storage, databases);
+
+    try {
+      const { user } = await getAuthState();
+      if (!user) {
+        return { error: "Authentication required" };
+      }
+
+      // Validate price
+      if (data.basePrice < 0) {
+        return { error: "Base price must be non-negative" };
+      }
+
+      // Check for duplicate SKU
+      if (data.sku) {
+        const existingSku = await this.findBySku(data.sku);
+        if (existingSku) {
+          return { error: `SKU "${data.sku}" already exists` };
+        }
+      }
+
+      const imageUrls: string[] = [];
+      if (data.images && data.images.length > 0) {
+        for (const image of data.images) {
+          if (image instanceof File) {
+            const uploaded = await this.storageService.uploadFile(image);
+            await rollback.trackFile(PRODUCTS_BUCKET_ID, uploaded.$id);
+            const imageUrl = await this.storageService.getFileUrl(
+              uploaded.$id,
+              "view"
+            );
+            imageUrls.push(imageUrl);
+          }
+        }
+      }
+
+      const combinationId = ID.unique();
+      const combinationData = {
+        productId,
+        variantStrings: data.variantStrings || [],
+        sku: data.sku,
+        basePrice: data.basePrice,
+        stockQuantity: data.stockQuantity || 0,
+        isActive: data.isActive !== false,
+        weight: data.weight || 0,
+        dimensions: data.dimensions || "",
+        images: imageUrls,
+        variantValues: JSON.stringify(data.variantValues),
+      };
+
+      const permissions = createDocumentPermissions({ userId: user.$id });
+      const newCombination =
+        await databases.createDocument<ProductCombinations>(
+          DATABASE_ID,
+          VARIANT_COMBINATIONS_COLLECTION_ID,
+          combinationId,
+          combinationData,
+          permissions
+        );
+
+      await rollback.trackDocument(
+        VARIANT_COMBINATIONS_COLLECTION_ID,
+        newCombination.$id
+      );
+
+      return newCombination;
+    } catch (error) {
+      console.error("createCombination error:", error);
+      await rollback.rollback();
+
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to create combination" };
+    }
+  }
+
+  async updateCombination(
+    combinationId: string,
+    data: UpdateCombinationData
+  ): Promise<ProductCombinations | { error: string }> {
+    const { storage } = await createSessionClient();
+
+    try {
+      const { user } = await getAuthState();
+      if (!user) {
+        return { error: "Authentication required" };
+      }
+
+      const existingCombination = await this.findById(combinationId, {});
+      if (!existingCombination) {
+        return { error: "Combination not found" };
+      }
+
+      // Validate price if provided
+      if (data.basePrice !== undefined && data.basePrice < 0) {
+        return { error: "Base price must be non-negative" };
+      }
+
+      // Check SKU uniqueness if changed
+      if (data.sku && data.sku !== existingCombination.sku) {
+        const existingSku = await this.findBySku(data.sku);
+        if (existingSku && existingSku.$id !== combinationId) {
+          return { error: `SKU "${data.sku}" already exists` };
+        }
+      }
+
+      // Handle image updates
+      let updatedImages = existingCombination.images || [];
+
+      // Process new images
+      if (data.images && data.images.length > 0) {
+        const newImageUrls: string[] = [];
+        for (const img of data.images) {
+          if (img instanceof File) {
+            const uploaded = await this.storageService.uploadFile(img);
+            const imageUrl = await this.storageService.getFileUrl(
+              uploaded.$id,
+              "view"
+            );
+            newImageUrls.push(imageUrl);
+          } else if (typeof img === "string") {
+            newImageUrls.push(img);
+          }
+        }
+
+        // Delete old images that are not in the new set
+        const imagesToDelete = updatedImages.filter(
+          (url) => !newImageUrls.includes(url as never)
+        );
+        for (const imageUrl of imagesToDelete) {
+          const fileId = extractFileIdFromUrl(imageUrl);
+          if (fileId) {
+            await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId);
+          }
+        }
+
+        updatedImages = newImageUrls;
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        ...data,
+        images: updatedImages,
+      };
+
+      // Stringify variantValues if provided
+      if (data.variantValues) {
+        updateData.variantValues = JSON.stringify(data.variantValues);
+      }
+
+      const updatedCombination = await this.update(combinationId, updateData);
+      return updatedCombination;
+    } catch (error) {
+      console.error("updateCombination error:", error);
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to update combination" };
+    }
+  }
+
+  async deleteCombination(
+    combinationId: string
+  ): Promise<{ success?: string; error?: string }> {
+    const { storage } = await createSessionClient();
+
+    try {
+      const { user } = await getAuthState();
+      if (!user) {
+        return { error: "Authentication required" };
+      }
+
+      const combination = await this.findById(combinationId, {});
+      if (!combination) {
+        return { error: "Combination not found" };
+      }
+
+      // Delete images
+      if (combination.images && combination.images.length > 0) {
+        await Promise.all(
+          combination.images.map(async (imageUrl: string) => {
+            const fileId = extractFileIdFromUrl(imageUrl);
+            if (fileId) {
+              await storage.deleteFile(PRODUCTS_BUCKET_ID, fileId);
+            }
+          })
+        );
+      }
+
+      await this.delete(combinationId);
+
+      return { success: "Combination deleted successfully" };
+    } catch (error) {
+      console.error("deleteCombination error:", error);
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to delete combination" };
+    }
+  }
+
+  /**
+   * Delete all combinations for a product
+   */
+  async deleteCombinationsByProduct(
+    productId: string
+  ): Promise<{ success?: string; error?: string }> {
+    try {
+      const combinations = await this.findByProduct(productId, { limit: 1000 });
+
+      if (combinations.documents.length === 0) {
+        return { success: "No combinations to delete" };
+      }
+
+      // Delete in batches
+      const batchSize = 5;
+      for (let i = 0; i < combinations.documents.length; i += batchSize) {
+        await Promise.all(
+          combinations.documents
+            .slice(i, i + batchSize)
+            .map((combo) => this.deleteCombination(combo.$id))
+        );
+      }
+
+      return {
+        success: `${combinations.documents.length} combination(s) deleted successfully`,
+      };
+    } catch (error) {
+      console.error("deleteCombinationsByProduct error:", error);
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to delete combinations" };
+    }
+  }
+
+  /**
+   * Update stock quantity for a combination
+   */
+  async updateStock(
+    combinationId: string,
+    quantity: number,
+    operation: "set" | "increment" | "decrement" = "set"
+  ): Promise<ProductCombinations | { error: string }> {
+    try {
+      const combination = await this.findById(combinationId, {});
+      if (!combination) {
+        return { error: "Combination not found" };
+      }
+
+      let newStock = quantity;
+      if (operation === "increment") {
+        newStock = (combination.stockQuantity || 0) + quantity;
+      } else if (operation === "decrement") {
+        newStock = Math.max(0, (combination.stockQuantity || 0) - quantity);
+      }
+
+      return this.update(combinationId, { stockQuantity: newStock });
+    } catch (error) {
+      console.error("updateStock error:", error);
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to update stock" };
+    }
+  }
+
+  /**
+   * Toggle combination active status
+   */
+  async toggleActive(
+    combinationId: string
+  ): Promise<ProductCombinations | { error: string }> {
+    try {
+      const combination = await this.findById(combinationId, {});
+      if (!combination) {
+        return { error: "Combination not found" };
+      }
+
+      return this.update(combinationId, { isActive: !combination.isActive });
+    } catch (error) {
+      console.error("toggleActive error:", error);
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to toggle active status" };
+    }
+  }
+
+  /**
+   * Calculate total stock for a product
+   */
+  async calculateTotalStock(productId: string): Promise<number> {
+    try {
+      const combinations = await this.findByProduct(productId, {
+        limit: 1000,
+        activeOnly: true,
+      });
+
+      return combinations.documents.reduce(
+        (total, combo) => total + (combo.stockQuantity || 0),
+        0
+      );
+    } catch (error) {
+      console.error("calculateTotalStock error:", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get combination statistics for a product
+   */
+  async getCombinationStats(productId: string): Promise<{
+    total: number;
+    active: number;
+    inactive: number;
+    lowStock: number;
+    outOfStock: number;
+    totalStock: number;
+    averagePrice: number;
+  }> {
+    try {
+      const allCombinations = await this.findByProduct(productId, {
+        limit: 1000,
+      });
+      const docs = allCombinations.documents;
+
+      const active = docs.filter((c) => c.isActive).length;
+      const lowStock = docs.filter(
+        (c) =>
+          c.isActive &&
+          (c.stockQuantity || 0) > 0 &&
+          (c.stockQuantity || 0) <= 10
+      ).length;
+      const outOfStock = docs.filter(
+        (c) => (c.stockQuantity || 0) === 0
+      ).length;
+      const totalStock = docs.reduce(
+        (sum, c) => sum + (c.stockQuantity || 0),
+        0
+      );
+      const averagePrice =
+        docs.length > 0
+          ? docs.reduce((sum, c) => sum + c.basePrice, 0) / docs.length
+          : 0;
+
+      return {
+        total: docs.length,
+        active,
+        inactive: docs.length - active,
+        lowStock,
+        outOfStock,
+        totalStock,
+        averagePrice,
+      };
+    } catch (error) {
+      console.error("getCombinationStats error:", error);
+      return {
+        total: 0,
+        active: 0,
+        inactive: 0,
+        lowStock: 0,
+        outOfStock: 0,
+        totalStock: 0,
+        averagePrice: 0,
+      };
     }
   }
 }

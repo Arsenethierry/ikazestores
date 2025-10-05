@@ -248,6 +248,7 @@ export type ProductCombinations = Models.Document & {
     images: string[] | null;
     basePrice: number;
     colorVariantId: string | null;
+    variantValues: string | null;
 }
 
 export type VariantOptions = Models.Document & {
@@ -464,7 +465,6 @@ export type Subcategories = Models.Document & {
     subCategoryName: string;
     iconUrl: string | null;
     iconFileId: string | null;
-    parentCategoryId: string;
     productTypes: string[] | null;
     description: string | null;
     sortOrder: number;
@@ -501,6 +501,15 @@ export type Products = Models.Document & {
     salesCount: number;
     rating: number;
     reviewCount: number;
+    categoryIds: string[] | null;
+    availableVariantTypes: string[] | null;
+    availableVariantValues: string[] | null;
+    availableColorCodes: string[] | null;
+    searchText: string | null;
+    searchKeywords: string[] | null;
+    orderCount: number;
+    saveCount: number;
+    popularityScore: number;
 }
 
 export type Orders = Models.Document & {
@@ -691,4 +700,12 @@ export type CatalogProductTypeVariants = Models.Document & {
     isRequired: boolean;
     sortOrder: number;
     createdBy: string;
+}
+
+export type ProductVariantsValues = Models.Document & {
+    catalogVariantTemplateId: string;
+    values: string;
+    productId: string;
+    variantName: string;
+    inputType: InputType;
 }

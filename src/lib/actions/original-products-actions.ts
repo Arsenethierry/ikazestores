@@ -282,18 +282,12 @@ export async function getFilteredProducts(
       maxPrice,
       sortBy = "createdAt",
       sortOrder = "desc",
-      view = "all",
-      radiusKm = 50,
     } = filters;
 
     const offset = (page - 1) * limit;
 
     const queryFilters: any[] = [
-      {
-        field: "storeCountry",
-        operator: "equal",
-        value: storeCountry,
-      },
+      { field: "storeCountry", operator: "equal", value: storeCountry },
     ];
 
     if (status && status !== "all") {
@@ -340,45 +334,22 @@ export async function getFilteredProducts(
       });
     }
 
-    let result;
-
-    if (view === "nearby") {
-      const location = await getUserLocation();
-      if (!location) {
-        throw new Error("Unable to determine location");
-      }
-
-      const radiusOffset = radiusKm * 0.009;
-      const southWest = {
-        lat: location.latitude - radiusOffset,
-        lng: location.longitude - radiusOffset,
-      };
-      const northEast = {
-        lat: location.latitude + radiusOffset,
-        lng: location.longitude + radiusOffset,
-      };
-
-      result = await originalProductsModel.findNearbyProducts(
-        southWest,
-        northEast
-      );
-    } else if (search) {
-      result = await originalProductsModel.searchProducts(search, {
-        limit,
-        offset,
-        filters: queryFilters,
-        orderBy: sortBy,
-        orderType: sortOrder as "asc" | "desc",
-      });
-    } else {
-      result = await originalProductsModel.getFeaturedProducts({
-        limit,
-        offset,
-        filters: queryFilters,
-        orderBy: sortBy,
-        orderType: sortOrder as "asc" | "desc",
-      });
-    }
+    // --- main fetch ---
+    const result = search
+      ? await originalProductsModel.searchProducts(search, {
+          limit,
+          offset,
+          filters: queryFilters,
+          orderBy: sortBy,
+          orderType: sortOrder as "asc" | "desc",
+        })
+      : await originalProductsModel.getFeaturedProducts({
+          limit,
+          offset,
+          filters: queryFilters,
+          orderBy: sortBy,
+          orderType: sortOrder as "asc" | "desc",
+        });
 
     return {
       products: result.documents || [],
@@ -388,14 +359,10 @@ export async function getFilteredProducts(
     };
   } catch (error) {
     console.error("Error fetching products:", error);
-    return {
-      products: [],
-      total: 0,
-      hasMore: false,
-      currentPage: 1,
-    };
+    return { products: [], total: 0, hasMore: false, currentPage: 1 };
   }
 }
+
 
 export async function getProductsCombinations(
   productId: string,

@@ -12,10 +12,15 @@ import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import { MoreHorizontal, TrashIcon } from "lucide-react";
 import { useConfirm } from "@/hooks/use-confirm";
 import { VirtualProductTypes } from "@/lib/types";
-import { useRemoveProductFromVirtualStore } from "@/hooks/queries-and-mutations/use-affliate-products";
+import { removeProductAction } from "@/lib/actions/affiliate-product-actions";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useAction } from "next-safe-action/hooks";
+import { startTransition, useCallback } from "react";
 
 export const VirtualProductMenuActions = ({ product }: { product: VirtualProductTypes }) => {
     const { data: user } = useCurrentUser();
+    const router = useRouter();
 
     const [RemoveProductDialog, confirmRemoveProduct] = useConfirm(
         "Are you sure you want to remove this product from your store?",
@@ -23,14 +28,28 @@ export const VirtualProductMenuActions = ({ product }: { product: VirtualProduct
         "destructive"
     );
 
-    const deleteMutation = useRemoveProductFromVirtualStore();
+    const removeImport = useAction(removeProductAction, {
+        onSuccess: (res) => {
+            if (res?.data?.error) {
+                toast.error(res?.data?.error);
+                return;
+            }
+            toast.success("Product removed");
+            router.refresh();
+        },
+        onError: () => toast.error("Removal failed"),
+    });
 
-    const handleRemoveProduct = async () => {
+    const isMutating = removeImport.status === "executing";
+
+    const handleRemoveProduct = useCallback(async () => {
         const ok = await confirmRemoveProduct();
         if (!ok) return;
-        
-        deleteMutation.mutate(product.$id);
-    };
+
+        startTransition(() => {
+            removeImport.execute({ importId: product.$id, virtualStoreId: product.virtualStoreId });
+        });
+    }, [product.$id, product.name, removeImport]);
 
     const canDelete = user && (user.$id === product?.createdBy || user?.$id === product?.store?.owner);
 
@@ -54,7 +73,7 @@ export const VirtualProductMenuActions = ({ product }: { product: VirtualProduct
                         {canDelete && (
                             <DropdownMenuItem
                                 onClick={handleRemoveProduct}
-                                disabled={deleteMutation.isPending}
+                                disabled={isMutating}
                                 className={`${buttonVariants({ variant: "destructive", size: 'sm' })} w-full cursor-pointer`}
                             >
                                 <TrashIcon size={16} aria-hidden="true" />
