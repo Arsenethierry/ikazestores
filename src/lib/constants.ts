@@ -86,3 +86,4 @@ export enum PhysicalStoreStatus {
   APPROVED = "approved",
   REJECTED = "rejected",
 }
+

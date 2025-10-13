@@ -1,4 +1,3 @@
-import { getGeneralCategories } from '@/features/categories/actions/categories-actions';
 import React, { Suspense } from 'react';
 import { SearchParams } from 'nuqs';
 import { ProductListSkeleton } from '@/features/products/components/products-list-sekeleton';

@@ -70,6 +70,16 @@ export const getSidebarLinks = (storeId: string | null) => ({
       ],
     },
     {
+      title: "Staff",
+      url: "#",
+      icon: SquareTerminal,
+      isActive: true,
+      items: [
+        { title: "Roles", url: `/admin/stores/${storeId}/roles` },
+        { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
+      ],
+    },
+    {
       title: "Products",
       url: "#",
       icon: Package,
@@ -151,6 +161,16 @@ export const getSidebarLinks = (storeId: string | null) => ({
   ],
 
   physicalStoreAdmin: [
+    {
+      title: "Staff",
+      url: "#",
+      icon: SquareTerminal,
+      isActive: true,
+      items: [
+        { title: "Roles", url: `/admin/stores/${storeId}/roles` },
+        { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
+      ],
+    },
     {
       title: "Products",
       url: "#",

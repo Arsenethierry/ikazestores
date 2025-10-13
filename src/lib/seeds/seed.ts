@@ -1,6 +1,6 @@
 import { catalogData } from "@/data/catalog-data";
-import { createAdminClient } from "./appwrite";
-import { CATEGORIES_COLLECTION_ID, DATABASE_ID, SUB_CATEGORIES_ID } from "./env-config";
+import { createAdminClient } from "../appwrite";
+import { CATEGORIES_COLLECTION_ID, DATABASE_ID, SUB_CATEGORIES_ID } from "../env-config";
 
 function createSlug(name: string): string {
     return name

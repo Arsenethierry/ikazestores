@@ -165,6 +165,40 @@ export enum InputType {
     BOOLEAN = "boolean"
 }
 
+export enum InputType {
+    TEXT = "text",
+    COLOR = "color",
+    RANGE = "range",
+    NUMBER = "number",
+    SELECT = "select",
+    MULTISELECT = "multiselect",
+    BOOLEAN = "boolean"
+}
+
+export enum StoreType {
+    PHYSICAL = "physical",
+    VIRTUAL = "virtual"
+}
+
+export enum StoreStaffStatus {
+    ACTIVE = "active",
+    INACTIVE = "inactive",
+    SUSPENDED = "suspended"
+}
+
+export enum ApplicableToStoreType {
+    BOTH = "both",
+    PHYSICAL = "physical",
+    VIRTUAL = "virtual"
+}
+
+export enum InvitationStatus {
+    PENDING = "pending",
+    ACCEPTED = "accepted",
+    EXPIRED = "expired",
+    CANCELLED = "cancelled"
+}
+
 export type UsersData = Models.Document & {
     fullName: string;
     email: string;
@@ -708,4 +742,47 @@ export type ProductVariantsValues = Models.Document & {
     productId: string;
     variantName: string;
     inputType: InputType;
+}
+
+export type StoreStaff = Models.Document & {
+    storeId: string;
+    storeType: StoreType;
+    userId: string;
+    roleId: string;
+    permissions: string[] | null;
+    StoreStaffStatus: StoreStaffStatus;
+    invitedBy: string;
+    invitedAt: string;
+    acceptedAt: string | null;
+    lastActive: string | null;
+}
+
+export type StoreRoles = Models.Document & {
+    storeId: string;
+    storeType: StoreType;
+    roleName: string;
+    description: string;
+    permissions: string[] | null;
+    isCustom: boolean;
+    createdBy: string;
+}
+
+export type StorePermissions = Models.Document & {
+    permissionKey: string;
+    permissionName: string;
+    module: string;
+    description: string;
+    applicableToStoreType: ApplicableToStoreType;
+}
+
+export type StaffInvitations = Models.Document & {
+    storeId: string;
+    storeType: StoreType;
+    email: string;
+    roleId: string;
+    invitationToken: string;
+    invitedBy: string;
+    invitationStatus: InvitationStatus;
+    expiresAt: string;
+    acceptedAt: string | null;
 }

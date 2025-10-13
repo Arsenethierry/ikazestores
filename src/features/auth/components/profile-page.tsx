@@ -107,7 +107,7 @@ const VirtualStoreCard = ({ store }: { store: VirtualStoreTypes | PhysicalStoreT
                         <Globe className="h-4 w-4 text-purple-600" />
                     </div>
                     <div>
-                        <h4 className="font-semibold text-sm">{store.name}</h4>
+                        <h4 className="font-semibold text-sm">{store.storeName}</h4>
                         <p className="text-xs text-muted-foreground">Virtual Store</p>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ const VirtualStoreCard = ({ store }: { store: VirtualStoreTypes | PhysicalStoreT
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Orders</span>
                     <span className="font-medium">{store.orderCount || 0}</span>
-                </div>
+            </div>
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Revenue</span>
                     <span className="font-medium">${store.revenue || 0}</span>
