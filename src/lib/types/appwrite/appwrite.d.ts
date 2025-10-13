@@ -755,6 +755,7 @@ export type StoreStaff = Models.Document & {
     invitedAt: string;
     acceptedAt: string | null;
     lastActive: string | null;
+    notes: string | null;
 }
 
 export type StoreRoles = Models.Document & {
@@ -765,6 +766,8 @@ export type StoreRoles = Models.Document & {
     permissions: string[] | null;
     isCustom: boolean;
     createdBy: string;
+    isActive: boolean;
+    priority: number | null;
 }
 
 export type StorePermissions = Models.Document & {
