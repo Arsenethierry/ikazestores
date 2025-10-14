@@ -32,7 +32,7 @@ export interface EnrichedStaffMember extends StoreStaff {
   userAvatar?: string;
   roleName?: string;
   roleDescription?: string;
-  rolePriority?: number;
+  rolePriority?: number | null;
   isCustomRole?: boolean;
 }
 
@@ -648,7 +648,7 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
         queries
       );
 
-      return invitations;
+      return invitations.documents;
     } catch (error) {
       console.error("Error fetching store invitations:", error);
       return [];

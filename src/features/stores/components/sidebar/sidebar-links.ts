@@ -75,8 +75,8 @@ export const getSidebarLinks = (storeId: string | null) => ({
       icon: SquareTerminal,
       isActive: true,
       items: [
-        { title: "Roles", url: `/admin/stores/${storeId}/roles` },
         { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
+        { title: "#seed-staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
       ],
     },
     {
@@ -167,8 +167,8 @@ export const getSidebarLinks = (storeId: string | null) => ({
       icon: SquareTerminal,
       isActive: true,
       items: [
-        { title: "Roles", url: `/admin/stores/${storeId}/roles` },
         { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
+        { title: "#seed-staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
       ],
     },
     {
@@ -205,14 +205,6 @@ export const getSidebarLinks = (storeId: string | null) => ({
           title: "Analytics",
           url: `/admin/stores/${storeId}/orders/analytics`,
         },
-      ],
-    },
-    {
-      title: "Staff",
-      url: "#",
-      icon: User,
-      items: [
-        { title: "Staff Management", url: `/admin/stores/${storeId}/staff` },
       ],
     },
     {
