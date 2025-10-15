@@ -76,7 +76,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
       isActive: true,
       items: [
         { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
-        { title: "#seed-staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
+        { title: "Seed Staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
       ],
     },
     {
@@ -168,7 +168,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
       isActive: true,
       items: [
         { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
-        { title: "#seed-staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
+        { title: "Seed Staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
       ],
     },
     {

@@ -32,12 +32,18 @@ import {
   VIRTUAL_STORE_ID,
 } from "../env-config";
 import { createSessionClient } from "../appwrite";
+import {
+  checkStoreAccess,
+  checkStorePermissions,
+} from "../helpers/store-permission-helper";
 
 const staffModel = new StoreStaffModel();
 const rolesModel = new StoreRolesModel();
 const invitationsModel = new StaffInvitationsModel();
 const permissionsModel = new StorePermissionsModel();
 const staffEmailService = new StaffEmailService();
+const physicalStoreModel = new PhysicalStoreModel();
+const virtualStoreModel = new VirtualStore();
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -54,7 +60,7 @@ export const inviteStaffAction = action
 
     try {
       // Check if user has permission to invite staff
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.invite"
@@ -79,14 +85,19 @@ export const inviteStaffAction = action
       // Get role and store details for email
       const [roles, store] = await Promise.all([
         rolesModel.getStoreRoles(parsedInput.storeId),
-        databases.getDocument(
-          DATABASE_ID,
-          parsedInput.storeType === "physical"
-            ? "physicical_store"
-            : "virtual_store",
-          parsedInput.storeId
-        ),
+        parsedInput.storeType === "physical"
+          ? physicalStoreModel.findById(parsedInput.storeId, {})
+          : virtualStoreModel.findById(parsedInput.storeId, {}),
       ]);
+
+      if (!store) {
+        return {
+          success: false,
+          error: `${
+            parsedInput.storeType === "physical" ? "Physical" : "Virtual"
+          } store not found`,
+        };
+      }
 
       const selectedRole = roles.find((r) => r.$id === parsedInput.roleId);
 
@@ -179,7 +190,7 @@ export const cancelInvitationAction = action
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
     try {
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.invite"
@@ -219,7 +230,7 @@ export const resendInvitationAction = action
     const { user, databases } = ctx;
 
     try {
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.invite"
@@ -283,11 +294,7 @@ export const updateStaffMemberAction = action
 
     try {
       const hasPermission = parsedInput.storeId
-        ? await staffModel.checkPermission(
-            user.$id,
-            parsedInput.storeId,
-            "staff.update"
-          )
+        ? await checkStoreAccess(user.$id, parsedInput.storeId, "staff.update")
         : false;
 
       if (!hasPermission) {
@@ -376,7 +383,7 @@ export const removeStaffMemberAction = action
     const { user, databases } = ctx;
 
     try {
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.delete"
@@ -443,7 +450,7 @@ export const createCustomRoleAction = action
     const { user } = ctx;
 
     try {
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.roles"
@@ -489,7 +496,7 @@ export const updateRoleAction = action
     const { user } = ctx;
 
     try {
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.roles"
@@ -528,7 +535,7 @@ export const deleteRoleAction = action
     const { user } = ctx;
 
     try {
-      const hasPermission = await staffModel.checkPermission(
+      const hasPermission = await checkStoreAccess(
         user.$id,
         parsedInput.storeId,
         "staff.roles"
@@ -565,7 +572,7 @@ export async function getStoreStaffAction(storeId: string) {
       return { success: false, error: "Unauthorized", data: [] };
     }
 
-    const hasPermission = await staffModel.checkPermission(
+    const hasPermission = await checkStoreAccess(
       user.$id,
       storeId,
       "staff.view"
@@ -599,14 +606,18 @@ export async function getStoreRolesAction(storeId: string) {
       return { success: false, error: "Unauthorized", data: [] };
     }
 
-    const hasPermission = await staffModel.checkPermission(
+    const hasPermission = await checkStoreAccess(
       user.$id,
       storeId,
       "staff.view"
     );
 
     if (!hasPermission) {
-      return { success: false, error: "You don't have permission to view roles", data: [] };
+      return {
+        success: false,
+        error: "You don't have permission to view roles",
+        data: [],
+      };
     }
 
     const roles = await rolesModel.getStoreRoles(storeId);
@@ -632,7 +643,7 @@ export async function getStoreInvitationsAction(
       return { success: false, error: "Unauthorized", data: [] };
     }
 
-    const hasPermission = await staffModel.checkPermission(
+    const hasPermission = await checkStoreAccess(
       user.$id,
       storeId,
       "staff.view"
@@ -646,14 +657,18 @@ export async function getStoreInvitationsAction(
       };
     }
 
-    const invitations = await invitationsModel.getStoreInvitations(storeId, status);
+    const invitations = await invitationsModel.getStoreInvitations(
+      storeId,
+      status
+    );
 
     return { success: true, data: invitations };
   } catch (error) {
     console.error("Get store invitations error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch invitations",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch invitations",
       data: [],
     };
   }
@@ -663,14 +678,17 @@ export async function getPermissionsForStoreTypeAction(
   storeType: "physical" | "virtual"
 ) {
   try {
-    const permissions = await permissionsModel.getPermissionsForStoreType(storeType);
+    const permissions = await permissionsModel.getPermissionsForStoreType(
+      storeType
+    );
 
     return { success: true, data: permissions };
   } catch (error) {
     console.error("Get permissions error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch permissions",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch permissions",
       data: [],
     };
   }
@@ -696,7 +714,7 @@ export async function checkStaffPermissionAction(
       return { success: false, hasPermission: false };
     }
 
-    const hasPermission = await staffModel.checkPermission(
+    const hasPermission = await checkStoreAccess(
       user.$id,
       storeId,
       permissionKey
@@ -719,11 +737,11 @@ export async function checkStaffPermissionsAction(
       return { success: false, permissions: {} };
     }
 
-    const permissions: { [key: string]: boolean } = {};
-
-    for (const key of permissionKeys) {
-      permissions[key] = await staffModel.checkPermission(user.$id, storeId, key);
-    }
+    const permissions = await checkStorePermissions(
+      user.$id,
+      storeId,
+      permissionKeys
+    );
 
     return { success: true, permissions };
   } catch (error) {

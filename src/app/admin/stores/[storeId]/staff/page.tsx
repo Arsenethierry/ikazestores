@@ -281,10 +281,9 @@ export default async function StaffPage({ params }: StaffPageProps) {
     // Check if user has access to view staff
     const permissionsResult = await checkStaffPermissionsAction(storeId, ["staff.view"]);
 
-    // Uncomment when ready to enforce permissions
-    // if (!permissionsResult.permissions?.["staff.view"]) {
-    //     return <AccessDeniedCard />
-    // }
+    if (!permissionsResult.permissions?.["staff.view"]) {
+        return <AccessDeniedCard />
+    }
 
     return (
         <div className="space-y-6 p-6">

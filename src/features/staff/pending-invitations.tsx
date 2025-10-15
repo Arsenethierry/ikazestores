@@ -139,7 +139,7 @@ export function PendingInvitations({ invitations, storeId }: PendingInvitationsP
         return variants[status as keyof typeof variants] || variants.pending;
     };
 
-    const pendingInvitations = invitations.filter((inv) => inv.status === "pending");
+    const pendingInvitations = invitations.filter((inv) => inv.invitationStatus === "pending");
 
     if (pendingInvitations.length === 0) {
         return (
@@ -203,7 +203,7 @@ export function PendingInvitations({ invitations, storeId }: PendingInvitationsP
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {getStatusBadge(invitation.status, invitation.expiresAt)}
+                                                {getStatusBadge(invitation.invitationStatus, invitation.expiresAt)}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
                                                 {formatDistanceToNow(new Date(invitation.invitedAt), {
@@ -255,7 +255,7 @@ export function PendingInvitations({ invitations, storeId }: PendingInvitationsP
                                                             onClick={() => {
                                                                 navigator.clipboard.writeText(invitation.email);
                                                                 toast.success("Email copied to clipboard");
-                                                            }}
+                                                        }}
                                                         >
                                                             <Mail className="mr-2 h-4 w-4" />
                                                             Copy Email

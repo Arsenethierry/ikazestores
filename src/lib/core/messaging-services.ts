@@ -1,4 +1,4 @@
-import { ID, Messaging, Users } from "node-appwrite";
+import { ID, Messaging, Query, Users } from "node-appwrite";
 import { createAdminClient } from "../appwrite";
 import { VirtualStore } from "../models/virtual-store";
 import { PhysicalStoreModel } from "../models/physical-store-model";
@@ -47,6 +47,49 @@ export class MessagingService {
     }
   }
 
+  private async sendViaResend(
+    to: string,
+    subject: string,
+    html: string
+  ): Promise<boolean> {
+    try {
+      const resendApiKey = process.env.RESEND_MAIL_API_KEY;
+      const fromEmail = process.env.EMAIL_FROM || "mail@info.ikazestores.com";
+
+      if (!resendApiKey) {
+        console.error("RESEND_MAIL_API_KEY not configured");
+        return false;
+      }
+
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error("Resend API error:", error);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log(`Email sent via Resend to ${to}:`, result.id);
+      return true;
+    } catch (error) {
+      console.error("Failed to send email via Resend:", error);
+      return false;
+    }
+  }
+
   async sendAffiliateWelcomeEmail(affiliate: EmailRecipient): Promise<boolean> {
     const template: EmailTemplate = {
       subject: "Welcome to Our Affiliate Program!",
@@ -83,25 +126,111 @@ export class MessagingService {
     template: EmailTemplate
   ): Promise<boolean> {
     try {
-      if (!this.messaging) await this.initializeClients();
+      if (!this.messaging || !this.users) {
+        await this.initializeClients();
+      }
 
-      const targets = recipients.map((r) => r.email);
+      if (!this.messaging || !this.users) {
+        console.error("Messaging service not initialized");
+        return false;
+      }
 
-      await this.messaging!.createEmail(
-        ID.unique(),
-        template.subject,
-        template.html,
-        undefined, // topics
-        undefined, // users
-        targets, // targets
-        undefined, // cc
-        undefined, // bcc
-        undefined, // attachments
-        undefined, // draft
-        template.html !== undefined // html
-      );
+      const registeredUsers: { userId: string; email: string }[] = [];
+      const nonRegisteredUsers: string[] = [];
 
-      return true;
+      for (const recipient of recipients) {
+        if (recipient.userId) {
+          // If userId is provided, use it directly
+          registeredUsers.push({
+            userId: recipient.userId,
+            email: recipient.email,
+          });
+        } else {
+          // Try to find user by email
+          try {
+            const userList = await this.users.list([
+              Query.equal("email", recipient.email),
+              Query.limit(1),
+            ]);
+
+            if (userList.total > 0 && userList.users[0]) {
+              registeredUsers.push({
+                userId: userList.users[0].$id,
+                email: recipient.email,
+              });
+            } else {
+              nonRegisteredUsers.push(recipient.email);
+            }
+          } catch (error) {
+            console.warn(
+              `Could not lookup user for email ${recipient.email}:`,
+              error
+            );
+            nonRegisteredUsers.push(recipient.email);
+          }
+        }
+      }
+
+      let appwriteSuccess = true;
+      let resendSuccess = true;
+
+      // Send to registered users via Appwrite messaging
+      if (registeredUsers.length > 0) {
+        try {
+          const userIds = registeredUsers.map((u) => u.userId);
+          await this.messaging.createEmail(
+            ID.unique(),
+            template.subject,
+            template.html,
+            undefined, // topics
+            userIds, // users - array of user IDs
+            undefined, // targets
+            undefined, // cc
+            undefined, // bcc
+            undefined, // attachments
+            false, // draft
+            true // html
+          );
+
+          console.log(
+            `Email sent via Appwrite to ${registeredUsers.length} registered user(s)`
+          );
+        } catch (error) {
+          console.error("Failed to send email via Appwrite:", error);
+          appwriteSuccess = false;
+
+          // Fallback: try sending via Resend
+          console.log("Attempting to send via Resend as fallback...");
+          for (const user of registeredUsers) {
+            await this.sendViaResend(
+              user.email,
+              template.subject,
+              template.html
+            );
+          }
+        }
+      }
+
+      // Send to non-registered users via Resend
+      if (nonRegisteredUsers.length > 0) {
+        console.log(
+          `Sending to ${nonRegisteredUsers.length} non-registered user(s) via Resend`
+        );
+
+        const resendPromises = nonRegisteredUsers.map((email) =>
+          this.sendViaResend(email, template.subject, template.html)
+        );
+
+        const results = await Promise.all(resendPromises);
+        resendSuccess = results.every((result) => result === true);
+
+        if (!resendSuccess) {
+          console.error("Some emails failed to send via Resend");
+        }
+      }
+
+      // Return true if at least one method succeeded
+      return appwriteSuccess || resendSuccess;
     } catch (error) {
       console.error("Failed to send transactional email:", error);
       return false;
@@ -283,7 +412,7 @@ export class OrderNotificationService {
                 order,
                 typedData,
                 totalValue,
-                  itemCount,
+                itemCount,
                 physicalStore
               ),
               text: this.generatePhysicalStoreFulfillmentText(
@@ -380,12 +509,17 @@ export class OrderNotificationService {
       const storeOwner = await getUserData(virtualStore.owner);
       if (!storeOwner || !storeOwner.email) return;
 
-      const statusMessages: Record<PhysicalStoreFulfillmentOrderStatus, string> = {
+      const statusMessages: Record<
+        PhysicalStoreFulfillmentOrderStatus,
+        string
+      > = {
         [PhysicalStoreFulfillmentOrderStatus.PENDING]: "is pending fulfillment",
         [PhysicalStoreFulfillmentOrderStatus.PROCESSING]: "started processing",
         [PhysicalStoreFulfillmentOrderStatus.SHIPPED]: "shipped",
-        [PhysicalStoreFulfillmentOrderStatus.COMPLETED]: "completed fulfillment",
-        [PhysicalStoreFulfillmentOrderStatus.CANCELLED]: "cancelled fulfillment"
+        [PhysicalStoreFulfillmentOrderStatus.COMPLETED]:
+          "completed fulfillment",
+        [PhysicalStoreFulfillmentOrderStatus.CANCELLED]:
+          "cancelled fulfillment",
       };
 
       const template: EmailTemplate = {
@@ -429,7 +563,7 @@ export class OrderNotificationService {
         [OrderStatus.PROCESSING]: "Your order is being prepared",
         [OrderStatus.SHIPPED]: "Your order has been shipped",
         [OrderStatus.DELIVERED]: "Your order has been delivered",
-        [OrderStatus.CANCELLED]: "Your order has been cancelled"
+        [OrderStatus.CANCELLED]: "Your order has been cancelled",
       };
 
       const template: EmailTemplate = {
@@ -459,9 +593,14 @@ export class OrderNotificationService {
     }
   }
 
-  private async sendVirtualStoreStatusUpdateNotification(order: Orders): Promise<void> {
+  private async sendVirtualStoreStatusUpdateNotification(
+    order: Orders
+  ): Promise<void> {
     try {
-      const virtualStore = await this.virtualStoreModel.findById(order.virtualStoreId, {});
+      const virtualStore = await this.virtualStoreModel.findById(
+        order.virtualStoreId,
+        {}
+      );
       if (!virtualStore) return;
 
       const storeOwner = await getUserData(virtualStore.owner);
@@ -470,18 +609,21 @@ export class OrderNotificationService {
       const template: EmailTemplate = {
         subject: `Order Status Update - #${order.orderNumber}`,
         html: this.generateVirtualStoreStatusUpdateHTML(order, virtualStore),
-        text: this.generateVirtualStoreStatusUpdateText(order, virtualStore)
+        text: this.generateVirtualStoreStatusUpdateText(order, virtualStore),
       };
 
       const recipient: EmailRecipient = {
         email: storeOwner.email,
         name: storeOwner.fullName,
-        userId: storeOwner.$id
+        userId: storeOwner.$id,
       };
 
       await this.messagingService.sendTransactionalEmail([recipient], template);
     } catch (error) {
-      console.error("Error sending virtual store status update notification:", error);
+      console.error(
+        "Error sending virtual store status update notification:",
+        error
+      );
     }
   }
   // HTML Email Templates
@@ -926,11 +1068,11 @@ Value: ${fulfillmentRecord.totalValue} ${order.baseCurrency}
     statusMessage: string
   ): string {
     const statusColors: Record<OrderStatus, string> = {
-      [OrderStatus.PENDING]: '#82db77ff',
-      [OrderStatus.PROCESSING]: '#f59e0b',
-      [OrderStatus.SHIPPED]: '#3b82f6',
-      [OrderStatus.DELIVERED]: '#10b981',
-      [OrderStatus.CANCELLED]: '#ef4444'
+      [OrderStatus.PENDING]: "#82db77ff",
+      [OrderStatus.PROCESSING]: "#f59e0b",
+      [OrderStatus.SHIPPED]: "#3b82f6",
+      [OrderStatus.DELIVERED]: "#10b981",
+      [OrderStatus.CANCELLED]: "#ef4444",
     };
 
     const color = statusColors[order.orderStatus as OrderStatus] || "#6b7280";
@@ -988,7 +1130,10 @@ Track your order: /orders/${order.$id}
     `;
   }
 
-  private generateVirtualStoreStatusUpdateHTML(order: Orders, virtualStore: VirtualStoreTypes): string {
+  private generateVirtualStoreStatusUpdateHTML(
+    order: Orders,
+    virtualStore: VirtualStoreTypes
+  ): string {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
         <div style="background: #2563eb; color: white; padding: 24px; text-align: center;">
@@ -1013,7 +1158,10 @@ Track your order: /orders/${order.$id}
     `;
   }
 
-  private generateVirtualStoreStatusUpdateText(order: Orders, virtualStore: VirtualStoreTypes): string {
+  private generateVirtualStoreStatusUpdateText(
+    order: Orders,
+    virtualStore: VirtualStoreTypes
+  ): string {
     return `
 Order Status Update - #${order.orderNumber}
 

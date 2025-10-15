@@ -24,6 +24,7 @@ import {
 } from "../schemas/staff-schemas";
 import { StoreRole } from "../constants";
 import crypto from "crypto";
+import { isUserStoreOwner } from "../helpers/store-permission-helper";
 
 export interface EnrichedStaffMember extends StoreStaff {
   userEmail?: string;
@@ -412,6 +413,10 @@ export class StoreStaffModel extends BaseModel<StoreStaff> {
     permissionKey: string
   ): Promise<boolean> {
     try {
+      if (await isUserStoreOwner(userId, storeId)) {
+        return true;
+      }
+
       const staff = await this.getStaffByUserId(userId, storeId);
 
       if (!staff || !staff.permissions || staff.StoreStaffStatus !== "active") {
@@ -675,8 +680,8 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
 
       const invitation = invitations.documents[0];
 
-      if (invitation.status !== "pending") {
-        return { valid: false, message: `Invitation is ${invitation.status}` };
+      if (invitation.invitationStatus !== "pending") {
+        return { valid: false, message: `Invitation is ${invitation.invitationStatus}` };
       }
 
       const expiresAt = new Date(invitation.expiresAt);
@@ -734,7 +739,7 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
 
       // Update invitation status
       await this.update(invitation.$id!, {
-        status: "accepted",
+        invitationStatus: "accepted",
         acceptedAt: new Date().toISOString(),
       });
 
@@ -755,12 +760,12 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
         invitationId
       );
 
-      if (invitation.status !== "pending") {
+      if (invitation.invitationStatus !== "pending") {
         throw new Error("Can only cancel pending invitations");
       }
 
       await this.update(invitationId, {
-        status: "cancelled",
+        invitationStatus: "cancelled",
       });
     } catch (error) {
       console.error("Error cancelling invitation:", error);
