@@ -43,20 +43,33 @@ export class StorePermissionsModel extends BaseModel<StorePermissions> {
   }
 
   async getPermissionsForStoreType(
-    storeType: "physical" | "virtual"
+    storeType: "physical" | "virtual",
+    storeId?: string
   ): Promise<StorePermissions[]> {
     try {
       const { databases } = await createSessionClient();
+
+      const queries = [
+        Query.or([
+          Query.equal("applicableToStoreType", "both"),
+          Query.equal("applicableToStoreType", storeType),
+        ]),
+      ];
+
+      if (storeId) {
+        queries.push(
+          Query.or([Query.isNull("storeId"), Query.equal("storeId", storeId)])
+        );
+      } else {
+        queries.push(Query.isNull("storeId"));
+      }
+
+      queries.push(Query.limit(200));
+
       const response = await databases.listDocuments<StorePermissions>(
         DATABASE_ID,
         this.collectionId,
-        [
-          Query.or([
-            Query.equal("applicableToStoreType", "both"),
-            Query.equal("applicableToStoreType", storeType),
-          ]),
-          Query.limit(100),
-        ]
+        queries
       );
 
       return response.documents;
@@ -66,27 +79,147 @@ export class StorePermissionsModel extends BaseModel<StorePermissions> {
     }
   }
 
-  async getAllPermissions(): Promise<StorePermissions[]> {
+  async getAllGlobalPermissions(): Promise<StorePermissions[]> {
     try {
-      const result = await this.findMany({ limit: 100 });
-      return result.documents;
+      const { databases } = await createSessionClient();
+
+      const response = await databases.listDocuments<StorePermissions>(
+        DATABASE_ID,
+        this.collectionId,
+        [Query.isNull("storeId"), Query.limit(100)]
+      );
+
+      return response.documents;
     } catch (error) {
-      console.error("Error fetching all permissions:", error);
+      console.error("Error fetching global permissions:", error);
       return [];
     }
   }
 
-  async getPermissionsByModule(module: string): Promise<StorePermissions[]> {
+  async getStoreCustomPermissions(
+    storeId: string
+  ): Promise<StorePermissions[]> {
     try {
-      const filters: QueryFilter[] = [
-        { field: "module", operator: "equal", value: module },
-      ];
+      const { databases } = await createSessionClient();
 
-      const result = await this.findMany({ filters, limit: 50 });
+      const response = await databases.listDocuments<StorePermissions>(
+        DATABASE_ID,
+        this.collectionId,
+        [Query.equal("storeId", storeId), Query.limit(100)]
+      );
+
+      return response.documents;
+    } catch (error) {
+      console.error("Error fetching store custom permissions:", error);
+      return [];
+    }
+  }
+
+  async getPermissionsByModule(
+    module: string,
+    storeId?: string
+  ): Promise<StorePermissions[]> {
+    try {
+      const queries: any[] = [Query.equal("module", module)];
+
+      if (storeId) {
+        queries.push(
+          Query.or([Query.isNull("storeId"), Query.equal("storeId", storeId)])
+        );
+      } else {
+        queries.push(Query.isNull("storeId"));
+      }
+
+      queries.push(Query.limit(100));
+
+      const result = await this.findMany({
+        filters: [],
+        limit: 100,
+      });
+
       return result.documents;
     } catch (error) {
       console.error("Error fetching permissions by module:", error);
       return [];
+    }
+  }
+
+  async createCustomPermission(data: {
+    storeId: string;
+    permissionKey: string;
+    permissionName: string;
+    module: string;
+    description?: string;
+    applicableToStoreType: "physical" | "virtual" | "both";
+  }): Promise<StorePermissions> {
+    try {
+      const { databases } = await createSessionClient();
+
+      const existing = await databases.listDocuments<StorePermissions>(
+        DATABASE_ID,
+        this.collectionId,
+        [
+          Query.equal("permissionKey", data.permissionKey),
+          Query.or([
+            Query.isNull("storeId"),
+            Query.equal("storeId", data.storeId),
+          ]),
+          Query.limit(1),
+        ]
+      );
+
+      if (existing.total > 0) {
+        throw new Error("Permission key already exists");
+      }
+
+      const permission = await databases.createDocument<StorePermissions>(
+        DATABASE_ID,
+        this.collectionId,
+        crypto.randomUUID(),
+        {
+          ...data,
+          isGlobal: false,
+        }
+      );
+
+      return permission;
+    } catch (error) {
+      console.error("Error creating custom permission:", error);
+      throw error;
+    }
+  }
+
+  async deleteCustomPermission(
+    permissionId: string,
+    storeId: string
+  ): Promise<void> {
+    try {
+      const { databases } = await createSessionClient();
+
+      const permission = await databases.getDocument<StorePermissions>(
+        DATABASE_ID,
+        this.collectionId,
+        permissionId
+      );
+
+      // Can't delete global permissions
+      if (!permission.storeId || permission.storeId === null) {
+        throw new Error("Cannot delete global permissions");
+      }
+
+      // Can only delete permissions from your own store
+      if (permission.storeId !== storeId) {
+        throw new Error("Cannot delete permissions from another store");
+      }
+
+      await databases.deleteDocument(
+        DATABASE_ID,
+        this.collectionId,
+        permissionId
+      );
+    } catch (error) {
+      console.error("Error deleting custom permission:", error);
+      throw error;
     }
   }
 }
@@ -98,21 +231,71 @@ export class StoreRolesModel extends BaseModel<StoreRoles> {
 
   async getStoreRoles(storeId: string): Promise<StoreRoles[]> {
     try {
-      const filters: QueryFilter[] = [
-        { field: "storeId", operator: "equal", value: storeId },
-        { field: "isActive", operator: "equal", value: true },
-      ];
+      const { databases } = await createSessionClient();
+      
+      const response = await databases.listDocuments<StoreRoles>(
+        DATABASE_ID,
+        this.collectionId,
+        [
+          Query.or([
+            Query.isNull("storeId"),
+            Query.equal("storeId", storeId),
+          ]),
+          Query.equal("isActive", true),
+          Query.orderAsc("priority"),
+          Query.limit(100),
+        ]
+      );
 
-      const result = await this.findMany({
-        filters,
-        orderBy: "priority",
-        orderType: "asc",
-        limit: 100,
-      });
 
-      return result.documents;
+      return response.documents;
     } catch (error) {
       console.error("Error fetching store roles:", error);
+      return [];
+    }
+  }
+
+  async getAllGlobalRoles(): Promise<StoreRoles[]> {
+    try {
+      const { databases } = await createAdminClient();
+
+      const response = await databases.listDocuments<StoreRoles>(
+        DATABASE_ID,
+        this.collectionId,
+        [
+          Query.isNull("storeId"),
+          Query.equal("isActive", true),
+          Query.orderAsc("priority"),
+          Query.limit(100),
+        ]
+      );
+
+      return response.documents;
+    } catch (error) {
+      console.error("Error fetching global roles:", error);
+      return [];
+    }
+  }
+
+  async getStoreCustomRoles(storeId: string): Promise<StoreRoles[]> {
+    try {
+      const { databases } = await createSessionClient();
+
+      const response = await databases.listDocuments<StoreRoles>(
+        DATABASE_ID,
+        this.collectionId,
+        [
+          Query.equal("storeId", storeId),
+          Query.equal("isActive", true),
+          Query.equal("isCustom", true),
+          Query.orderAsc("priority"),
+          Query.limit(100),
+        ]
+      );
+
+      return response.documents;
+    } catch (error) {
+      console.error("Error fetching store custom roles:", error);
       return [];
     }
   }
@@ -125,7 +308,10 @@ export class StoreRolesModel extends BaseModel<StoreRoles> {
         DATABASE_ID,
         this.collectionId,
         [
-          Query.equal("storeId", data.storeId),
+          Query.or([
+            Query.isNull("storeId"),
+            Query.equal("storeId", data.storeId),
+          ]),
           Query.equal("roleName", data.roleName),
           Query.limit(1),
         ]
@@ -138,7 +324,8 @@ export class StoreRolesModel extends BaseModel<StoreRoles> {
       const roleData = {
         ...data,
         isActive: data.isActive ?? true,
-        priority: data.priority ?? 10, // Custom roles have lower priority
+        priority: data.priority ?? 10,
+        isCustom: true,
       };
 
       const newRole = await databases.createDocument<StoreRoles>(
@@ -160,7 +347,28 @@ export class StoreRolesModel extends BaseModel<StoreRoles> {
     updates: Partial<Omit<UpdateRoleTypes, "$id">>
   ) {
     try {
-      return await this.update(roleId, updates);
+      const { databases } = await createSessionClient();
+
+      // Get the role first
+      const role = await databases.getDocument<StoreRoles>(
+        DATABASE_ID,
+        this.collectionId,
+        roleId
+      );
+
+      // Can't update global roles
+      if (!role.storeId || role.storeId === null) {
+        throw new Error("Cannot update global roles. Only store-specific roles can be modified.");
+      }
+
+      const updatedRole = await databases.updateDocument<StoreRoles>(
+        DATABASE_ID,
+        this.collectionId,
+        roleId,
+        updates
+      );
+
+      return updatedRole;
     } catch (error) {
       console.error("Error updating role:", error);
       throw error;
@@ -220,17 +428,13 @@ export class StoreStaffModel extends BaseModel<StoreStaff> {
       const enrichedStaff = await Promise.all(
         staffRecords.documents.map(async (staff) => {
           try {
-            const [user, role, userData] = await Promise.all([
+            const [user, role] = await Promise.all([
               users.get(staff.userId),
               databases.getDocument<StoreRoles>(
                 DATABASE_ID,
                 STORE_ROLES_ID,
                 staff.roleId
               ),
-              databases.listDocuments(DATABASE_ID, USER_DATA_ID, [
-                Query.equal("userId", staff.userId),
-                Query.limit(1),
-              ]),
             ]);
 
             return {
@@ -238,7 +442,6 @@ export class StoreStaffModel extends BaseModel<StoreStaff> {
               userEmail: user.email,
               userName: user.name,
               userPhone: user.phone,
-              userAvatar: userData.documents[0]?.avatarUrl || null,
               roleName: role.roleName,
               roleDescription: role.description,
               rolePriority: role.priority,
@@ -681,7 +884,10 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
       const invitation = invitations.documents[0];
 
       if (invitation.invitationStatus !== "pending") {
-        return { valid: false, message: `Invitation is ${invitation.invitationStatus}` };
+        return {
+          valid: false,
+          message: `Invitation is ${invitation.invitationStatus}`,
+        };
       }
 
       const expiresAt = new Date(invitation.expiresAt);
@@ -738,7 +944,7 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
       });
 
       // Update invitation status
-      await this.update(invitation.$id!, {
+      await this.update(invitation.$id, {
         invitationStatus: "accepted",
         acceptedAt: new Date().toISOString(),
       });
