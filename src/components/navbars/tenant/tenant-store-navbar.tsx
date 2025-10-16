@@ -1,4 +1,4 @@
-import { Loader, Menu } from "lucide-react";
+import { Loader, Menu, Star } from "lucide-react";
 import Link from "next/link";
 import { getAuthState } from "@/lib/user-permission";
 import { AllCategories } from "../all-categories";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CurrentStoreLogo } from "./store-logo";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger, NavigationMenuViewport } from "@/components/ui/navigation-menu";
 import { RecentlyViewedProducts } from "@/hooks/queries-and-mutations/use-recently-viewed-products";
+import { Button } from "@/components/ui/button";
 
 export const TenantStoreNavbar = async ({ currentStoreId }: { currentStoreId: string }) => {
   const {
@@ -30,7 +31,11 @@ export const TenantStoreNavbar = async ({ currentStoreId }: { currentStoreId: st
           <Link href={'/'} className='text-sm hover:text-white/80'>Language: English</Link>
         </div>
 
-        <div className='flex gap-3'>
+        <div className='flex gap-3 items-center'>
+          <Link href={`/details`} className="inline-flex gap-1 text-sm hover:text-white/80">
+              <Star className="" />
+              Reviews & Details
+          </Link>
           <Link href={'/'} className='text-sm hover:text-white/80'>About Us</Link>
           <Link href={'/'} className='text-sm hover:text-white/80'>Contact Us</Link>
           <Link href={'/'} className='text-sm hover:text-white/80'>FAQs</Link>

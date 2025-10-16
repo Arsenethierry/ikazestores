@@ -96,6 +96,47 @@ export const updateStoreSubscriberSchema = z.object({
     .optional(),
 });
 
+export const storeReviewSchema = z.object({
+  overallRating: z.number().min(1, "Please select a rating").max(5),
+  title: z
+    .string()
+    .min(3, "Title must be at least 3 characters")
+    .max(100)
+    .optional(),
+  comment: z
+    .string()
+    .min(10, "Review must be at least 10 characters")
+    .max(2200)
+    .optional(),
+  customerServiceRating: z.number().min(1).max(5).optional(),
+});
+
+export const UpdateStoreReviewSchema = z.object({
+  reviewId: z.string().min(1),
+  overallRating: z.number().min(1).max(5).optional(),
+  title: z.string().min(3).max(100).optional(),
+  comment: z.string().min(10).max(2200).optional(),
+  customerServiceRating: z.number().min(1).max(5).optional(),
+});
+
+export const AddReviewReplySchema = z.object({
+  reviewId: z.string().min(1),
+  comment: z.string().min(1).max(1000),
+  userType: z.enum(["store_owner", "customer"]),
+});
+
+export const VoteOnReviewSchema = z.object({
+  reviewId: z.string().min(1),
+  voteType: z.enum(["helpful", "unhelpful"]),
+});
+
+export const createStoreReviewSchema = storeReviewSchema.extend({
+  virtualStoreId: z.string(),
+});
+
+export type CreateStoreReviewData = z.infer<typeof createStoreReviewSchema>;
+export type UpdateStoreReviewData = z.infer<typeof UpdateStoreReviewSchema>;
+
 export type CreateStoreSubscriberInput = z.infer<
   typeof createStoreSubscriberSchema
 >;
