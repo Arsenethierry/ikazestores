@@ -159,6 +159,73 @@ export async function checkUserSubscription(storeId: string, userId: string) {
   }
 }
 
+export async function getStoreSubscribersWithPagination(
+  storeId: string,
+  params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "all" | "active" | "inactive";
+  }
+) {
+  try {
+    const page = params.page || 1;
+    const limit = params.limit || 25;
+    const offset = (page - 1) * limit;
+
+    const activeOnly =
+      params.status === "active"
+        ? true
+        : params.status === "inactive"
+        ? false
+        : undefined;
+
+    const result = await storeSubscribersModel.getStoreSubscribers(storeId, {
+      limit,
+      offset,
+      activeOnly,
+    });
+
+    let filteredDocuments = result.documents;
+    let filteredTotal = result.total;
+
+    if (params.search && params.search.trim()) {
+      const searchLower = params.search.toLowerCase().trim();
+      filteredDocuments = result.documents.filter((sub) =>
+        sub.email.toLowerCase().includes(searchLower)
+      );
+      filteredTotal = filteredDocuments.length;
+    }
+
+    return {
+      success: true,
+      data: {
+        subscribers: filteredDocuments,
+        total: filteredTotal,
+        page,
+        limit,
+        totalPages: Math.ceil(filteredTotal / limit),
+        hasMore: result.hasMore,
+      },
+    };
+  } catch (error) {
+    console.error("Error getting paginated subscribers:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to fetch subscribers",
+      data: {
+        subscribers: [],
+        total: 0,
+        page: 1,
+        limit: 25,
+        totalPages: 0,
+        hasMore: false,
+      },
+    };
+  }
+}
+
 export const getStoreSubscriberCountAction = action
   .use(authMiddleware)
   .schema(
@@ -181,3 +248,39 @@ export const getStoreSubscriberCountAction = action
       throw error;
     }
   });
+
+export async function getStoreSubscriberStats(storeId: string) {
+  try {
+    const allSubscribers = await storeSubscribersModel.getStoreSubscribers(
+      storeId,
+      {
+        limit: 10000, // High limit to get all for stats
+        activeOnly: false,
+      }
+    );
+
+    const total = allSubscribers.total;
+    const active = allSubscribers.documents.filter((s) => s.isActive).length;
+    const engagementRate =
+      total > 0 ? ((active / total) * 100).toFixed(1) : "0";
+
+    return {
+      success: true,
+      data: {
+        total,
+        active,
+        engagementRate,
+      },
+    };
+  } catch (error) {
+    console.error("Error getting subscriber stats:", error);
+    return {
+      success: false,
+      data: {
+        total: 0,
+        active: 0,
+        engagementRate: "0",
+      },
+    };
+  }
+}

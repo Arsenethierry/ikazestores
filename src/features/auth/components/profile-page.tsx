@@ -457,7 +457,7 @@ export const ProfilePage = ({
             <ProfileEmailVerificationBanner user={user} />
 
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview" className="flex items-center gap-2">
                         <User className="h-4 w-4" />
                         Overview

@@ -1,56 +1,66 @@
-import { AccessDeniedCard } from '@/components/access-denied-card';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { StoreSubscribersDashboard } from '@/features/stores/customers/store-subscribers-dashboard';
-import { getVirtualStoreById } from '@/lib/actions/virtual-store.action';
-import { getAuthState } from '@/lib/user-permission';
-import { Users } from 'lucide-react';
-import { notFound } from 'next/navigation';
-import React from 'react';
+import { AccessDeniedCard } from "@/components/access-denied-card";
+import { RefreshButton } from "@/components/refresh-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StoreSubscribersStats } from "@/features/stores/customers/store-subscribers-stats";
+import { StoreSubscribersTable } from "@/features/stores/customers/store-subscribers-table";
+import { StatsCardsSkeleton, SubscribersTableSkeleton } from "@/features/stores/customers/subscribers-loading";
+import { getVirtualStoreById } from "@/lib/actions/virtual-store.action";
+import { getAuthState } from "@/lib/user-permission";
+import { Users } from "lucide-react";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 interface CustomersPageProps {
     params: Promise<{ storeId: string }>;
+    searchParams: Promise<{
+        page?: string;
+        search?: string;
+        status?: 'all' | 'active' | 'inactive';
+    }>;
 }
 
-async function CustomersPage({ params }: CustomersPageProps) {
+async function CustomersPage({ params, searchParams }: CustomersPageProps) {
     const { storeId } = await params;
+    const search = await searchParams;
     const { user, isVirtualStoreOwner } = await getAuthState();
 
-    // Check if user has access to this store
     if (!user || !isVirtualStoreOwner) {
         return <AccessDeniedCard />;
     }
 
-    // Fetch store data
     const store = await getVirtualStoreById(storeId);
 
     if (!store) {
         notFound();
     }
 
-    // Check if user owns this store
-    if (store.owner !== user.$id) {
-        return <AccessDeniedCard />;
-    }
-
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-primary/10">
-                    <Users className="h-6 w-6 text-primary" />
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                        <Users className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Store Customers</h1>
+                        <p className="text-muted-foreground">
+                            Manage your store subscribers and send email campaigns
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Store Customers</h1>
-                    <p className="text-muted-foreground">
-                        Manage your store subscribers and send email campaigns
-                    </p>
-                </div>
+                <RefreshButton />
             </div>
 
-            {/* Subscribers Dashboard */}
-            <StoreSubscribersDashboard
-                storeId={storeId}
-                storeName={store.storeName}
-            />
+            <Suspense fallback={<StatsCardsSkeleton />}>
+                <StoreSubscribersStats storeId={storeId} />
+            </Suspense>
+
+            <Suspense fallback={<SubscribersTableSkeleton />}>
+                <StoreSubscribersTable
+                    storeId={storeId}
+                    searchParams={search}
+                />
+            </Suspense>
 
             <Card>
                 <CardHeader>
@@ -75,10 +85,10 @@ async function CustomersPage({ params }: CustomersPageProps) {
                         </p>
                     </div>
                     <div>
-                        <p className="font-medium mb-1">📊 Export & Analysis</p>
+                        <p className="font-medium mb-1">📊 Subscriber Management</p>
                         <p className="text-muted-foreground">
-                            Export your subscriber list to CSV for external marketing tools
-                            or data analysis.
+                            View and filter your subscriber list with advanced search and
+                            status filtering capabilities.
                         </p>
                     </div>
                     <div>
