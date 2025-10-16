@@ -759,7 +759,7 @@ export type StoreStaff = Models.Document & {
 }
 
 export type StoreRoles = Models.Document & {
-    storeId: string;
+    storeId: string | null;
     storeType: StoreType;
     roleName: string;
     description: string;
@@ -776,16 +776,26 @@ export type StorePermissions = Models.Document & {
     module: string;
     description: string;
     applicableToStoreType: ApplicableToStoreType;
+    storeId: string | null;
 }
 
 export type StaffInvitations = Models.Document & {
     storeId: string;
-    storeType: StoreType;
-    email: string;
     roleId: string;
-    invitationToken: string;
     invitedBy: string;
-    invitationStatus: InvitationStatus;
+    email: string;
+    invitationToken: string;
+    storeType: StoreType;
     expiresAt: string;
-    acceptedAt: string | null;
+    invitedAt: string;
+    invitationStatus: InvitationStatus;
+}
+
+export type StoreSubscribers = Models.Document & {
+    storeId: string;
+    userId: string;
+    email: string;
+    subscribedAt: string;
+    isActive: boolean;
+    preferences: string | null;
 }

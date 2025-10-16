@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import { AcceptInvitationContent } from "@/features/staff/accept-invitation-content";
+import { AcceptInvitationContent } from "@/features/stores/staff/accept-invitation-content";
 
 export default function AcceptInvitationPage() {
   return (

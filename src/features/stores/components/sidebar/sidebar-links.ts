@@ -10,6 +10,7 @@ import {
   User,
   Megaphone,
   Database,
+  Users,
 } from "lucide-react";
 
 export const getSidebarLinks = (storeId: string | null) => ({
@@ -32,9 +33,18 @@ export const getSidebarLinks = (storeId: string | null) => ({
       items: [
         { title: "Overview", url: "/admin/sys-admin/catalog" },
         { title: "Categories", url: "/admin/sys-admin/catalog/categories" },
-        { title: "Product Types", url: "/admin/sys-admin/catalog/product-types" },
-        { title: "Variant Templates", url: "/admin/sys-admin/catalog/variant-templates" },
-        { title: "Import/Export", url: "/admin/sys-admin/catalog/import-export" },
+        {
+          title: "Product Types",
+          url: "/admin/sys-admin/catalog/product-types",
+        },
+        {
+          title: "Variant Templates",
+          url: "/admin/sys-admin/catalog/variant-templates",
+        },
+        {
+          title: "Import/Export",
+          url: "/admin/sys-admin/catalog/import-export",
+        },
         { title: "Validation", url: "/admin/sys-admin/catalog/validation" },
       ],
     },
@@ -65,9 +75,7 @@ export const getSidebarLinks = (storeId: string | null) => ({
       url: "#",
       icon: SquareTerminal,
       isActive: true,
-      items: [
-        { title: "All Stores", url: `/admin/stores` },
-      ],
+      items: [{ title: "All Stores", url: `/admin/stores` }],
     },
     {
       title: "Staff",
@@ -76,7 +84,10 @@ export const getSidebarLinks = (storeId: string | null) => ({
       isActive: true,
       items: [
         { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
-        { title: "Seed Staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
+        {
+          title: "Seed Staff",
+          url: `/admin/stores/${storeId}/staff/seed-staff`,
+        },
       ],
     },
     {
@@ -104,6 +115,21 @@ export const getSidebarLinks = (storeId: string | null) => ({
         {
           title: "Returns & Refunds",
           url: `/admin/stores/${storeId}/orders/returns`,
+        },
+      ],
+    },
+    {
+      title: "Customers",
+      url: "#",
+      icon: Users,
+      items: [
+        {
+          title: "All Customers",
+          url: `/admin/stores/${storeId}/customers`,
+        },
+        {
+          title: "Email Campaigns",
+          url: `/admin/stores/${storeId}/customers/campaigns`,
         },
       ],
     },
@@ -168,7 +194,10 @@ export const getSidebarLinks = (storeId: string | null) => ({
       isActive: true,
       items: [
         { title: "Staff Users", url: `/admin/stores/${storeId}/staff` },
-        { title: "Seed Staff", url: `/admin/stores/${storeId}/staff/seed-staff` },
+        {
+          title: "Seed Staff",
+          url: `/admin/stores/${storeId}/staff/seed-staff`,
+        },
       ],
     },
     {

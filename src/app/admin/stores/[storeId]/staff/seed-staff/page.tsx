@@ -1,5 +1,5 @@
 import { AccessDeniedCard } from "@/components/access-denied-card";
-import { SeedStaffPage } from "@/features/staff/components/seed-staff-page";
+import { SeedStaffPage } from "@/features/stores/staff/components/seed-staff-page";
 import { getPhysicalStoreById } from "@/lib/actions/physical-store.action";
 import { getVirtualStoreById } from "@/lib/actions/virtual-store.action";
 import { getAuthState } from "@/lib/user-permission";

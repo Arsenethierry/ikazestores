@@ -67,3 +67,38 @@ export const CreateStoreReviewDataSchema = z.object({
   valueForMoneyRating: z.number().min(1).max(5),
   orderId: z.string().optional(),
 });
+
+export const createStoreSubscriberSchema = z.object({
+  storeId: z.string().min(1, "Store ID is required"),
+  userId: z.string().min(1, "User ID is required"),
+  email: z.string().email("Valid email is required"),
+  subscribedAt: z.string().datetime().optional(),
+  isActive: z.boolean().default(true),
+  preferences: z
+    .object({
+      marketing: z.boolean().default(true),
+      orderUpdates: z.boolean().default(true),
+      newProducts: z.boolean().default(true),
+      promotions: z.boolean().default(true),
+    })
+    .optional(),
+});
+
+export const updateStoreSubscriberSchema = z.object({
+  isActive: z.boolean().optional(),
+  preferences: z
+    .object({
+      marketing: z.boolean().optional(),
+      orderUpdates: z.boolean().optional(),
+      newProducts: z.boolean().optional(),
+      promotions: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export type CreateStoreSubscriberInput = z.infer<
+  typeof createStoreSubscriberSchema
+>;
+export type UpdateStoreSubscriberInput = z.infer<
+  typeof updateStoreSubscriberSchema
+>;

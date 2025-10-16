@@ -47,7 +47,7 @@ export class MessagingService {
     }
   }
 
-  private async sendViaResend(
+  async sendViaResend(
     to: string,
     subject: string,
     html: string

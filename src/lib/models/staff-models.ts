@@ -589,6 +589,8 @@ export class StoreStaffModel extends BaseModel<StoreStaff> {
         staffId
       );
 
+      if(!staff.storeId) return;
+
       // Remove from Appwrite team
       try {
         const memberships = await teams.listMemberships(staff.storeId);
@@ -939,7 +941,7 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
         permissions: role.permissions,
         StoreStaffStatus: "active",
         invitedBy: invitation.invitedBy,
-        invitedAt: invitation.invitedAt,
+        invitedAt: invitation.invitedAt as any,
         acceptedAt: new Date(),
       });
 

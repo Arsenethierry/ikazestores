@@ -49,6 +49,7 @@ import {
     Shield,
     CheckCircle,
     AlertTriangle,
+    Bell,
 } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import Link from 'next/link';
@@ -59,6 +60,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { SecuritySettings } from './security-settings';
 import { ProfileEmailVerificationBanner } from './profile-email-verification-banner';
+import { UserSubscriptionsManager } from './user-subscription-manager';
 
 type UpdateProfileData = z.infer<typeof updateProfileSchema>
 type PhysicalSellerApplicationDataTypes = z.infer<typeof physicalSellerApplicationData>
@@ -123,7 +125,7 @@ const VirtualStoreCard = ({ store }: { store: VirtualStoreTypes | PhysicalStoreT
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Orders</span>
                     <span className="font-medium">{store.orderCount || 0}</span>
-            </div>
+                </div>
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Revenue</span>
                     <span className="font-medium">${store.revenue || 0}</span>
@@ -468,6 +470,10 @@ export const ProfilePage = ({
                         <Shield className="h-4 w-4" />
                         Security
                     </TabsTrigger>
+                    <TabsTrigger value="subscriptions" className="flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        Subscriptions
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Overview Tab */}
@@ -696,6 +702,21 @@ export const ProfilePage = ({
                                             </Badge>
                                         )}
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Bell className="h-5 w-5" />
+                                        Store Subscriptions
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Manage your email preferences for stores you follow
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <UserSubscriptionsManager />
                                 </CardContent>
                             </Card>
                         </div>
@@ -932,6 +953,10 @@ export const ProfilePage = ({
                 {/* Security Tab */}
                 <TabsContent value="security">
                     <SecuritySettings user={user} />
+                </TabsContent>
+
+                <TabsContent value="subscriptions" className="space-y-6">
+                    <UserSubscriptionsManager />
                 </TabsContent>
             </Tabs>
         </div>
