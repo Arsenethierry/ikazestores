@@ -248,17 +248,4 @@ export class StoreSubscribersModel extends BaseModel<StoreSubscribers> {
       return false;
     }
   }
-
-  async getSubscriberCount(storeId: string): Promise<number> {
-    try {
-      const result = await this.getStoreSubscribers(storeId, {
-        limit: 1,
-        activeOnly: true,
-      });
-      return result.total;
-    } catch (error) {
-      console.error("Error getting subscriber count:", error);
-      return 0;
-    }
-  }
 }

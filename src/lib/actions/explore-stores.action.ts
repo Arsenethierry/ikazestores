@@ -1,12 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { AffiliateProductModel } from "../models/AffliateProductModel";
 import { StoreSubscribersModel } from "../models/store-subscribers-model";
 import { VirtualStore } from "../models/virtual-store";
 import { StoreReviewModel } from "../models/VirtualStoreReviewModel";
 import { VirtualStoreTypes } from "../types";
+import { cache } from "react";
 
 const virtualStoreModel = new VirtualStore();
 const storeSubscribersModel = new StoreSubscribersModel();
@@ -15,6 +15,7 @@ const affiliateProductModel = new AffiliateProductModel();
 
 export interface EnhancedVirtualStore extends VirtualStoreTypes {
   subscriberCount?: number;
+  subscribersIds?: string[];
   averageRating?: number;
   totalReviews?: number;
   productCount?: number;
@@ -30,9 +31,9 @@ export interface StoreFilters {
 
 export async function getExploreStores(
   filters: StoreFilters = {}
-): Promise<PaginationResult<EnhancedVirtualStore>> {
+): Promise<PaginationResult<VirtualStoreTypes>> {
   try {
-    const { search, rating, sortBy = "newest", page = 1, limit = 25 } = filters;
+    const { search, sortBy = "newest", page = 1, limit = 25 } = filters;
 
     const offset = (page - 1) * limit;
     const queryFilters: QueryFilter[] = [];
@@ -51,6 +52,7 @@ export async function getExploreStores(
         break;
       case "popular":
       case "rating":
+        // For popular/rating, we'll sort on client after fetching counts
         orderBy = "$createdAt";
         orderType = "desc";
         break;
@@ -60,8 +62,8 @@ export async function getExploreStores(
       filters: queryFilters,
       orderBy,
       orderType,
-      limit: sortBy === "popular" || sortBy === "rating" ? 100 : limit,
-      offset: sortBy === "popular" || sortBy === "rating" ? 0 : offset,
+      limit,
+      offset,
     };
 
     let storesResult: PaginationResult<VirtualStoreTypes>;
@@ -72,68 +74,7 @@ export async function getExploreStores(
       storesResult = await virtualStoreModel.findMany(queryOptions);
     }
 
-    const enhancedStores = await Promise.all(
-      storesResult.documents.map(async (store) => {
-        const subscriberCount = await storeSubscribersModel.getSubscriberCount(
-          store.$id
-        );
-
-        const ratingStats = await storeReviewModel.getStoreRatingStats(
-          store.$id
-        );
-
-        const productImports = await affiliateProductModel.findActiveImports(
-          store.$id,
-          { limit: 1 }
-        );
-
-        return {
-          ...store,
-          subscriberCount,
-          productCount: productImports.total,
-          averageRating:
-            typeof ratingStats === "object" && "averageRating" in ratingStats
-              ? ratingStats.averageRating
-              : 0,
-          totalReviews:
-            typeof ratingStats === "object" && "totalReviews" in ratingStats
-              ? ratingStats.totalReviews
-              : 0,
-        };
-      })
-    );
-
-    let filteredStores = enhancedStores;
-    if (rating) {
-      filteredStores = enhancedStores.filter(
-        (store) => Math.round(store.averageRating || 0) >= rating
-      );
-    }
-
-    if (sortBy === "rating") {
-      filteredStores.sort(
-        (a, b) => (b.averageRating || 0) - (a.averageRating || 0)
-      );
-    } else if (sortBy === "popular") {
-      filteredStores.sort(
-        (a, b) => (b.subscriberCount || 0) - (a.subscriberCount || 0)
-      );
-    }
-
-    if (sortBy === "popular" || sortBy === "rating") {
-      const start = offset;
-      const end = offset + limit;
-      filteredStores = filteredStores.slice(start, end);
-    }
-
-    return {
-      documents: filteredStores,
-      total: rating ? filteredStores.length : storesResult.total,
-      limit,
-      offset,
-      hasMore:
-        offset + limit < (rating ? filteredStores.length : storesResult.total),
-    };
+    return storesResult;
   } catch (error) {
     console.error("Error getting explore stores:", error);
     return {
@@ -146,23 +87,114 @@ export async function getExploreStores(
   }
 }
 
-export async function getStoreStatistics(): Promise<{
-  totalStores: number;
-}> {
-  try {
-    const storesCount = await virtualStoreModel.findMany({ limit: 1 });
+export async function checkStoreSubscription(
+  storeId: string,
+  userId: string | undefined
+): Promise<boolean> {
+  if (!userId) return false;
 
-    return {
-      totalStores: storesCount.total,
-    };
+  try {
+    return await storeSubscribersModel.isUserSubscribed(storeId, userId);
+  } catch (error) {
+    console.error("Error checking subscription:", error);
+    return false;
+  }
+}
+
+export async function checkMultipleSubscriptions(
+  storeIds: string[],
+  userId: string | undefined
+): Promise<Record<string, boolean>> {
+  if (!userId || storeIds.length === 0) {
+    return storeIds.reduce((acc, id) => ({ ...acc, [id]: false }), {});
+  }
+
+  try {
+    // Fetch all user subscriptions in one query
+    const subscriptions = await storeSubscribersModel.getUserSubscriptions(
+      userId,
+      {
+        limit: 1000, // Reasonable limit
+      }
+    );
+
+    const subscribedStoreIds = new Set(
+      subscriptions.documents.map((sub) => sub.storeId)
+    );
+
+    return storeIds.reduce(
+      (acc, storeId) => ({
+        ...acc,
+        [storeId]: subscribedStoreIds.has(storeId),
+      }),
+      {}
+    );
+  } catch (error) {
+    console.error("Error checking multiple subscriptions:", error);
+    return storeIds.reduce((acc, id) => ({ ...acc, [id]: false }), {});
+  }
+}
+
+export const getStoreSubscriberCount = cache(
+  async (storeId: string): Promise<number> => {
+    try {
+        const subs = await storeSubscribersModel.getStoreSubscribers(storeId);
+        return subs.total;
+      } catch (error) {
+        console.error(`Error getting subscriber count for ${storeId}:`, error);
+        return 0;
+      }
+  }
+);
+
+export const getStoreProductCount = cache(
+  async (storeId: string): Promise<number> => {
+    try {
+        const imports = await affiliateProductModel.findActiveImports(storeId, {
+          limit: 1,
+        });
+        return imports.total;
+      } catch (error) {
+        console.error(`Error getting product count for ${storeId}:`, error);
+        return 0;
+      }
+  }
+);
+
+export const getStoreRating = cache(
+  async (
+    storeId: string
+  ): Promise<{ averageRating: number; totalReviews: number }> => {
+    try {
+      const ratingStats = await storeReviewModel.getStoreRatingStats(storeId);
+
+        return {
+          averageRating:
+            typeof ratingStats === "object" && "averageRating" in ratingStats
+              ? ratingStats.averageRating
+              : 0,
+          totalReviews:
+            typeof ratingStats === "object" && "totalReviews" in ratingStats
+              ? ratingStats.totalReviews
+              : 0,
+        };
+    } catch (error) {
+      console.error(`Error getting rating for ${storeId}:`, error);
+      return { averageRating: 0, totalReviews: 0 };
+    }
+  }
+);
+
+export const getStoreStatistics = cache(async () => {
+  try {
+    const stores = await virtualStoreModel.findMany({ limit: 1 });
+        return {
+          totalStores: stores.total,
+        };
   } catch (error) {
     console.error("Error getting store statistics:", error);
     return {
       totalStores: 0,
     };
   }
-}
-
-export async function revalidateExploreStores() {
-  revalidatePath("/explore-stores");
-}
+});

@@ -1,12 +1,13 @@
+
 import { ExploreStoreCard } from "./explore-store-card";
-import { EnhancedVirtualStore } from "@/lib/actions/explore-stores.action";
 import { NoItemsCard } from "@/components/no-items-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Store } from "lucide-react";
+import { VirtualStoreTypes } from "@/lib/types";
 
 interface StoresGridProps {
-    stores: EnhancedVirtualStore[];
+    stores: VirtualStoreTypes[];
     viewMode: "grid" | "list";
 }
 
@@ -35,6 +36,7 @@ export function StoresGrid({ stores, viewMode }: StoresGridProps) {
         );
     }
 
+    // Grid View with responsive columns
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {stores.map((store) => (
@@ -48,13 +50,13 @@ export function StoresGrid({ stores, viewMode }: StoresGridProps) {
     );
 }
 
-
+// Skeleton component for individual store card
 function StoreCardSkeleton({ viewMode = "grid" }: { viewMode?: "grid" | "list" }) {
     if (viewMode === "list") {
         return (
             <Card>
                 <div className="flex flex-col md:flex-row">
-                    <Skeleton className="h-48 md:h-full md:w-64" />
+                    <Skeleton className="h-48 md:h-full md:w-64 rounded-l-lg" />
                     <div className="flex-1 p-6 space-y-4">
                         <div className="flex items-center gap-3">
                             <Skeleton className="h-10 w-10 rounded-full" />
@@ -95,14 +97,22 @@ function StoreCardSkeleton({ viewMode = "grid" }: { viewMode?: "grid" | "list" }
                     <Skeleton className="h-4 w-16" />
                 </div>
             </CardContent>
-            <CardFooter className="p-4 pt-0">
-                <Skeleton className="h-9 w-full" />
+            <CardFooter className="p-4 pt-0 flex gap-2">
+                <Skeleton className="h-9 flex-1" />
+                <Skeleton className="h-9 w-9" />
             </CardFooter>
         </Card>
     );
 }
 
-export function StoresGridSkeleton({ count = 8, viewMode = "grid" }: { count?: number; viewMode?: "grid" | "list" }) {
+// Skeleton grid for loading state
+export function StoresGridSkeleton({
+    count = 8,
+    viewMode = "grid"
+}: {
+    count?: number;
+    viewMode?: "grid" | "list"
+}) {
     if (viewMode === "list") {
         return (
             <div className="space-y-4">

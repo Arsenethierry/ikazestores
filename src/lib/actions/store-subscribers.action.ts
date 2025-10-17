@@ -2,7 +2,7 @@
 
 import { createSafeActionClient } from "next-safe-action";
 import { StoreSubscribersModel } from "../models/store-subscribers-model";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { authMiddleware } from "./middlewares";
 import z from "zod";
 
@@ -15,34 +15,40 @@ const action = createSafeActionClient({
   },
 });
 
-export async function subscribeUserToStore(
-  storeId: string,
-  userId: string,
-  email: string
-) {
-  try {
-    const subscription = await storeSubscribersModel.subscribeUserToStore(
-      storeId,
-      userId,
-      email
-    );
+export const subscribeToStoreAction = action
+  .use(authMiddleware)
+  .schema(
+    z.object({
+      storeId: z.string().min(1, "Store ID is required"),
+    })
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const { storeId } = parsedInput;
+    const { user } = ctx;
 
-    revalidatePath(`/store/${storeId}`);
-    revalidatePath(`/admin/stores/${storeId}`);
+    try {
+      const subscription = await storeSubscribersModel.subscribeUserToStore(
+        storeId,
+        user.$id,
+        user.email
+      );
 
-    return {
-      success: true,
-      data: subscription,
-    };
-  } catch (error) {
-    console.error("Error subscribing user to store:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to subscribe to store",
-    };
-  }
-}
+      revalidateTag(`store-${storeId}-subscribers`);
+      revalidatePath("/explore");
+      revalidatePath(`/store/${storeId}`);
+
+      return {
+        success: true,
+        data: subscription,
+        message: "Successfully subscribed to store",
+      };
+    } catch (error) {
+      console.error("Error subscribing to store:", error);
+      return {
+        error: error instanceof Error ? error.message: "Error subscribing to store",
+      };
+    }
+  });
 
 export const unsubscribeFromStoreAction = action
   .use(authMiddleware)
@@ -68,6 +74,8 @@ export const unsubscribeFromStoreAction = action
         };
       }
 
+      revalidateTag(`store-${storeId}-subscribers`);
+      revalidatePath("/explore");
       revalidatePath(`/store/${storeId}`);
       revalidatePath("/profile");
 
@@ -225,29 +233,6 @@ export async function getStoreSubscribersWithPagination(
     };
   }
 }
-
-export const getStoreSubscriberCountAction = action
-  .use(authMiddleware)
-  .schema(
-    z.object({
-      storeId: z.string().min(1),
-    })
-  )
-  .action(async ({ parsedInput }) => {
-    const { storeId } = parsedInput;
-
-    try {
-      const count = await storeSubscribersModel.getSubscriberCount(storeId);
-
-      return {
-        success: true,
-        count,
-      };
-    } catch (error) {
-      console.error("Error getting subscriber count:", error);
-      throw error;
-    }
-  });
 
 export async function getStoreSubscriberStats(storeId: string) {
   try {

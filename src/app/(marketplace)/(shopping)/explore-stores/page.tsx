@@ -1,3 +1,4 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import { ExploreStoresFilters, ExploreStoresFiltersSkeleton } from "@/features/stores/explore/explore-stores-filters";
 import { ExploreStoresHero } from "@/features/stores/explore/explore-stores-hero";
 import { StoresGrid, StoresGridSkeleton } from "@/features/stores/explore/stores-grid";
@@ -56,25 +57,25 @@ export default async function ExploreStoresPage({ searchParams }: ExploreStoresP
                 <HeroSection />
             </Suspense>
 
-            <main className="flex-1 main-container py-8 space-y-6">
-                {/* Filters */}
+            <div className="flex-1 main-container py-8 space-y-6">
                 <Suspense fallback={<ExploreStoresFiltersSkeleton />}>
                     <ExploreStoresFilters />
                 </Suspense>
 
-                {/* View Mode Toggle & Results Count */}
                 <div className="flex items-center justify-between">
-                    <Suspense fallback={<div className="h-10 w-32 bg-muted animate-pulse rounded" />}>
+                    <Suspense fallback={<Skeleton className="h-10 w-32 rounded" />}>
                         <ResultsCount filters={filters} />
                     </Suspense>
                     <ViewModeToggle />
                 </div>
 
-                {/* Stores Grid/List */}
-                <Suspense fallback={<StoresGridSkeleton count={8} viewMode={viewMode} />}>
+                <Suspense 
+                    key={JSON.stringify(filters)} 
+                    fallback={<StoresGridSkeleton count={8} viewMode={viewMode} />}
+                >
                     <StoresSection filters={filters} viewMode={viewMode} />
                 </Suspense>
-            </main>
+            </div>
 
         </div>
     )

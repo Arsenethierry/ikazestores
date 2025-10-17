@@ -1,41 +1,26 @@
-"use client";
-
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-    Store,
-    MapPin,
-    Star,
-    Users,
-    Package,
-    Bell,
-    BellOff,
-    ExternalLink,
-    CheckCircle2
-} from "lucide-react";
+import { Store, MapPin, ExternalLink, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { EnhancedVirtualStore } from "@/lib/actions/explore-stores.action";
-import { useState, useTransition } from "react";
-import { toast } from "sonner";
-import { subscribeUserToStore } from "@/lib/actions/store-subscribers.action";
-import { useCurrentUser } from "@/features/auth/queries/use-get-current-user";
 import { getStoreSubdomainUrl } from "@/lib/domain-utils";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { VirtualStoreTypes } from "@/lib/types";
+import { SubscribeButton } from "../customers/subscribe-button";
+import { StoreProductCount, StoreRatingDisplay, StoreSubscriberCount, SubscriptionStatus } from "../components/store-stats";
 
 interface ExploreStoreCardProps {
-    store: EnhancedVirtualStore;
+    store: VirtualStoreTypes;
     viewMode?: "grid" | "list";
-    isSubscribed?: boolean;
 }
 
-export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initialSubscribed = false }: ExploreStoreCardProps) {
-    console.log("initialSubscribed: ", store)
-    const { data: currentUser } = useCurrentUser();
-    const [isSubscribed, setIsSubscribed] = useState(initialSubscribed);
-    const [isPending, startTransition] = useTransition();
-
+export function ExploreStoreCard({
+    store,
+    viewMode = "grid",
+}: ExploreStoreCardProps) {
     const primaryBannerUrl = Array.isArray(store.bannerUrls)
         ? store.bannerUrls[0]
         : store.bannerUrls;
@@ -43,49 +28,6 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
     const storeUrl = store.subDomain
         ? getStoreSubdomainUrl({ subdomain: store.subDomain })
         : `/store/${store.$id}`;
-
-    const handleSubscribe = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (!currentUser) {
-            toast.error("Please sign in to subscribe to stores");
-            return;
-        }
-
-        startTransition(async () => {
-            try {
-                const result = await subscribeUserToStore(
-                    store.$id,
-                    currentUser.$id,
-                    currentUser.email
-                );
-
-                if (result.success) {
-                    setIsSubscribed(true);
-                    toast.success(`Subscribed to ${store.storeName}!`);
-                } else {
-                    toast.error(result.error || "Failed to subscribe");
-                }
-            } catch (error) {
-                toast.error("An error occurred");
-            }
-        });
-    };
-
-    const renderRating = () => {
-        if (!store.averageRating || store.averageRating === 0) return null;
-
-        return (
-            <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{store.averageRating.toFixed(1)}</span>
-                <span className="text-muted-foreground text-sm">
-                    ({store.totalReviews})
-                </span>
-            </div>
-        );
-    };
 
     if (viewMode === "list") {
         return (
@@ -100,6 +42,8 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
                                     alt={store.storeName}
                                     fill
                                     className="object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
+                                    sizes="(max-width: 768px) 100vw, 256px"
+                                    priority={false}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
@@ -125,7 +69,10 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
                                 <div className="flex items-center gap-3">
                                     {store.storeLogoUrl && (
                                         <Avatar className="h-10 w-10">
-                                            <AvatarImage src={store.storeLogoUrl} alt={store.storeName} />
+                                            <AvatarImage
+                                                src={store.storeLogoUrl}
+                                                alt={store.storeName}
+                                            />
                                             <AvatarFallback>{store.storeName[0]}</AvatarFallback>
                                         </Avatar>
                                     )}
@@ -146,27 +93,33 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
 
                                 {/* Description */}
                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {store.desccription || store.storeBio || "Discover amazing products at this store"}
+                                    {store.desccription ||
+                                        store.storeBio ||
+                                        "Discover amazing products at this store"}
                                 </p>
 
-                                {/* Stats */}
+                                {/* Stats with Suspense */}
                                 <div className="flex flex-wrap items-center gap-4 text-sm">
-                                    {renderRating()}
-                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                        <Users className="h-4 w-4" />
-                                        <span>{store.subscriberCount || 0} subscribers</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                        <Package className="h-4 w-4" />
-                                        <span>{store.productCount || 0} products</span>
-                                    </div>
+                                    <Suspense fallback={<Skeleton className="h-5 w-16" />}>
+                                        <StoreRatingDisplay storeId={store.$id} />
+                                    </Suspense>
+                                    <Suspense fallback={<Skeleton className="h-5 w-20" />}>
+                                        <StoreSubscriberCount storeId={store.$id} />
+                                    </Suspense>
+                                    <Suspense fallback={<Skeleton className="h-5 w-20" />}>
+                                        <StoreProductCount storeId={store.$id} />
+                                    </Suspense>
                                 </div>
 
                                 {/* Categories */}
                                 {store.storeCategories && store.storeCategories.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
                                         {store.storeCategories.slice(0, 3).map((category: any) => (
-                                            <Badge key={category} variant="secondary" className="text-xs">
+                                            <Badge
+                                                key={category}
+                                                variant="secondary"
+                                                className="text-xs"
+                                            >
                                                 {category}
                                             </Badge>
                                         ))}
@@ -176,25 +129,24 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
 
                             {/* Actions */}
                             <div className="flex flex-col gap-2">
-                                <Button
-                                    size="sm"
-                                    variant={isSubscribed ? "outline" : "teritary"}
-                                    onClick={handleSubscribe}
-                                    disabled={isPending || isSubscribed}
-                                    className="whitespace-nowrap"
+                                <Suspense
+                                    fallback={
+                                        <Button size="sm" variant="outline" disabled>
+                                            <Skeleton className="h-4 w-20" />
+                                        </Button>
+                                    }
                                 >
-                                    {isSubscribed ? (
-                                        <>
-                                            <Bell className="h-4 w-4 mr-2" />
-                                            Subscribed
-                                        </>
-                                    ) : (
-                                        <>
-                                            <BellOff className="h-4 w-4 mr-2" />
-                                            Subscribe
-                                        </>
-                                    )}
-                                </Button>
+                                    <SubscriptionStatus storeId={store.$id}>
+                                        {({ isSubscribed, userId }) => (
+                                            <SubscribeButton
+                                                storeId={store.$id}
+                                                storeName={store.storeName}
+                                                initialSubscribed={isSubscribed}
+                                                userId={userId}
+                                            />
+                                        )}
+                                    </SubscriptionStatus>
+                                </Suspense>
                                 <Button size="sm" variant="outline" asChild>
                                     <Link href={storeUrl} target="_blank">
                                         <ExternalLink className="h-4 w-4 mr-2" />
@@ -221,6 +173,8 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
                                 alt={store.storeName}
                                 fill
                                 className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                priority={false}
                             />
                         ) : (
                             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
@@ -263,22 +217,24 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
 
                 {/* Description */}
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                    {store.desccription || store.storeBio || "Discover amazing products"}
+                    {store.desccription ||
+                        store.storeBio ||
+                        "Discover amazing products"}
                 </p>
 
-                {/* Stats */}
+                {/* Stats with Suspense */}
                 <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-3">
-                        {renderRating()}
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            <span className="text-xs">{store.subscriberCount || 0}</span>
-                        </div>
+                        <Suspense fallback={<Skeleton className="h-4 w-12" />}>
+                            <StoreRatingDisplay storeId={store.$id} />
+                        </Suspense>
+                        <Suspense fallback={<Skeleton className="h-4 w-8" />}>
+                            <StoreSubscriberCount storeId={store.$id} />
+                        </Suspense>
                     </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                        <Package className="h-3 w-3" />
-                        <span className="text-xs">{store.productCount || 0}</span>
-                    </div>
+                    <Suspense fallback={<Skeleton className="h-4 w-8" />}>
+                        <StoreProductCount storeId={store.$id} />
+                    </Suspense>
                 </div>
 
                 {/* Categories */}
@@ -294,25 +250,25 @@ export function ExploreStoreCard({ store, viewMode = "grid", isSubscribed: initi
             </CardContent>
 
             <CardFooter className="p-4 pt-0 flex gap-2">
-                <Button
-                    size="sm"
-                    variant={isSubscribed ? "outline" : "teritary"}
-                    onClick={handleSubscribe}
-                    disabled={isPending || isSubscribed}
-                    className="flex-1"
+                <Suspense
+                    fallback={
+                        <Button size="sm" variant="outline" disabled className="flex-1">
+                            <Skeleton className="h-4 w-20" />
+                        </Button>
+                    }
                 >
-                    {isSubscribed ? (
-                        <>
-                            <Bell className="h-3 w-3 mr-1" />
-                            Subscribed
-                        </>
-                    ) : (
-                        <>
-                            <BellOff className="h-3 w-3 mr-1" />
-                            Subscribe
-                        </>
-                    )}
-                </Button>
+                    <SubscriptionStatus storeId={store.$id}>
+                        {({ isSubscribed, userId }) => (
+                            <SubscribeButton
+                                storeId={store.$id}
+                                storeName={store.storeName}
+                                initialSubscribed={isSubscribed}
+                                userId={userId}
+                                fullWidth
+                            />
+                        )}
+                    </SubscriptionStatus>
+                </Suspense>
                 <Button size="sm" variant="outline" asChild>
                     <Link href={storeUrl} target="_blank">
                         <ExternalLink className="h-3 w-3" />
