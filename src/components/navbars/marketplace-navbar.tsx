@@ -118,10 +118,18 @@ export default async function MarketplaceNavbar() {
                     </NavigationMenu>
                 </div>
                 <div className='flex gap-6 items-center'>
-                    <Link href={'/saved-items'} className='hover:text-white/80 hover:underline'>Saved items</Link>
-                    <Link href={'/sell'} className='hover:text-white/80 hover:underline'>Start selling</Link>
-                    <Link href={'/products'} className='hover:text-white/80 hover:underline'>Shop products</Link>
-                    <Link href={'/explore-stores'} className='hover:text-white/80 hover:underline'>Explore</Link>
+                    <Link href={'/explore-stores'} className='hover:text-white/80 hover:underline font-medium'>
+                        Explore Stores
+                    </Link>
+                    <Link href={'/products'} className='hover:text-white/80 hover:underline'>
+                        Shop Products
+                    </Link>
+                    <Link href={'/saved-items'} className='hover:text-white/80 hover:underline'>
+                        Saved Items
+                    </Link>
+                    <Link href={'/sell'} className='hover:text-white/80 hover:underline'>
+                        Start Selling
+                    </Link>
                 </div>
             </div>
         </>
