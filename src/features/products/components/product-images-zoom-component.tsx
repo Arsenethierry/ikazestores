@@ -3,17 +3,27 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { BoltIcon, Loader2, ShoppingCart, ShoppingCartIcon } from 'lucide-react';
+import { BoltIcon, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { EasyZoomOnHover, EasyZoomOnMove } from "easy-magnify";
-import { useMedia } from 'react-use';
+import dynamic from 'next/dynamic';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductTypes } from '@/lib/types';
+
+// Dynamically import zoom components to prevent SSR hydration issues
+const EasyZoomOnHover = dynamic(
+    () => import("easy-magnify").then(mod => mod.EasyZoomOnHover),
+    { ssr: false, loading: () => <div className="w-full h-full bg-gray-50 animate-pulse" /> }
+);
+
+const EasyZoomOnMove = dynamic(
+    () => import("easy-magnify").then(mod => mod.EasyZoomOnMove),
+    { ssr: false, loading: () => <div className="w-full h-full bg-gray-50 animate-pulse" /> }
+);
 
 interface ProductImagesZoomComponentProps {
     productImages: string[];
     productTitle: string;
-    product: VirtualProductTypes
+    product: VirtualProductTypes;
 }
 
 const useImagePreloader = (images: string[]) => {
@@ -47,6 +57,26 @@ const useImagePreloader = (images: string[]) => {
     return { loadedImages, loadingImages, preloadImage };
 };
 
+// Hook to detect device type with proper SSR handling
+const useIsDesktop = () => {
+    const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(min-width: 480px)');
+
+        // Set initial value
+        setIsDesktop(mediaQuery.matches);
+
+        // Listen for changes
+        const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+        mediaQuery.addEventListener('change', handler);
+
+        return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
+
+    return isDesktop;
+};
+
 export const ProductImagesZoomComponent = ({
     productImages,
     productTitle,
@@ -54,7 +84,7 @@ export const ProductImagesZoomComponent = ({
 }: ProductImagesZoomComponentProps) => {
     const [selectedImage, setSelectedImage] = useState(0);
     const [imageLoadError, setImageLoadError] = useState<Set<number>>(new Set());
-    const isDesktop = useMedia('(min-width: 480px)');
+    const isDesktop = useIsDesktop();
 
     const { loadedImages, loadingImages, preloadImage } = useImagePreloader(productImages);
 
@@ -153,6 +183,8 @@ export const ProductImagesZoomComponent = ({
         );
     });
 
+    ThumbnailImage.displayName = 'ThumbnailImage';
+
     const MainImageDisplay = () => {
         if (currentImageData.hasError) {
             return (
@@ -174,6 +206,17 @@ export const ProductImagesZoomComponent = ({
                         >
                             Retry
                         </Button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Show loading state during SSR or before client hydration
+        if (isDesktop === null) {
+            return (
+                <div className="relative w-full h-[500px]">
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded">
+                        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                     </div>
                 </div>
             );
@@ -248,6 +291,7 @@ export const ProductImagesZoomComponent = ({
                 </Button>
             </div>
 
+            {/* Hidden preload images */}
             <div className="hidden">
                 {productImages.map((img, index) => (
                     <Image

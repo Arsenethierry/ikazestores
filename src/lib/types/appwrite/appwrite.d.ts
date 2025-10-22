@@ -199,6 +199,42 @@ export enum InvitationStatus {
     CANCELLED = "cancelled"
 }
 
+export enum DiscountType {
+    PERCENTAGE = "percentage",
+    FIXED_AMOUNT = "fixed_amount",
+    BUY_X_GET_Y = "buy_x_get_y",
+    BUNDLE = "bundle",
+    BULK_PRICING = "bulk_pricing",
+    FLASH_SALE = "flash_sale",
+    FIRST_TIME_BUYER = "first_time_buyer"
+}
+
+export enum ValueType {
+    PERCENTAGE = "percentage",
+    FIXED = "fixed"
+}
+
+export enum ApplicableTo {
+    PRODUCTS = "products",
+    CATEGORIES = "categories",
+    COLLECTIONS = "collections",
+    STORE_WIDE = "store_wide",
+    COMBINATIONS = "combinations"
+}
+
+export enum BadgeType {
+    NEW = "new",
+    SALE = "sale",
+    LIMITED = "limited",
+    BESTSELLER = "bestseller",
+    FEATURED = "featured",
+    EXCLUSIVE = "exclusive",
+    TRENDING = "trending",
+    LOW_STOCK = "low_stock",
+    PRE_ORDER = "pre_order",
+    CUSTOM = "custom"
+}
+
 export type UsersData = Models.Document & {
     fullName: string;
     email: string;
@@ -798,4 +834,75 @@ export type StoreSubscribers = Models.Document & {
     subscribedAt: string;
     isActive: boolean;
     preferences: string | null;
+}
+
+export type Discounts = Models.Document & {
+    storeId: string;
+    storeType: StoreType;
+    name: string;
+    description: string | null;
+    discountType: DiscountType;
+    valueType: ValueType;
+    value: number;
+    applicableTo: ApplicableTo;
+    targetIds: string[] | null;
+    minPurchaseAmount: number | null;
+    minQuantity: number | null;
+    maxDiscountAmount: number | null;
+    startDate: string;
+    endDate: string | null;
+    isActive: boolean;
+    usageLimit: number | null;
+    usageLimitPerCustomer: number | null;
+    currentUsageCount: number | null;
+    priority: number;
+    canCombineWithOthers: boolean;
+    excludedCustomerIds: string[] | null;
+    eligibleCustomerIds: string[] | null;
+    shippingCountries: string[] | null;
+    buyXQuantity: number | null;
+    getYQuantity: number | null;
+    createdBy: string;
+}
+
+export type CouponCodes = Models.Document & {
+    code: string;
+    discountId: string;
+    storeId: string;
+    isActive: boolean;
+    usageCount: number | null;
+}
+
+export type CouponUsage = Models.Document & {
+    couponCodeId: string;
+    customerId: string;
+    orderId: string;
+    discountAmount: number | null;
+    usedAt: string;
+}
+
+export type ProductBadges = Models.Document & {
+    productId: string;
+    badgeType: BadgeType;
+    label: string | null;
+    colorScheme: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    isActive: boolean;
+    priority: number | null;
+}
+
+export type ReturnPolicies = Models.Document & {
+    storeId: string;
+    productId: string;
+    categoryId: string | null;
+    isDefault: boolean;
+    returnWindowDays: number;
+    allowReturns: boolean;
+    allowExchanges: boolean;
+    restockingFeePercent: number | null;
+    conditions: string | null;
+    requiresOriginalPackaging: boolean;
+    requiresReceipt: boolean;
+    shippingCostResponsibility: string | null;
 }

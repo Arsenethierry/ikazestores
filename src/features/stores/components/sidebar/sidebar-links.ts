@@ -158,8 +158,12 @@ export const getSidebarLinks = (storeId: string | null) => ({
       icon: Megaphone,
       items: [
         {
-          title: "Discounts / Coupons",
-          url: `/admin/stores/${storeId}/marketing/coupons`,
+          title: "Influencer Discounts",
+          url: `/admin/stores/${storeId}/virtual-store/marketing/discounts`,
+        },
+        {
+          title: "Create Discount",
+          url: `/admin/stores/${storeId}/virtual-store/marketing/discounts/create`,
         },
         {
           title: "Campaigns",
@@ -172,16 +176,10 @@ export const getSidebarLinks = (storeId: string | null) => ({
       url: "#",
       icon: Settings2,
       items: [
-        { title: "General", url: `/admin/stores/${storeId}/settings` },
         {
-          title: "Shipping",
-          url: `/admin/stores/${storeId}/settings/shipping`,
+          title: "Return Policies",
+          url: `/admin/stores/${storeId}/virtual-store/settings/policies`,
         },
-        {
-          title: "Payments",
-          url: `/admin/stores/${storeId}/settings/payments`,
-        },
-        { title: "SEO", url: `/admin/stores/${storeId}/settings/seo` },
       ],
     },
   ],
@@ -237,19 +235,32 @@ export const getSidebarLinks = (storeId: string | null) => ({
       ],
     },
     {
+      title: "Marketing",
+      url: "#",
+      icon: Megaphone,
+      items: [
+        {
+          title: "Discounts",
+          url: `/admin/stores/${storeId}/physical-store/marketing/discounts`,
+        },
+        {
+          title: "Create Discount",
+          url: `/admin/stores/${storeId}/physical-store/marketing/discounts/create`,
+        },
+        {
+          title: "Campaigns",
+          url: `/admin/stores/${storeId}/marketing/campaigns`,
+        },
+      ],
+    },
+    {
       title: "Store Management",
       url: "#",
       icon: Settings2,
       items: [
-        { title: "Store Details", url: `/admin/stores/${storeId}/settings` },
         {
-          title: "Location Settings",
-          url: `/admin/stores/${storeId}/location`,
-        },
-        { title: "Analytics", url: `/admin/stores/${storeId}/analytics` },
-        {
-          title: "Billing / Subscription",
-          url: `/admin/stores/${storeId}/billing`,
+          title: "Return Policies",
+          url: `/admin/stores/${storeId}/physical-store/settings/policies`,
         },
       ],
     },
