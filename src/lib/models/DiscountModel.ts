@@ -197,24 +197,9 @@ export class DiscountModel extends BaseModel<Discounts> {
     data: UpdateDiscountInput
   ): Promise<Discounts | { error: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
       const existing = await this.findById(discountId, {});
       if (!existing) {
         return { error: "Discount not found" };
-      }
-
-      const hasPermission = await checkStoreAccess(
-        user.$id,
-        existing.storeId,
-        "marketing.discounts.update"
-      );
-
-      if (!hasPermission) {
-        return { error: "You don't have permission to update this discount" };
       }
 
       const updated = await this.update(discountId, data);
@@ -264,27 +249,6 @@ export class DiscountModel extends BaseModel<Discounts> {
     discountId: string
   ): Promise<{ success?: string; error?: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
-      const discount = await this.findById(discountId, {});
-      if (!discount) {
-        return { error: "Discount not found" };
-      }
-
-      const hasPermission = await checkStoreAccess(
-        user.$id,
-        discount.storeId,
-        "marketing.discounts.delete"
-      );
-
-      if (!hasPermission) {
-        return { error: "You don't have permission to delete this discount" };
-      }
-
-      // Delete associated coupon codes
       await this.deleteCouponsByDiscount(discountId);
 
       await this.deleteCouponUsageByDiscount(discountId);
@@ -549,25 +513,10 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
   async createCouponCode(
     code: string,
     discountId: string,
-    storeId: string
+    storeId: string,
+    userId: string
   ): Promise<CouponCodes | { error: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
-      const hasPermission = await checkStoreAccess(
-        user.$id,
-        storeId,
-        "marketing.discounts.create"
-      );
-
-      if (!hasPermission) {
-        return { error: "You don't have permission to create coupon codes" };
-      }
-
-      // Check if code already exists
       const existing = await this.findMany({
         filters: [
           { field: "code", operator: "equal", value: code.toUpperCase() },
@@ -587,7 +536,7 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
           isActive: true,
           usageCount: 0,
         },
-        user.$id
+        userId
       );
 
       return coupon;
@@ -701,10 +650,8 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
         return { error: "You don't have permission to delete coupons" };
       }
 
-      // ✅ CASCADE DELETE: Delete all usage records first
       await this.deleteCouponUsageByCoupon(couponCodeId);
 
-      // Then delete the coupon
       await this.delete(couponCodeId);
 
       return { success: "Coupon deleted successfully" };
@@ -747,6 +694,90 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
       );
     } catch (error) {
       console.error("deleteCouponUsageByCoupon error:", error);
+    }
+  }
+}
+
+export class CouponUsageModel extends BaseModel<CouponUsage> {
+  constructor() {
+    super(COUPON_USAGE_COLLECTION_ID);
+  }
+
+  async recordUsage(
+    couponCodeId: string,
+    customerId: string,
+    discountAmount: number,
+    orderId?: string
+  ): Promise<CouponUsage | { error: string }> {
+    try {
+      const { user } = await getAuthState();
+      if (!user) {
+        return { error: "Authentication required" };
+      }
+
+      const usage = await this.create(
+        {
+          couponCodeId,
+          customerId,
+          orderId,
+          discountAmount,
+          usedAt: new Date().toISOString(),
+        },
+        user.$id
+      );
+
+      // Increment coupon usage count
+      const couponModel = new CouponCodeModel();
+      await couponModel.incrementCouponUsage(couponCodeId);
+
+      return usage;
+    } catch (error) {
+      console.error("recordUsage error:", error);
+      if (error instanceof Error) {
+        return { error: error.message };
+      }
+      return { error: "Failed to record usage" };
+    }
+  }
+
+  async getCustomerUsageCount(
+    couponCodeId: string,
+    customerId: string
+  ): Promise<number> {
+    try {
+      const result = await this.findMany({
+        filters: [
+          { field: "couponCodeId", operator: "equal", value: couponCodeId },
+          { field: "customerId", operator: "equal", value: customerId },
+        ],
+        limit: 1000,
+      });
+
+      return result.total;
+    } catch (error) {
+      console.error("getCustomerUsageCount error:", error);
+      return 0;
+    }
+  }
+
+  async getCustomerUsageHistory(
+    customerId: string,
+    limit: number = 50
+  ): Promise<CouponUsage[]> {
+    try {
+      const result = await this.findMany({
+        filters: [
+          { field: "customerId", operator: "equal", value: customerId },
+        ],
+        limit,
+        orderBy: "usedAt",
+        orderType: "desc",
+      });
+
+      return result.documents;
+    } catch (error) {
+      console.error("getCustomerUsageHistory error:", error);
+      return [];
     }
   }
 }

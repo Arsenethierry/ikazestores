@@ -134,6 +134,7 @@ export const UpdateDiscountSchema = BaseDiscountSchema.partial().extend({
 export const BulkUpdateDiscountStatusSchema = z.object({
   discountIds: z.array(z.string()).min(1, "At least one discount required"),
   isActive: z.boolean(),
+  storeId: z.string()
 });
 
 export const ApplyDiscountToProductsSchema = z.object({

@@ -33,6 +33,8 @@ import {
   CatalogProductTypeVariants,
   ProductColors,
 } from "../types/appwrite/appwrite";
+import { checkStoreAccess } from "../helpers/store-permission-helper";
+import { PRODUCT_PERMISSIONS } from "../helpers/permissions";
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -265,6 +267,134 @@ export const toggleProductFeatured = action
     }
   });
 
+export const toggleProductDropshippingAction = action
+  .use(authMiddleware)
+  .schema(z.object({ productId: z.string() }))
+  .action(async ({ parsedInput, ctx }) => {
+    const { productId } = parsedInput;
+    const { user } = ctx;
+
+    try {
+      const existingProduct = await originalProductsModel.findProductById(
+        productId
+      );
+      if (!existingProduct) {
+        return { error: "Product not found" };
+      }
+
+      const hasPermission = await checkStoreAccess(
+        user.$id,
+        existingProduct.physicalStoreId,
+        PRODUCT_PERMISSIONS.MANAGE_DROPSHIPPING,
+        "physical"
+      );
+
+      if (!hasPermission) {
+        return {
+          error:
+            "Access denied: You don't have permission to manage dropshipping settings",
+        };
+      }
+
+      const result = await originalProductsModel.updateProduct(productId, {
+        isDropshippingEnabled: !existingProduct.isDropshippingEnabled,
+      });
+
+      if ("error" in result) {
+        return { error: result.error };
+      }
+
+      revalidatePath(
+        `/admin/stores/${existingProduct.physicalStoreId}/products`
+      );
+      revalidatePath(`/admin/stores/${existingProduct.physicalStoreId}`);
+      revalidatePath(
+        `/admin/stores/${existingProduct.physicalStoreId}/products/${productId}/settings`
+      );
+
+      return {
+        success: `Dropshipping ${
+          existingProduct.isDropshippingEnabled ? "disabled" : "enabled"
+        } successfully`,
+        data: result,
+      };
+    } catch (error) {
+      console.error("toggleProductDropshipping error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to toggle dropshipping",
+      };
+    }
+  });
+
+export const quickEditPhysicalProductPriceAction = action
+  .use(authMiddleware)
+  .schema(
+    z.object({
+      productId: z.string(),
+      basePrice: z.number().min(0, "Price must be positive"),
+    })
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const { productId, basePrice } = parsedInput;
+    const { user } = ctx;
+
+    try {
+      const existingProduct = await originalProductsModel.findProductById(
+        productId
+      );
+      if (!existingProduct) {
+        return { error: "Product not found" };
+      }
+
+      // Check permission
+      const hasPermission = await checkStoreAccess(
+        user.$id,
+        existingProduct.physicalStoreId,
+        PRODUCT_PERMISSIONS.MANAGE_PRICING,
+        "physical"
+      );
+
+      if (!hasPermission) {
+        return {
+          error:
+            "Access denied: You don't have permission to manage product pricing",
+        };
+      }
+
+      const result = await originalProductsModel.updateProduct(productId, {
+        basePrice,
+      });
+
+      if ("error" in result) {
+        return { error: result.error };
+      }
+
+      revalidatePath(
+        `/admin/stores/${existingProduct.physicalStoreId}/products`
+      );
+      revalidatePath(
+        `/admin/stores/${existingProduct.physicalStoreId}/products/${productId}`
+      );
+      revalidatePath(
+        `/admin/stores/${existingProduct.physicalStoreId}/products/${productId}/settings`
+      );
+
+      return {
+        success: "Price updated successfully",
+        data: result,
+      };
+    } catch (error) {
+      console.error("quickEditPhysicalProductPrice error:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Failed to update price",
+      };
+    }
+  });
+  
 export async function getFilteredProducts(
   filters: ProductFilters,
   storeCountry: string
@@ -362,7 +492,6 @@ export async function getFilteredProducts(
     return { products: [], total: 0, hasMore: false, currentPage: 1 };
   }
 }
-
 
 export async function getProductsCombinations(
   productId: string,

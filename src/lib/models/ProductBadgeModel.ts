@@ -20,21 +20,17 @@ export class ProductBadgeModel extends BaseModel<ProductBadges> {
   }
 
   async createBadge(
-    data: CreateProductBadgeInput
+    data: CreateProductBadgeInput,
+    userId: string
   ): Promise<ProductBadges | { error: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
       const badge = await this.create(
         {
           ...data,
           isActive: data.isActive ?? true,
           priority: data.priority ?? 0,
         },
-        user.$id
+        userId
       );
 
       return badge;

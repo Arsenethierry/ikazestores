@@ -15,29 +15,16 @@ export class ReturnPolicyModel extends BaseModel<ReturnPolicies> {
     super(RETURN_POLICIES_COLLECTION_ID);
   }
 
-  async createPolicy(data: any): Promise<ReturnPolicies | { error: string }> {
+  async createPolicy(
+    data: any,
+    userId: string
+  ): Promise<ReturnPolicies | { error: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
-      const hasPermission = await checkStoreAccess(
-        user.$id,
-        data.storeId,
-        "store.settings"
-      );
-
-      if (!hasPermission) {
-        return { error: "You don't have permission to manage return policies" };
-      }
-
-      // If setting as default, unset other defaults
       if (data.isDefault) {
         await this.unsetDefaultPolicies(data.storeId);
       }
 
-      const policy = await this.create(data, user.$id);
+      const policy = await this.create(data, userId);
 
       return policy;
     } catch (error) {
@@ -119,24 +106,9 @@ export class ReturnPolicyModel extends BaseModel<ReturnPolicies> {
     data: any
   ): Promise<ReturnPolicies | { error: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
       const existing = await this.findById(policyId, {});
       if (!existing) {
         return { error: "Policy not found" };
-      }
-
-      const hasPermission = await checkStoreAccess(
-        user.$id,
-        existing.storeId,
-        "store.settings"
-      );
-
-      if (!hasPermission) {
-        return { error: "You don't have permission to update this policy" };
       }
 
       // If setting as default, unset other defaults
@@ -159,24 +131,9 @@ export class ReturnPolicyModel extends BaseModel<ReturnPolicies> {
     policyId: string
   ): Promise<{ success?: string; error?: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
       const policy = await this.findById(policyId, {});
       if (!policy) {
         return { error: "Policy not found" };
-      }
-
-      const hasPermission = await checkStoreAccess(
-        user.$id,
-        policy.storeId,
-        "store.settings"
-      );
-
-      if (!hasPermission) {
-        return { error: "You don't have permission to delete this policy" };
       }
 
       if (policy.isDefault) {

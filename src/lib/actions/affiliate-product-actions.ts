@@ -11,6 +11,8 @@ import { VirtualProductTypes } from "../types";
 import { authMiddleware } from "./middlewares";
 import { revalidatePath } from "next/cache";
 import z from "zod";
+import { PRODUCT_PERMISSIONS } from "../helpers/permissions";
+import { checkStoreAccess } from "../helpers/store-permission-helper";
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -28,6 +30,19 @@ export const importProductAction = action
     const { user } = ctx;
 
     try {
+      const hasPermission = await checkStoreAccess(
+        user.$id,
+        data.virtualStoreId,
+        PRODUCT_PERMISSIONS.IMPORT_PRODUCTS,
+        "virtual"
+      );
+
+      if (!hasPermission) {
+        throw new Error(
+          "Access denied: You don't have permission to import products"
+        );
+      }
+      
       const result = await affiliateProductModel.importProduct(data);
 
       if ("error" in result) {
@@ -79,6 +94,70 @@ export const updateAffiliateImportAction = action
       return {
         error:
           error instanceof Error ? error.message : "Failed to update import",
+      };
+    }
+  });
+
+export const quickEditVirtualProductCommissionAction = action
+  .use(authMiddleware)
+  .schema(
+    z.object({
+      importId: z.string(),
+      commission: z.number().min(0, "Commission must be positive"),
+    })
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const { importId, commission } = parsedInput;
+    const { user } = ctx;
+
+    try {
+      const existingImport = await affiliateProductModel.findById(importId, {});
+      if (!existingImport) {
+        return { error: "Product import not found" };
+      }
+
+      // Check permission
+      const hasPermission = await checkStoreAccess(
+        user.$id,
+        existingImport.virtualStoreId,
+        PRODUCT_PERMISSIONS.MANAGE_COMMISSION,
+        "virtual"
+      );
+
+      if (!hasPermission) {
+        return {
+          error:
+            "Access denied: You don't have permission to manage commission rates",
+        };
+      }
+
+      const result = await affiliateProductModel.updateImport(importId, {
+        commission,
+      });
+
+      if ("error" in result) {
+        return { error: result.error };
+      }
+
+      revalidatePath(`/admin/stores/${existingImport.virtualStoreId}/products`);
+      revalidatePath(
+        `/admin/stores/${existingImport.virtualStoreId}/products/${importId}`
+      );
+      revalidatePath(
+        `/admin/stores/${existingImport.virtualStoreId}/products/${importId}/settings`
+      );
+
+      return {
+        success: "Commission updated successfully",
+        data: result,
+      };
+    } catch (error) {
+      console.error("quickEditVirtualProductCommission error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update commission",
       };
     }
   });

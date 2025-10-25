@@ -357,7 +357,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
 
   async updateImport(
     importId: string,
-    data: UpdateAffiliateImportSchema
+    data: any
   ): Promise<AffiliateProductImports | { error: string }> {
     try {
       const { user } = await getAuthState();
@@ -429,11 +429,6 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
     newCommission: number
   ): Promise<{ success?: string; error?: string }> {
     try {
-      const { user } = await getAuthState();
-      if (!user) {
-        return { error: "Authentication required" };
-      }
-
       const imports = await this.findActiveImports(virtualStoreId);
 
       const updatePromises = imports.documents.map((import_) =>
