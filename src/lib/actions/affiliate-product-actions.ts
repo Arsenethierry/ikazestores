@@ -344,7 +344,7 @@ export async function getVirtualStoreProducts(
     const result = await affiliateProductModel.getVirtualStoreProducts(
       virtualStoreId,
       queryOptions,
-      isAdmin
+      // isAdmin
     );
 
     return result;

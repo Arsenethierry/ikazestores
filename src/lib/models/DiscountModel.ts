@@ -102,6 +102,126 @@ export class DiscountModel extends BaseModel<Discounts> {
     return { success, errors };
   }
 
+  async getActiveDiscountForProduct(
+    productId: string,
+    physicalStoreId: string
+  ): Promise<Discounts | null> {
+    try {
+      const now = new Date().toISOString();
+
+      const result = await this.findMany({
+        filters: [
+          { field: "storeId", operator: "equal", value: physicalStoreId },
+          { field: "storeType", operator: "equal", value: "physical" },
+          { field: "isActive", operator: "equal", value: true },
+          { field: "discountType", operator: "equal", value: "fixed_amount" },
+          { field: "valueType", operator: "equal", value: "fixed" },
+          { field: "startDate", operator: "lessThanEqual", value: now },
+        ],
+        limit: 20,
+        orderBy: "priority",
+        orderType: "desc",
+      });
+
+      const applicableDiscounts = result.documents.filter((discount) => {
+        // Check end date
+        if (discount.endDate && new Date(discount.endDate) < new Date()) {
+          return false;
+        }
+
+        // Check usage limit
+        if (
+          discount.usageLimit &&
+          discount.currentUsageCount &&
+          discount.currentUsageCount >= discount.usageLimit
+        ) {
+          return false;
+        }
+
+        // Check if applicable to this product
+        if (discount.applicableTo === "store_wide") return true;
+
+        if (
+          discount.applicableTo === "products" &&
+          discount.targetIds?.includes(productId)
+        ) {
+          return true;
+        }
+
+        return false;
+      });
+
+      // Return the highest priority discount
+      return applicableDiscounts[0] || null;
+    } catch (error) {
+      console.error("getActiveDiscountForProduct error:", error);
+      return null;
+    }
+  }
+
+  async getActiveDiscountsForProducts(
+    productIds: string[],
+    physicalStoreId: string
+  ): Promise<Map<string, Discounts | null>> {
+    try {
+      const now = new Date().toISOString();
+
+      const result = await this.findMany({
+        filters: [
+          { field: "storeId", operator: "equal", value: physicalStoreId },
+          { field: "storeType", operator: "equal", value: "physical" },
+          { field: "isActive", operator: "equal", value: true },
+          { field: "discountType", operator: "equal", value: "fixed_amount" },
+          { field: "valueType", operator: "equal", value: "fixed" },
+          { field: "startDate", operator: "lessThanEqual", value: now },
+        ],
+        limit: 100,
+        orderBy: "priority",
+        orderType: "desc",
+      });
+
+      // Filter valid discounts
+      const validDiscounts = result.documents.filter((discount) => {
+        if (discount.endDate && new Date(discount.endDate) < new Date()) {
+          return false;
+        }
+        if (
+          discount.usageLimit &&
+          discount.currentUsageCount &&
+          discount.currentUsageCount >= discount.usageLimit
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      // Map productId to best discount
+      const discountMap = new Map<string, Discounts | null>();
+
+      productIds.forEach((productId) => {
+        // Find applicable discounts for this product
+        const applicable = validDiscounts.filter((discount) => {
+          if (discount.applicableTo === "store_wide") return true;
+          if (
+            discount.applicableTo === "products" &&
+            discount.targetIds?.includes(productId)
+          ) {
+            return true;
+          }
+          return false;
+        });
+
+        // Set the highest priority one
+        discountMap.set(productId, applicable[0] || null);
+      });
+
+      return discountMap;
+    } catch (error) {
+      console.error("getActiveDiscountsForProducts error:", error);
+      return new Map();
+    }
+  }
+
   async getActiveDiscounts(
     storeId: string,
     options: QueryOptions = {}
@@ -120,6 +240,50 @@ export class DiscountModel extends BaseModel<Discounts> {
       orderBy: "priority",
       orderType: "desc",
     });
+  }
+
+  async getStoreWideDiscount(
+    physicalStoreId: string
+  ): Promise<Discounts | null> {
+    try {
+      const now = new Date().toISOString();
+
+      const result = await this.findMany({
+        filters: [
+          { field: "storeId", operator: "equal", value: physicalStoreId },
+          { field: "storeType", operator: "equal", value: "physical" },
+          { field: "applicableTo", operator: "equal", value: "store_wide" },
+          { field: "isActive", operator: "equal", value: true },
+          { field: "discountType", operator: "equal", value: "fixed_amount" },
+          { field: "valueType", operator: "equal", value: "fixed" },
+          { field: "startDate", operator: "lessThanEqual", value: now },
+        ],
+        limit: 1,
+        orderBy: "priority",
+        orderType: "desc",
+      });
+
+      if (result.documents.length === 0) return null;
+
+      const discount = result.documents[0];
+
+      // Validate end date and usage
+      if (discount.endDate && new Date(discount.endDate) < new Date()) {
+        return null;
+      }
+      if (
+        discount.usageLimit &&
+        discount.currentUsageCount &&
+        discount.currentUsageCount >= discount.usageLimit
+      ) {
+        return null;
+      }
+
+      return discount;
+    } catch (error) {
+      console.error("getStoreWideDiscount error:", error);
+      return null;
+    }
   }
 
   async getDiscountById(discountId: string): Promise<Discounts | null> {

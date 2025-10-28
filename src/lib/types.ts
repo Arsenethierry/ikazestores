@@ -3,6 +3,7 @@ import { UserRole } from "./constants";
 import { ProductCombination } from "./schemas/product-variants-schema";
 import {
   AffiliateProductImports,
+  Discounts,
   ProductCollectionGroups,
   ProductCollections,
   ProductColors,
@@ -21,6 +22,7 @@ import {
 } from "./schemas/stores-schema";
 import { PhysicalStore } from "@/lib/types/appwrite/appwrite";
 import { VirtualProductSchema } from "./schemas/products-schems";
+import { PriceBreakdown } from "./helpers/discount-calculator";
 
 export type SignInParams = {
   email: string;
@@ -161,6 +163,15 @@ export interface VirtualProductTypes extends AffiliateProductImports {
   physicalStoreCountry: string;
   shortDescription?: string;
   physicalStoreId: string;
+  virtualStore: VirtualStoreTypes
+  discount?: Discounts | null;
+  priceBreakdown: PriceBreakdown;
+  finalPrice: number;
+  originalPrice: number;
+  savings: number;
+  hasDiscount: boolean;
+  categoryName: string;
+  subcategoryName: string;
 }
 
 export type VirtualStoreTypes = VirtualStore;
