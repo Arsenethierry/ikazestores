@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
@@ -39,20 +39,24 @@ import {
     MoreHorizontal,
     Edit,
     Trash2,
-    Copy,
     Power,
     PowerOff,
     Search,
-    Plus,
-    Filter,
+    Eye,
+    Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import {
-    deleteDiscountAction,
-    bulkUpdateDiscountStatusAction,
-} from "@/lib/actions/discount-actions";
+import { bulkUpdateDiscountStatusAction } from "@/lib/actions/discount-actions";
 import { Discounts } from "@/lib/types/appwrite-types";
+import { useConfirm } from "@/hooks/use-confirm";
+
+const EditDiscountDialog = lazy(() =>
+    import("./edit-discount-dialog").then((mod) => ({ default: mod.EditDiscountDialog }))
+);
+const DeleteDiscountDialog = lazy(() =>
+    import("./delete-discount-dialog").then((mod) => ({ default: mod.DeleteDiscountDialog }))
+);
 
 interface DiscountListProps {
     discounts: Discounts[];
@@ -65,15 +69,14 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState({});
 
-    const { execute: deleteDiscount, status: deleteStatus } = useAction(deleteDiscountAction, {
-        onSuccess: ({ data }) => {
-            toast.success(data?.message || "Discount deleted");
-            router.refresh();
-        },
-        onError: ({ error }) => {
-            toast.error(error.serverError || "Failed to delete discount");
-        },
-    });
+    const [editingDiscount, setEditingDiscount] = useState<Discounts | null>(null);
+    const [deletingDiscount, setDeletingDiscount] = useState<Discounts | null>(null);
+
+    const [ConfirmDialog, confirm] = useConfirm(
+        "Deactivate Discount",
+        "Are you sure you want to deactivate this discount? It will no longer be available to customers.",
+        "destructive"
+    );
 
     const { execute: bulkUpdateStatus, status } = useAction(
         bulkUpdateDiscountStatusAction,
@@ -89,8 +92,26 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
         }
     );
 
-    const isDeleting = deleteStatus === "executing";
     const isBulkUpdating = status === "executing";
+
+    const handleStatusToggle = async (discount: Discounts) => {
+        if (discount.isActive) {
+            const confirmed = await confirm();
+            if (!confirmed) return;
+        }
+
+        bulkUpdateStatus({
+            discountIds: [discount.$id],
+            isActive: !discount.isActive,
+            storeId,
+        });
+    };
+
+    const handleViewDetails = (discountId: string) => {
+        router.push(
+            `/admin/stores/${storeId}/physical-store/marketing/discounts/${discountId}`
+        );
+    };
 
     const columns: ColumnDef<Discounts>[] = [
         {
@@ -114,10 +135,17 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
         },
         {
             accessorKey: "name",
-            header: "Name",
+            header: "Discount Name",
             cell: ({ row }) => {
-                const name = row.getValue("name") as string;
-                return <div className="font-medium">{name}</div>;
+                const discount = row.original;
+                return (
+                    <button
+                        onClick={() => handleViewDetails(discount.$id)}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline text-left"
+                    >
+                        {discount.name}
+                    </button>
+                );
             },
         },
         {
@@ -125,10 +153,19 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             header: "Type",
             cell: ({ row }) => {
                 const type = row.getValue("discountType") as string;
+                const typeLabels: Record<string, string> = {
+                    percentage: "Percentage",
+                    fixed_amount: "Fixed Amount",
+                    buy_x_get_y: "Buy X Get Y",
+                    bundle: "Bundle",
+                    bulk_pricing: "Bulk Pricing",
+                    flash_sale: "Flash Sale",
+                    first_time_buyer: "First Time Buyer",
+                };
                 return (
-                    <Badge variant="outline">
-                        {type.replace(/_/g, " ").toUpperCase()}
-                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                        {typeLabels[type] || type}
+                    </span>
                 );
             },
         },
@@ -139,40 +176,40 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                 const value = row.getValue("value") as number;
                 const valueType = row.original.valueType;
                 return (
-                    <div>
+                    <span className="font-medium">
                         {valueType === "percentage" ? `${value}%` : `${value} RWF`}
-                    </div>
+                    </span>
                 );
             },
         },
         {
-            accessorKey: "applicableTo",
-            header: "Applies To",
+            id: "usage",
+            header: "Usage",
             cell: ({ row }) => {
-                const applicableTo = row.getValue("applicableTo") as string;
+                const discount = row.original;
+                const current = discount.currentUsageCount || 0;
+                const limit = discount.usageLimit;
                 return (
-                    <Badge variant="secondary">
-                        {applicableTo.replace(/_/g, " ")}
-                    </Badge>
+                    <span className="text-sm">
+                        {current}
+                        {limit ? ` / ${limit}` : ""}
+                    </span>
                 );
             },
         },
         {
-            accessorKey: "startDate",
-            header: "Start Date",
+            id: "dates",
+            header: "Duration",
             cell: ({ row }) => {
-                const date = row.getValue("startDate") as string;
-                return <div>{format(new Date(date), "MMM dd, yyyy")}</div>;
-            },
-        },
-        {
-            accessorKey: "endDate",
-            header: "End Date",
-            cell: ({ row }) => {
-                const date = row.getValue("endDate") as string | undefined;
+                const discount = row.original;
+                const start = format(new Date(discount.startDate), "MMM dd");
+                const end = discount.endDate
+                    ? format(new Date(discount.endDate), "MMM dd, yyyy")
+                    : "No end";
                 return (
-                    <div>
-                        {date ? format(new Date(date), "MMM dd, yyyy") : "No end date"}
+                    <div className="text-sm">
+                        <div>{start}</div>
+                        <div className="text-muted-foreground text-xs">{end}</div>
                     </div>
                 );
             },
@@ -227,34 +264,20 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem
-                                onClick={() =>
-                                    router.push(
-                                        `/admin/*/marketing/discounts/${discount.$id}/edit`
-                                    )
-                                }
+                                onClick={() => handleViewDetails(discount.$id)}
+                            >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => setEditingDiscount(discount)}
                             >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() =>
-                                    router.push(
-                                        `/admin/*/marketing/discounts/${discount.$id}/duplicate`
-                                    )
-                                }
-                            >
-                                <Copy className="mr-2 h-4 w-4" />
-                                Duplicate
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={() =>
-                                    bulkUpdateStatus({
-                                        discountIds: [discount.$id],
-                                        isActive: !discount.isActive,
-                                        storeId, // ✅ FIXED: Added missing storeId
-                                    })
-                                }
+                                onClick={() => handleStatusToggle(discount)}
                                 disabled={isBulkUpdating}
                             >
                                 {discount.isActive ? (
@@ -271,11 +294,8 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={() =>
-                                    deleteDiscount({ discountId: discount.$id })
-                                }
+                                onClick={() => setDeletingDiscount(discount)}
                                 className="text-red-600"
-                                disabled={isDeleting}
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
@@ -312,64 +332,75 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
         bulkUpdateStatus({
             discountIds,
             isActive: true,
-            storeId, // ✅ FIXED: Added missing storeId
+            storeId,
         });
     };
 
-    const handleBulkDeactivate = () => {
+    const handleBulkDeactivate = async () => {
+        const confirmed = await confirm();
+        if (!confirmed) return;
+
         const discountIds = selectedRows.map((row) => row.original.$id);
         bulkUpdateStatus({
             discountIds,
             isActive: false,
-            storeId, // ✅ FIXED: Added missing storeId
+            storeId,
         });
     };
 
     return (
         <div className="space-y-4">
-            {/* Header Actions */}
+            <ConfirmDialog />
+
+            {/* Search and Bulk Actions */}
             <div className="flex items-center justify-between gap-4">
-                <div className="flex flex-1 items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="flex-1 max-w-sm">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             placeholder="Search discounts..."
-                            value={
-                                (table.getColumn("name")?.getFilterValue() as string) ?? ""
-                            }
+                            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
                             onChange={(event) =>
                                 table.getColumn("name")?.setFilterValue(event.target.value)
                             }
-                            className="pl-8"
+                            className="pl-9"
                         />
                     </div>
-
-                    {hasSelection && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">
-                                {selectedRows.length} selected
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleBulkActivate}
-                                disabled={isBulkUpdating}
-                            >
-                                <Power className="mr-2 h-4 w-4" />
-                                Activate
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleBulkDeactivate}
-                                disabled={isBulkUpdating}
-                            >
-                                <PowerOff className="mr-2 h-4 w-4" />
-                                Deactivate
-                            </Button>
-                        </div>
-                    )}
                 </div>
+
+                {hasSelection && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            {selectedRows.length} selected
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkActivate}
+                            disabled={isBulkUpdating}
+                        >
+                            {isBulkUpdating ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Power className="mr-2 h-4 w-4" />
+                            )}
+                            Activate
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkDeactivate}
+                            disabled={isBulkUpdating}
+                        >
+                            {isBulkUpdating ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <PowerOff className="mr-2 h-4 w-4" />
+                            )}
+                            Deactivate
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Table */}
@@ -446,6 +477,39 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                         Next
                     </Button>
                 </div>
+            </div>
+
+            {/* Lazy-loaded Dialogs with Suspense */}
+            <Suspense fallback={<DialogLoadingFallback />}>
+                {editingDiscount && (
+                    <EditDiscountDialog
+                        discount={editingDiscount}
+                        isOpen={!!editingDiscount}
+                        onClose={() => setEditingDiscount(null)}
+                        onSuccess={() => router.refresh()}
+                    />
+                )}
+            </Suspense>
+
+            <Suspense fallback={<DialogLoadingFallback />}>
+                {deletingDiscount && (
+                    <DeleteDiscountDialog
+                        discount={deletingDiscount}
+                        isOpen={!!deletingDiscount}
+                        onClose={() => setDeletingDiscount(null)}
+                        onSuccess={() => router.refresh()}
+                    />
+                )}
+            </Suspense>
+        </div>
+    );
+}
+
+function DialogLoadingFallback() {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="rounded-lg bg-white p-6">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
             </div>
         </div>
     );

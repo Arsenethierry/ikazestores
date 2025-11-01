@@ -21,6 +21,7 @@ import {
 import { CouponCodes, CouponUsage, Discounts } from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import { checkStoreAccess } from "../helpers/store-permission-helper";
+import { MARKETING_PERMISSIONS } from "../helpers/permissions";
 
 export class DiscountModel extends BaseModel<Discounts> {
   constructor() {
@@ -910,6 +911,21 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
     }
   }
 
+  async getCouponById(couponId: string): Promise<CouponCodes | null> {
+    try {
+      const { databases } = await createSessionClient();
+      const coupon = await databases.getDocument(
+        DATABASE_ID,
+        COUPON_CODES_COLLECTION_ID,
+        couponId
+      );
+      return coupon as CouponCodes;
+    } catch (error) {
+      console.error("getCouponById error:", error);
+      return null;
+    }
+  }
+
   async incrementCouponUsage(couponCodeId: string): Promise<void> {
     try {
       const coupon = await this.findById(couponCodeId, {});
@@ -937,7 +953,7 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
       const hasPermission = await checkStoreAccess(
         user.$id,
         storeId,
-        "marketing.discounts.update"
+        MARKETING_PERMISSIONS.UPDATE_DISCOUNTS
       );
 
       if (!hasPermission) {
@@ -968,7 +984,7 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
       const hasPermission = await checkStoreAccess(
         user.$id,
         storeId,
-        "marketing.discounts.delete"
+        MARKETING_PERMISSIONS.DELETE_DISCOUNTS
       );
 
       if (!hasPermission) {
@@ -1020,11 +1036,50 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
       console.error("deleteCouponUsageByCoupon error:", error);
     }
   }
+
+  async getCouponsByDiscountPaginated(
+    discountId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<PaginationResult<CouponCodes>> {
+    try {
+      const { databases } = await createSessionClient();
+      const offset = (page - 1) * limit;
+
+      const result = await databases.listDocuments(
+        DATABASE_ID,
+        COUPON_CODES_COLLECTION_ID,
+        [
+          Query.equal("discountId", discountId),
+          Query.orderDesc("$createdAt"),
+          Query.limit(limit),
+          Query.offset(offset),
+        ]
+      );
+
+      const hasMore = offset + result.documents.length < result.total;
+
+      return {
+        documents: result.documents as CouponCodes[],
+        total: result.total,
+        limit: limit,
+        offset,
+        hasMore,
+      };
+    } catch (error) {
+      console.error("getCouponsByDiscountPaginated error:", error);
+      return { documents: [], total: 0, hasMore: false, limit, offset: 0 };
+    }
+  }
 }
 
 export class CouponUsageModel extends BaseModel<CouponUsage> {
   constructor() {
     super(COUPON_USAGE_COLLECTION_ID);
+  }
+
+  private get couponModel() {
+    return new CouponCodeModel();
   }
 
   async recordUsage(
@@ -1050,9 +1105,7 @@ export class CouponUsageModel extends BaseModel<CouponUsage> {
         user.$id
       );
 
-      // Increment coupon usage count
-      const couponModel = new CouponCodeModel();
-      await couponModel.incrementCouponUsage(couponCodeId);
+      await this.couponModel.incrementCouponUsage(couponCodeId);
 
       return usage;
     } catch (error) {
@@ -1102,6 +1155,43 @@ export class CouponUsageModel extends BaseModel<CouponUsage> {
     } catch (error) {
       console.error("getCustomerUsageHistory error:", error);
       return [];
+    }
+  }
+
+  async getCouponUsage(couponId: string): Promise<{
+    totalUses: number;
+    uniqueCustomers: number;
+    totalDiscount: number;
+    recentUsage: CouponUsage[];
+  }> {
+    try {
+      const usageRecords = await this.findMany({
+        filters: [
+          { field: "couponCodeId", operator: "equal", value: couponId },
+        ],
+      });
+
+      const records = usageRecords.documents as CouponUsage[];
+      const uniqueCustomers = new Set(records.map((r) => r.customerId)).size;
+      const totalDiscount = records.reduce(
+        (sum, r) => sum + (r.discountAmount || 0),
+        0
+      );
+
+      return {
+        totalUses: records.length,
+        uniqueCustomers,
+        totalDiscount,
+        recentUsage: records.slice(0, 10),
+      };
+    } catch (error) {
+      console.error("getCouponUsage error:", error);
+      return {
+        totalUses: 0,
+        uniqueCustomers: 0,
+        totalDiscount: 0,
+        recentUsage: [],
+      };
     }
   }
 }

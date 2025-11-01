@@ -4,16 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Plus, Tag } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DiscountList } from "@/features/marketing/discount-list";
 
-export const revalidate = 600; // ISR - 5 minutes
+export const revalidate = 600;
 
 interface PageProps {
-    params: { storeId: string };
+    params: Promise<{ storeId: string }>;
 }
 
 export default async function PhysicalStoreDiscountsPage({ params }: PageProps) {
+    const { storeId } = await params;
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -28,7 +30,7 @@ export default async function PhysicalStoreDiscountsPage({ params }: PageProps) 
                     </div>
                 </div>
                 <Button asChild>
-                    <Link href={`/admin/stores/${params.storeId}/physical-store/marketing/discounts/create`}>
+                    <Link href={`/admin/stores/${storeId}/physical-store/marketing/discounts/create`}>
                         <Plus className="mr-2 h-4 w-4" />
                         Create Discount
                     </Link>
@@ -37,39 +39,69 @@ export default async function PhysicalStoreDiscountsPage({ params }: PageProps) 
 
             {/* Quick Stats */}
             <Suspense fallback={<StatsSkeletonPhysical />}>
-                <DiscountStatsPhysical storeId={params.storeId} />
+                <DiscountStatsPhysical storeId={storeId} />
             </Suspense>
 
             {/* Discount List */}
             <Suspense fallback={<DiscountListSkeleton />}>
-                <DiscountListServer storeId={params.storeId} storeType="physical" />
+                <DiscountListServer storeId={storeId} />
             </Suspense>
         </div>
-    )
+    );
 }
 
-async function DiscountStatsPhysical({ storeId }: { storeId: string }) {
+// Server Component - Fetch and render discount list
+async function DiscountListServer({ storeId }: { storeId: string }) {
     const discountModel = new DiscountModel();
-    const activeDiscounts = await discountModel.findMany({
+    const result = await discountModel.findMany({
         filters: [
             { field: "storeId", operator: "equal", value: storeId },
-            { field: "isActive", operator: "equal", value: true },
+            { field: "storeType", operator: "equal", value: "physical" },
         ],
     });
 
-    const totalUsage = activeDiscounts.documents.reduce(
+    return <DiscountList discounts={result.documents} storeId={storeId} />;
+}
+
+// Stats component
+async function DiscountStatsPhysical({ storeId }: { storeId: string }) {
+    const discountModel = new DiscountModel();
+
+    const [active, upcoming, expired] = await Promise.all([
+        discountModel.findMany({
+            filters: [
+                { field: "storeId", operator: "equal", value: storeId },
+                { field: "isActive", operator: "equal", value: true },
+            ],
+        }),
+        discountModel.findMany({
+            filters: [
+                { field: "storeId", operator: "equal", value: storeId },
+                { field: "startDate", operator: "greaterThan", value: new Date().toISOString() },
+            ],
+        }),
+        discountModel.findMany({
+            filters: [
+                { field: "storeId", operator: "equal", value: storeId },
+                { field: "endDate", operator: "lessThan", value: new Date().toISOString() },
+            ],
+        }),
+    ]);
+
+    const totalUsage = active.documents.reduce(
         (sum, d) => sum + (d.currentUsageCount || 0),
         0
     );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium">Active Discounts</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{activeDiscounts.documents.length}</div>
+                    <div className="text-2xl font-bold">{active.documents.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Currently active</p>
                 </CardContent>
             </Card>
             <Card>
@@ -78,44 +110,69 @@ async function DiscountStatsPhysical({ storeId }: { storeId: string }) {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{totalUsage}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Times used</p>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Discount Types</CardTitle>
+                    <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">
-                        {new Set(activeDiscounts.documents.map(d => d.discountType)).size}
-                    </div>
+                    <div className="text-2xl font-bold">{upcoming.documents.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Scheduled</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Expired</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{expired.documents.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Past discounts</p>
                 </CardContent>
             </Card>
         </div>
     );
 }
 
-async function DiscountListServer({ storeId, storeType }: { storeId: string; storeType: string }) {
-    const discountModel = new DiscountModel();
-    const result = await discountModel.getActiveDiscounts(storeId, { limit: 50 });
-
-    return <DiscountList discounts={result.documents} storeId={storeId} />;
-}
-
-function StatsSkeletonPhysical() {
+// Loading skeletons
+function DiscountListSkeleton() {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
+        <div className="space-y-4">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-10 flex-1 max-w-sm" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+            </div>
+            <div className="rounded-md border">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 border-b last:border-0">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 flex-1" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-8 w-8" />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
 
-function DiscountListSkeleton() {
+function StatsSkeletonPhysical() {
     return (
-        <div className="space-y-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-96 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="pb-3">
+                        <Skeleton className="h-4 w-32" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-8 w-16 mb-2" />
+                        <Skeleton className="h-3 w-24" />
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     );
 }
