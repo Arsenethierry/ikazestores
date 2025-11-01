@@ -20,7 +20,7 @@ import {
   CatalogVariantTemplates,
   ProductCategories,
   Subcategories,
-} from "../types/appwrite/appwrite";
+} from "../types/appwrite-types";
 
 export interface CategoryFilters {
   storeId?: string;

@@ -12,7 +12,6 @@ import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { VirtualProductMenuActions } from '../virtual-product-actions';
-import { ProductPriceDisplay } from '../../currency/converted-price-component';
 import Link from 'next/link';
 import { useCurrentUser } from '@/features/auth/queries/use-get-current-user';
 import { getStoreSubdomainUrl } from '@/lib/domain-utils';
@@ -109,17 +108,17 @@ export const ClientVirtualProductCard = ({
                     <div className='flex justify-between items-center'>
                         <div className="flex items-center gap-2 font-sans transition-transform duration-300 ease-in-out group-hover:translate-x-1">
                             <span className="font-semibold  text-sm transition-colors duration-300 group-hover:text-gray-900">
-                                <ProductPriceDisplay
+                                {/* <ProductPriceDisplay
                                     productPrice={price}
                                     productCurrency={productCurrency}
-                                />
+                                /> */}
                             </span>
                             {originalPrice && (
                                 <span className="text-sm text-gray-500 line-through transition-opacity duration-300 group-hover:opacity-70">
-                                    <ProductPriceDisplay
+                                    {/* <ProductPriceDisplay
                                         productPrice={originalPrice}
                                         productCurrency={productCurrency}
-                                    />
+                                    /> */}
                                 </span>
                             )}
                         </div>

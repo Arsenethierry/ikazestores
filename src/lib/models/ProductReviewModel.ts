@@ -17,15 +17,15 @@ import {
   PRODUCT_REVIEWS_COLLECTION_ID,
   REVIEW_VOTES_COLLECTION_ID,
 } from "../env-config";
-import {
-  OrderItems,
-  Orders,
-  ProductReview,
-  VoteType,
-} from "../types/appwrite/appwrite";
 import { getAuthState } from "../user-permission";
 import { OrderStatus } from "../constants";
 import { ProductModel } from "./ProductModel";
+import {
+  VoteType,
+  OrderItems,
+  Orders,
+  ProductReview,
+} from "../types/appwrite-types";
 
 export interface CreateProductReviewData {
   productId: string;

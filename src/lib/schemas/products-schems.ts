@@ -437,6 +437,28 @@ export const RemoveSavedItemSchema = z.object({
 // ============================================
 // Type Exports
 // ============================================
+export const createReviewSchema = z.object({
+  productId: z.string().min(1, "Product ID is required"),
+  virtualStoreId: z.string().min(1, "Virtual store ID is required"),
+  rating: z.number().min(1, "Rating must be at least 1").max(5, "Rating cannot exceed 5"),
+  title: z.string().min(5, "Title must be at least 5 characters").max(100, "Title too long"),
+  comment: z.string().min(20, "Review must be at least 20 characters").max(2000, "Review too long"),
+  pros: z.array(z.string()).optional(),
+  cons: z.array(z.string()).optional(),
+  orderId: z.string().optional(),
+  // Note: File uploads handled separately via form data
+});
+
+enum VoteType {
+  Helpful = "helpful",
+  Unhelpful = "unhelpful",
+}
+
+export const voteOnReviewSchema = z.object({
+  reviewId: z.string().min(1, "Review ID is required"),
+  voteType: z.nativeEnum(VoteType),
+});
+
 
 export type CreateProductSchema = z.infer<typeof CreateProductSchema>;
 export type UpdateProductSchema = z.infer<typeof UpdateProductSchema>;

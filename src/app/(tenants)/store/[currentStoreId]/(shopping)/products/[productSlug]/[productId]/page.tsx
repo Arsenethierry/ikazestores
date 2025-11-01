@@ -4,7 +4,12 @@ import { ProductDetails } from '@/features/products/components/product-details';
 import { getVirtualProductById } from '@/lib/actions/affiliate-product-actions';
 import { MAIN_DOMAIN } from '@/lib/env-config';
 import React, { Suspense } from 'react';
-import { ProductDetailsWrapper } from './product-details-wrapper';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
+import { StoreInfoCard } from '@/features/products/components/product-details/store-info-card';
+import { ProductReviewsSection } from '@/features/products/components/product-details/product-reviews-section';
+import { RelatedProducts } from '@/features/products/components/product-details/related-products';
+import { ProductSpecifications } from '@/features/products/components/product-details/product-specifications';
 
 interface PageProps {
     params: Promise<{ productId: string }>;
@@ -79,6 +84,46 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
     }
 }
 
+function ProductDetailsSkeleton() {
+    return (
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            <Skeleton className="w-full h-[500px]" />
+            <div className="space-y-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewsSkeleton() {
+    return (
+        <Card className="p-6">
+            <Skeleton className="h-8 w-1/4 mb-4" />
+            <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                ))}
+            </div>
+        </Card>
+    );
+}
+
+function RelatedProductsSkeleton() {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-8 w-1/4" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                    <Skeleton key={i} className="h-64 w-full" />
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default async function ProductPage({ params, searchParams }: PageProps) {
     const { productId } = await params;
     const { color } = await searchParams;
@@ -87,6 +132,8 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
 
     try {
         initialProduct = await getVirtualProductById(productId);
+
+        console.log("nehdebdhebde: ", initialProduct)
     } catch (error) {
         console.error('Error fetching product:', error);
     }
@@ -97,13 +144,40 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Suspense fallback={<SpinningLoader />}>
-                <ProductDetailsWrapper
-                    productId={productId}
-                    initialProduct={initialProduct}
-                    initialColorParam={color}
-                />
-            </Suspense>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <Suspense fallback={<ProductDetailsSkeleton />}>
+                    <ProductDetails
+                        product={initialProduct}
+                        initialColorParam={color}
+                    />
+                </Suspense>
+
+                <Suspense fallback={<Skeleton className="h-32 w-full my-8" />}>
+                    <StoreInfoCard
+                        storeId={initialProduct.virtualStoreId}
+                        productId={productId}
+                    />
+                </Suspense>
+
+                <Suspense fallback={<Skeleton className="h-64 w-full my-8" />}>
+                    <ProductSpecifications product={initialProduct} />
+                </Suspense>
+
+                <Suspense fallback={<ReviewsSkeleton />}>
+                    <ProductReviewsSection
+                        productId={productId}
+                        virtualStoreId={initialProduct.virtualStoreId}
+                    />
+                </Suspense>
+
+                <Suspense fallback={<RelatedProductsSkeleton />}>
+                    <RelatedProducts
+                        productId={productId}
+                        virtualStoreId={initialProduct.virtualStoreId}
+                        categoryId={initialProduct.categoryId}
+                    />
+                </Suspense>
+            </div>
         </div>
     );
 }

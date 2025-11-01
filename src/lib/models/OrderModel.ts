@@ -20,7 +20,7 @@ import {
   OrderItems,
   Orders,
   ReturnOrderRequests,
-} from "../types/appwrite/appwrite";
+} from "../types/appwrite-types";
 import { AffiliateProductModel } from "./AffliateProductModel";
 import { OrderItemsModel } from "./OrderItemsModel";
 import { PhysicalStoreModel } from "./physical-store-model";

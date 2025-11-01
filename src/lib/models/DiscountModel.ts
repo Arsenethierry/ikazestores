@@ -1,9 +1,5 @@
 import { ID, Query } from "node-appwrite";
-import {
-  createAdminClient,
-  createDocumentPermissions,
-  createSessionClient,
-} from "../appwrite";
+import { createSessionClient } from "../appwrite";
 import {
   BaseModel,
   PaginationResult,
@@ -22,17 +18,21 @@ import {
   PriceBreakdown,
   UpdateDiscountInput,
 } from "../schemas/discount-schemas";
-import {
-  CouponCodes,
-  CouponUsage,
-  Discounts,
-} from "../types/appwrite/appwrite";
+import { CouponCodes, CouponUsage, Discounts } from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import { checkStoreAccess } from "../helpers/store-permission-helper";
 
 export class DiscountModel extends BaseModel<Discounts> {
   constructor() {
     super(DISCOUNTS_COLLECTION_ID);
+  }
+
+  private get couponCodeModel() {
+    return new CouponCodeModel();
+  }
+
+  private get couponUsageModel() {
+    return new CouponUsageModel();
   }
 
   async createDiscount(
@@ -356,6 +356,169 @@ export class DiscountModel extends BaseModel<Discounts> {
     }
   }
 
+  async validateCoupon(
+    code: string,
+    storeId: string,
+    customerId?: string,
+    cartTotal?: number,
+    productIds?: string[]
+  ): Promise<{
+    valid: boolean;
+    error?: string;
+    discount?: Discounts;
+    coupon?: CouponCodes;
+  }> {
+    try {
+      const coupon = await this.couponCodeModel.getCouponByCode(code, storeId);
+
+      if (!coupon) {
+        return {
+          valid: false,
+          error: "Coupon code not found or not valid for this store",
+        };
+      }
+
+      // Step 2: Check if coupon is active
+      if (!coupon.isActive) {
+        return {
+          valid: false,
+          error: "This coupon code is currently inactive",
+        };
+      }
+
+      // Step 3: Get associated discount
+      const discount = await this.getDiscountById(coupon.discountId);
+
+      if (!discount) {
+        return {
+          valid: false,
+          error: "Associated discount not found",
+        };
+      }
+
+      // Step 4: Check if discount is active
+      if (!discount.isActive) {
+        return {
+          valid: false,
+          error: "This discount is currently inactive",
+        };
+      }
+
+      // Step 5: Validate date range
+      const now = new Date();
+      const startDate = new Date(discount.startDate);
+
+      if (now < startDate) {
+        return {
+          valid: false,
+          error: `This coupon will be valid starting ${startDate.toLocaleDateString()}`,
+        };
+      }
+
+      if (discount.endDate) {
+        const endDate = new Date(discount.endDate);
+        if (now > endDate) {
+          return {
+            valid: false,
+            error: "This coupon has expired",
+          };
+        }
+      }
+
+      // Step 6: Check total usage limit
+      if (discount.usageLimit) {
+        const currentUsage = discount.currentUsageCount || 0;
+        if (currentUsage >= discount.usageLimit) {
+          return {
+            valid: false,
+            error: "This coupon has reached its usage limit",
+          };
+        }
+      }
+
+      // Step 7: Check per-customer usage limit
+      if (customerId && discount.usageLimitPerCustomer) {
+        const customerUsageCount =
+          await this.couponUsageModel.getCustomerUsageCount(
+            coupon.$id,
+            customerId
+          );
+
+        if (customerUsageCount >= discount.usageLimitPerCustomer) {
+          return {
+            valid: false,
+            error: "You have reached the usage limit for this coupon",
+          };
+        }
+      }
+
+      // Step 8: Check customer eligibility
+      if (customerId) {
+        // Check if customer is excluded
+        if (discount.excludedCustomerIds?.includes(customerId)) {
+          return {
+            valid: false,
+            error: "This coupon is not available for your account",
+          };
+        }
+
+        // Check if there's a whitelist and customer is not in it
+        if (
+          discount.eligibleCustomerIds &&
+          discount.eligibleCustomerIds.length > 0 &&
+          !discount.eligibleCustomerIds.includes(customerId)
+        ) {
+          return {
+            valid: false,
+            error: "This coupon is not available for your account",
+          };
+        }
+      }
+
+      // Step 9: Check minimum purchase amount
+      if (discount.minPurchaseAmount && cartTotal !== undefined) {
+        if (cartTotal < discount.minPurchaseAmount) {
+          return {
+            valid: false,
+            error: `Minimum purchase of ${discount.minPurchaseAmount} RWF required`,
+          };
+        }
+      }
+
+      // Step 10: Check product applicability
+      if (productIds && productIds.length > 0) {
+        if (discount.applicableTo === "products") {
+          // Check if at least one product in cart is in the discount's target products
+          const hasApplicableProduct = productIds.some((productId) =>
+            discount.targetIds?.includes(productId)
+          );
+
+          if (!hasApplicableProduct) {
+            return {
+              valid: false,
+              error: "This coupon is not applicable to items in your cart",
+            };
+          }
+        }
+        // For store_wide, categories, and collections, assume validation passes
+        // Additional category/collection checks can be added here if needed
+      }
+
+      // Step 11: All validations passed
+      return {
+        valid: true,
+        discount,
+        coupon,
+      };
+    } catch (error) {
+      console.error("validateCoupon error:", error);
+      return {
+        valid: false,
+        error: "Failed to validate coupon. Please try again.",
+      };
+    }
+  }
+
   async updateDiscount(
     discountId: string,
     data: UpdateDiscountInput
@@ -414,9 +577,7 @@ export class DiscountModel extends BaseModel<Discounts> {
   ): Promise<{ success?: string; error?: string }> {
     try {
       await this.deleteCouponsByDiscount(discountId);
-
       await this.deleteCouponUsageByDiscount(discountId);
-
       await this.delete(discountId);
 
       return { success: "Discount and all related data deleted successfully" };
@@ -815,7 +976,6 @@ export class CouponCodeModel extends BaseModel<CouponCodes> {
       }
 
       await this.deleteCouponUsageByCoupon(couponCodeId);
-
       await this.delete(couponCodeId);
 
       return { success: "Coupon deleted successfully" };

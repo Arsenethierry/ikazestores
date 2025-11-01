@@ -6,7 +6,7 @@ import {
   CreateProductBadgeInput,
   UpdateProductBadgeInput,
 } from "../schemas/discount-schemas";
-import { ProductBadges } from "../types/appwrite/appwrite";
+import { ProductBadges } from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import {
   createAdminClient,

@@ -11,7 +11,7 @@ import {
   QueryOptions,
 } from "../core/database";
 import { DATABASE_ID, ORDER_ITEMS_COLLECTION_ID } from "../env-config";
-import { OrderItems } from "../types/appwrite/appwrite";
+import { OrderItems } from "../types/appwrite-types";
 import { OrderItemCreateData } from "../schemas/order-schemas";
 
 export interface OrderItemUpdateData {

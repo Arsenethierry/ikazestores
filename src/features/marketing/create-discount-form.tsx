@@ -28,7 +28,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Info, Loader2, Percent, DollarSign, Gift, Package, TrendingUp } from "lucide-react";
@@ -68,6 +67,15 @@ export function CreateDiscountForm({
             canCombineWithOthers: false,
             isActive: true,
             startDate: new Date().toISOString(),
+            endDate: undefined,
+            // ✅ FIX: Add all optional number fields with undefined defaults
+            minPurchaseAmount: undefined,
+            minQuantity: undefined,
+            maxDiscountAmount: undefined,
+            usageLimit: undefined,
+            usageLimitPerCustomer: undefined,
+            buyXQuantity: undefined,
+            getYQuantity: undefined,
         },
     });
 
@@ -267,6 +275,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="1"
                                                     onChange={(e) =>
@@ -290,6 +299,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="1"
                                                     onChange={(e) =>
@@ -494,6 +504,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="0"
                                                     step="0.01"
@@ -521,6 +532,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="0"
                                                     onChange={(e) =>
@@ -547,6 +559,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="0"
                                                     step="0.01"
@@ -600,6 +613,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="0"
                                                     onChange={(e) =>
@@ -626,6 +640,7 @@ export function CreateDiscountForm({
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    value={field.value ?? ""}
                                                     type="number"
                                                     min="0"
                                                     onChange={(e) =>

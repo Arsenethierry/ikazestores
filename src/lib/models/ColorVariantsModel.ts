@@ -4,7 +4,7 @@ import { createSessionClient } from "../appwrite";
 import { BaseModel, PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { COLOR_VARIANTS_COLLECTION_ID, PRODUCTS_BUCKET_ID } from "../env-config";
 import { CreateColorVariantData, UpdateColorVariantData } from "../schemas/products-schems";
-import { ProductColors } from "../types/appwrite/appwrite";
+import { ProductColors } from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import { ProductsStorageService } from "./storage-models";
 import { extractFileIdFromUrl } from "../utils";

@@ -7,11 +7,13 @@ import {
   CategoryStepSchema,
   ColorVariantUpdateSchema,
   CreateProductSchema,
+  createReviewSchema,
   DeleteProductSchema,
   ImagesStepSchema,
   UpdateColorVariantData,
   UpdateProductSchema,
   VariantsStepSchema,
+  voteOnReviewSchema,
 } from "../schemas/products-schems";
 import { ProductModel } from "../models/ProductModel";
 import { getAuthState } from "../user-permission";
@@ -35,6 +37,7 @@ import {
 } from "../types/appwrite/appwrite";
 import { checkStoreAccess } from "../helpers/store-permission-helper";
 import { PRODUCT_PERMISSIONS } from "../helpers/permissions";
+import { ProductReviewModel } from "../models/ProductReviewModel";
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -51,6 +54,7 @@ const productTypeModel = new CatalogProductTypeModel();
 const variantTemplateModel = new CatalogVariantTemplateModel();
 const catalogProductTypeVariantModel = new CatalogProductTypeVariantModel();
 const catalogVariantOptionModel = new CatalogVariantOptionModel();
+const reviewModel = new ProductReviewModel();
 
 export const createProductAction = action
   .use(authMiddleware)
@@ -394,7 +398,7 @@ export const quickEditPhysicalProductPriceAction = action
       };
     }
   });
-  
+
 export async function getFilteredProducts(
   filters: ProductFilters,
   storeCountry: string
@@ -1212,3 +1216,261 @@ export const getVariantTemplatesForProductType = action
       };
     }
   });
+
+export const checkReviewEligibilityAction = async ({
+  productId,
+  virtualStoreId,
+}: {
+  productId: string;
+  virtualStoreId: string;
+}) => {
+  try {
+    const eligibility = await reviewModel.checkReviewEligibility(
+      productId,
+      virtualStoreId
+    );
+
+    return {
+      success: true,
+      data: eligibility,
+    };
+  } catch (error) {
+    console.error("checkReviewEligibilityAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to check review eligibility",
+    };
+  }
+};
+
+export const getProductReviewsAction = async ({
+  storeId,
+  rating,
+  productId,
+  verifiedOnly,
+  withPhotos,
+  limit,
+  sortBy,
+}: {
+  productId: string;
+  limit: number;
+  storeId?: string;
+  rating?: number;
+  sortBy?: "newest" | "oldest" | "helpful" | "rating_high" | "rating_low";
+  verifiedOnly?: boolean;
+  withPhotos?: boolean;
+}) => {
+  try {
+    const reviewModel = new ProductReviewModel();
+    const result = await reviewModel.getProductReviews(productId, {
+      limit,
+      storeId,
+      rating,
+      sortBy,
+      verifiedOnly,
+      withPhotos,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    console.error("getProductReviewsAction error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch reviews",
+      data: {
+        documents: [],
+        total: 0,
+        limit,
+        totalPages: 0,
+      },
+    };
+  }
+};
+
+export const createProductReviewAction = action
+  .schema(createReviewSchema)
+  .action(async ({ parsedInput }) => {
+    try {
+      const result = await reviewModel.createReview({
+        productId: parsedInput.productId,
+        virtualStoreId: parsedInput.virtualStoreId,
+        rating: parsedInput.rating,
+        title: parsedInput.title,
+        comment: parsedInput.comment,
+        pros: parsedInput.pros,
+        cons: parsedInput.cons,
+        orderId: parsedInput.orderId,
+      });
+
+      if ("error" in result) {
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
+
+      revalidatePath(`/products/[productSlug]/[productId]`, "page");
+
+      return {
+        success: true,
+        data: result,
+        message:
+          "Review submitted successfully! It will appear after moderation.",
+      };
+    } catch (error) {
+      console.error("createProductReviewAction error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to submit review",
+      };
+    }
+  });
+
+export const voteOnReviewAction = action
+  .schema(voteOnReviewSchema)
+  .action(async ({ parsedInput: { reviewId, voteType } }) => {
+    try {
+      const result = await reviewModel.voteOnReview(reviewId, voteType);
+
+      if (result.error) {
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
+
+      revalidatePath(`/products/[productSlug]/[productId]`, "page");
+
+      return {
+        success: true,
+        message: result.success,
+      };
+    } catch (error) {
+      console.error("voteOnReviewAction error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to vote on review",
+      };
+    }
+  });
+
+export const getUserReviewableProductsAction = async ({
+  userId,
+  limit,
+}: {
+  userId: string;
+  limit: number;
+}) => {
+  try {
+    const result = await reviewModel.getUserReviewableProducts(userId, {
+      limit,
+    });
+
+    return {
+      success: result.success,
+      data: result.products,
+      error: result.error,
+    };
+  } catch (error) {
+    console.error("getUserReviewableProductsAction error:", error);
+    return {
+      success: false,
+      data: [],
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch reviewable products",
+    };
+  }
+};
+
+export const getReviewStatsAction = async ({
+  productId,
+  virtualStoreId,
+}: {
+  productId: string;
+  virtualStoreId: string;
+}) => {
+  try {
+    const allReviews = await reviewModel.getProductReviews(productId, {
+      limit: 1000,
+      storeId: virtualStoreId,
+    });
+
+    const reviews = allReviews.documents;
+    const totalReviews = reviews.length;
+
+    if (totalReviews === 0) {
+      return {
+        success: true,
+        data: {
+          averageRating: 0,
+          totalReviews: 0,
+          ratingDistribution: {
+            5: 0,
+            4: 0,
+            3: 0,
+            2: 0,
+            1: 0,
+          },
+          verifiedPurchaseCount: 0,
+          withPhotosCount: 0,
+        },
+      };
+    }
+
+    // Calculate statistics
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = totalRating / totalReviews;
+
+    const ratingDistribution = {
+      5: reviews.filter((r) => r.rating === 5).length,
+      4: reviews.filter((r) => r.rating === 4).length,
+      3: reviews.filter((r) => r.rating === 3).length,
+      2: reviews.filter((r) => r.rating === 2).length,
+      1: reviews.filter((r) => r.rating === 1).length,
+    };
+
+    const verifiedPurchaseCount = reviews.filter(
+      (r) => r.isVerifiedPurchase
+    ).length;
+    const withPhotosCount = reviews.filter(
+      (r) => r.images && r.images.length > 0
+    ).length;
+
+    return {
+      success: true,
+      data: {
+        averageRating: Number(averageRating.toFixed(1)),
+        totalReviews,
+        ratingDistribution,
+        verifiedPurchaseCount,
+        withPhotosCount,
+        ratingDistributionPercentage: {
+          5: Math.round((ratingDistribution[5] / totalReviews) * 100),
+          4: Math.round((ratingDistribution[4] / totalReviews) * 100),
+          3: Math.round((ratingDistribution[3] / totalReviews) * 100),
+          2: Math.round((ratingDistribution[2] / totalReviews) * 100),
+          1: Math.round((ratingDistribution[1] / totalReviews) * 100),
+        },
+      },
+    };
+  } catch (error) {
+    console.error("getReviewStatsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch review statistics",
+    };
+  }
+};

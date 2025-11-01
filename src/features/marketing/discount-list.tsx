@@ -52,7 +52,7 @@ import {
     deleteDiscountAction,
     bulkUpdateDiscountStatusAction,
 } from "@/lib/actions/discount-actions";
-import { Discounts } from "@/lib/types/appwrite/appwrite";
+import { Discounts } from "@/lib/types/appwrite-types";
 
 interface DiscountListProps {
     discounts: Discounts[];
@@ -65,7 +65,7 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState({});
 
-    const { execute: deleteDiscount } = useAction(deleteDiscountAction, {
+    const { execute: deleteDiscount, status: deleteStatus } = useAction(deleteDiscountAction, {
         onSuccess: ({ data }) => {
             toast.success(data?.message || "Discount deleted");
             router.refresh();
@@ -75,7 +75,7 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
         },
     });
 
-    const { execute: bulkUpdateStatus } = useAction(
+    const { execute: bulkUpdateStatus, status } = useAction(
         bulkUpdateDiscountStatusAction,
         {
             onSuccess: ({ data }) => {
@@ -88,6 +88,9 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             },
         }
     );
+
+    const isDeleting = deleteStatus === "executing";
+    const isBulkUpdating = status === "executing";
 
     const columns: ColumnDef<Discounts>[] = [
         {
@@ -113,34 +116,31 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             accessorKey: "name",
             header: "Name",
             cell: ({ row }) => {
-                const discount = row.original;
+                const name = row.getValue("name") as string;
+                return <div className="font-medium">{name}</div>;
+            },
+        },
+        {
+            accessorKey: "discountType",
+            header: "Type",
+            cell: ({ row }) => {
+                const type = row.getValue("discountType") as string;
                 return (
-                    <div className="space-y-1">
-                        <div className="font-medium">{discount.name}</div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                                {formatDiscountType(discount.discountType)}
-                            </Badge>
-                            {!discount.isActive && (
-                                <Badge variant="secondary" className="text-xs">
-                                    Inactive
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
+                    <Badge variant="outline">
+                        {type.replace(/_/g, " ").toUpperCase()}
+                    </Badge>
                 );
             },
         },
         {
             accessorKey: "value",
-            header: "Discount Value",
+            header: "Value",
             cell: ({ row }) => {
-                const discount = row.original;
+                const value = row.getValue("value") as number;
+                const valueType = row.original.valueType;
                 return (
-                    <div className="font-medium">
-                        {discount.valueType === "percentage"
-                            ? `${discount.value}%`
-                            : `${discount.value} RWF`}
+                    <div>
+                        {valueType === "percentage" ? `${value}%` : `${value} RWF`}
                     </div>
                 );
             },
@@ -152,7 +152,7 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                 const applicableTo = row.getValue("applicableTo") as string;
                 return (
                     <Badge variant="secondary">
-                        {formatApplicableTo(applicableTo)}
+                        {applicableTo.replace(/_/g, " ")}
                     </Badge>
                 );
             },
@@ -162,7 +162,7 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             header: "Start Date",
             cell: ({ row }) => {
                 const date = row.getValue("startDate") as string;
-                return format(new Date(date), "MMM dd, yyyy");
+                return <div>{format(new Date(date), "MMM dd, yyyy")}</div>;
             },
         },
         {
@@ -170,36 +170,29 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             header: "End Date",
             cell: ({ row }) => {
                 const date = row.getValue("endDate") as string | undefined;
-                return date ? format(new Date(date), "MMM dd, yyyy") : "No end date";
+                return (
+                    <div>
+                        {date ? format(new Date(date), "MMM dd, yyyy") : "No end date"}
+                    </div>
+                );
             },
         },
         {
-            accessorKey: "usage",
-            header: "Usage",
+            accessorKey: "isActive",
+            header: "Status",
             cell: ({ row }) => {
-                const discount = row.original;
-                const percentage = discount.usageLimit
-                    ? ((discount.currentUsageCount || 0) / discount.usageLimit) * 100
-                    : 0;
-
+                const isActive = row.getValue("isActive") as boolean;
                 return (
-                    <div className="space-y-1">
-                        <div className="text-sm">
-                            {discount.currentUsageCount}
-                            {discount.usageLimit && ` / ${discount.usageLimit}`}
-                        </div>
-                        {discount.usageLimit && (
-                            <div className="w-full bg-secondary rounded-full h-1.5">
-                                <div
-                                    className={cn(
-                                        "h-1.5 rounded-full transition-all",
-                                        percentage >= 90 ? "bg-red-500" : "bg-primary"
-                                    )}
-                                    style={{ width: `${Math.min(percentage, 100)}%` }}
-                                />
-                            </div>
+                    <Badge
+                        variant={isActive ? "default" : "secondary"}
+                        className={cn(
+                            isActive
+                                ? "bg-green-500 text-white hover:bg-green-600"
+                                : "bg-gray-300 text-gray-700"
                         )}
-                    </div>
+                    >
+                        {isActive ? "Active" : "Inactive"}
+                    </Badge>
                 );
             },
         },
@@ -259,8 +252,10 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                                     bulkUpdateStatus({
                                         discountIds: [discount.$id],
                                         isActive: !discount.isActive,
+                                        storeId, // ✅ FIXED: Added missing storeId
                                     })
                                 }
+                                disabled={isBulkUpdating}
                             >
                                 {discount.isActive ? (
                                     <>
@@ -276,8 +271,11 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={() => deleteDiscount({ discountId: discount.$id })}
-                                className="text-destructive focus:text-destructive"
+                                onClick={() =>
+                                    deleteDiscount({ discountId: discount.$id })
+                                }
+                                className="text-red-600"
+                                disabled={isDeleting}
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
@@ -309,13 +307,31 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const hasSelection = selectedRows.length > 0;
 
+    const handleBulkActivate = () => {
+        const discountIds = selectedRows.map((row) => row.original.$id);
+        bulkUpdateStatus({
+            discountIds,
+            isActive: true,
+            storeId, // ✅ FIXED: Added missing storeId
+        });
+    };
+
+    const handleBulkDeactivate = () => {
+        const discountIds = selectedRows.map((row) => row.original.$id);
+        bulkUpdateStatus({
+            discountIds,
+            isActive: false,
+            storeId, // ✅ FIXED: Added missing storeId
+        });
+    };
+
     return (
         <div className="space-y-4">
-            {/* Toolbar */}
+            {/* Header Actions */}
             <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-1 items-center gap-4">
                     <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search discounts..."
                             value={
@@ -324,49 +340,35 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                             onChange={(event) =>
                                 table.getColumn("name")?.setFilterValue(event.target.value)
                             }
-                            className="pl-9"
+                            className="pl-8"
                         />
                     </div>
-                    <Button variant="outline" size="icon">
-                        <Filter className="h-4 w-4" />
-                    </Button>
-                </div>
 
-                <div className="flex items-center gap-2">
                     {hasSelection && (
-                        <>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                                {selectedRows.length} selected
+                            </span>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                    const ids = selectedRows.map((row) => row.original.$id);
-                                    bulkUpdateStatus({ discountIds: ids, isActive: true });
-                                }}
+                                onClick={handleBulkActivate}
+                                disabled={isBulkUpdating}
                             >
                                 <Power className="mr-2 h-4 w-4" />
-                                Activate ({selectedRows.length})
+                                Activate
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                    const ids = selectedRows.map((row) => row.original.$id);
-                                    bulkUpdateStatus({ discountIds: ids, isActive: false });
-                                }}
+                                onClick={handleBulkDeactivate}
+                                disabled={isBulkUpdating}
                             >
                                 <PowerOff className="mr-2 h-4 w-4" />
-                                Deactivate ({selectedRows.length})
+                                Deactivate
                             </Button>
-                        </>
+                        </div>
                     )}
-                    <Button
-                        onClick={() =>
-                            router.push(`/admin/*/marketing/discounts/create`)
-                        }
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Discount
-                    </Button>
                 </div>
             </div>
 
@@ -421,11 +423,10 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-2">
+            <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                    {hasSelection
-                        ? `${selectedRows.length} of ${table.getFilteredRowModel().rows.length} row(s) selected`
-                        : `${table.getFilteredRowModel().rows.length} total discount(s)`}
+                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                    {table.getFilteredRowModel().rows.length} row(s) selected.
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -448,28 +449,4 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
             </div>
         </div>
     );
-}
-
-function formatDiscountType(type: string): string {
-    const types: Record<string, string> = {
-        percentage: "Percentage",
-        fixed_amount: "Fixed Amount",
-        buy_x_get_y: "BOGO",
-        bundle: "Bundle",
-        bulk_pricing: "Bulk",
-        flash_sale: "Flash Sale",
-        first_time_buyer: "First Time",
-    };
-    return types[type] || type;
-}
-
-function formatApplicableTo(applicableTo: string): string {
-    const types: Record<string, string> = {
-        products: "Products",
-        categories: "Categories",
-        collections: "Collections",
-        store_wide: "Store-wide",
-        combinations: "Variants",
-    };
-    return types[applicableTo] || applicableTo;
 }

@@ -25,7 +25,7 @@ import {
   ProductColors,
   ProductCombinations,
   Products,
-} from "../types/appwrite/appwrite";
+} from "../types/appwrite-types";
 import {
   CreateAffiliateImportSchema,
   UpdateAffiliateImportSchema,

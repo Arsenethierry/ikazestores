@@ -24,7 +24,7 @@ import {
   VirtualstoreReviews,
   VirtualStoreReviewStatus,
   VoteType,
-} from "../types/appwrite/appwrite";
+} from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import { OrderStatus } from "../constants";
 import {

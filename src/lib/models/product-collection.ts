@@ -7,7 +7,7 @@ import {
   PRODUCTS_COLLECTIONS_COLLECTION_ID,
 } from "../env-config";
 import { CollectionGroupsTypes } from "../types";
-import { ProductCollections } from "../types/appwrite/appwrite";
+import { ProductCollections } from "../types/appwrite-types";
 import { ProductsStorageService } from "./storage-models";
 import { AffiliateProductModel } from "./AffliateProductModel";
 

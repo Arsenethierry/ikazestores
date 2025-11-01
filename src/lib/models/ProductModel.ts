@@ -29,7 +29,7 @@ import {
   ProductColors,
   ProductCombinations,
   Products,
-} from "../types/appwrite/appwrite";
+} from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import { ProductsStorageService } from "./storage-models";
 import { extractFileIdFromUrl } from "../utils";
