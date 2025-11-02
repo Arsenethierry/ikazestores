@@ -174,6 +174,125 @@ export abstract class BaseModel<T extends Models.Document> {
     }
   }
 
+  async findByField(
+    field: string,
+    value: string | boolean | number,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<T>> {
+    const filters: QueryFilter[] = [
+      { field, operator: "equal", value },
+      ...(options.filters || []),
+    ];
+
+    return this.findMany({
+      ...options,
+      filters,
+    });
+  }
+
+  async findOneByField(
+    field: string,
+    value: string | boolean | number
+  ): Promise<T | null> {
+    const filters: QueryFilter[] = [{ field, operator: "equal", value }];
+    return this.findOne(filters);
+  }
+
+  async findByMultipleFields(
+    conditions: Record<string, string | boolean | number>,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<T>> {
+    const filters: QueryFilter[] = Object.entries(conditions).map(
+      ([field, value]) => ({
+        field,
+        operator: "equal" as const,
+        value,
+      })
+    );
+
+    return this.findMany({
+      ...options,
+      filters: [...filters, ...(options.filters || [])],
+    });
+  }
+
+  async updatePartial(
+    id: string,
+    updates: Partial<Omit<T, keyof Models.Document>>
+  ): Promise<T> {
+    return this.update(id, updates as any);
+  }
+
+  async findWhereLessThan(
+    field: string,
+    value: string | number,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<T>> {
+    const filters: QueryFilter[] = [
+      { field, operator: "lessThan", value },
+      ...(options.filters || []),
+    ];
+
+    return this.findMany({
+      ...options,
+      filters,
+    });
+  }
+
+  async incrementField(
+    id: string,
+    field: keyof T,
+    incrementBy: number = 1
+  ): Promise<T> {
+    const document = await this.findById(id, {});
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
+    const currentValue = (document[field] as number) || 0;
+    const updates = {
+      [field]: currentValue + incrementBy,
+    } as Partial<Omit<T, keyof Models.Document>>;
+
+    return this.update(id, updates as any);
+  }
+
+  async batchUpdate(
+    ids: string[],
+    updates: Partial<Omit<T, keyof Models.Document>>
+  ): Promise<T[]> {
+    const { databases } = await createAdminClient();
+
+    const updatePromises = ids.map((id) =>
+      databases.updateDocument<T>(DATABASE_ID, this.collectionId, id, updates)
+    );
+
+    const results = await Promise.all(updatePromises);
+
+    // Invalidate cache
+    ids.forEach((id) => this.invalidateCache([`findById:${id}`]));
+    this.invalidateCache(["findMany"]);
+
+    return results;
+  }
+
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<T>> {
+    const filters: QueryFilter[] = [
+      { field: "$createdAt", operator: "greaterThanEqual", value: startDate },
+      { field: "$createdAt", operator: "lessThanEqual", value: endDate },
+      ...(options.filters || []),
+    ];
+
+    return this.findMany({
+      ...options,
+      filters,
+    });
+  }
+
   async count(filters: QueryFilter[] = []): Promise<number> {
     try {
       const queries = this.buildFilterQueries(filters);

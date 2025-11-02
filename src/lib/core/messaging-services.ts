@@ -2,7 +2,7 @@ import { ID, Messaging, Query, Users } from "node-appwrite";
 import { createAdminClient } from "../appwrite";
 import { VirtualStore } from "../models/virtual-store";
 import { PhysicalStoreModel } from "../models/physical-store-model";
-import { OrderFullfilmentRecords, Orders } from "../types/appwrite/appwrite";
+import { OrderFullfilmentRecords, Orders } from "../types/appwrite-types";
 import { OrderModel } from "../models/OrderModel";
 import { getUserData } from "../actions/auth.action";
 import { format } from "date-fns";

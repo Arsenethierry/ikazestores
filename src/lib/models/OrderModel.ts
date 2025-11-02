@@ -1,6 +1,11 @@
 import { ID, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "../appwrite";
-import { BaseModel, PaginationResult } from "../core/database";
+import {
+  BaseModel,
+  PaginationResult,
+  QueryFilter,
+  QueryOptions,
+} from "../core/database";
 import { OrderNotificationService } from "../core/messaging-services";
 import {
   COMMISSION_RECORDS_COLLECTION_ID,
@@ -37,6 +42,7 @@ export interface OrderWithRelations extends Orders {
 export interface OrderWithItems extends Orders {
   items?: PaginationResult<OrderItems>;
 }
+
 export class OrderModel extends BaseModel<Orders> {
   constructor() {
     super(ORDERS_COLLECTION_ID);
@@ -72,8 +78,6 @@ export class OrderModel extends BaseModel<Orders> {
     commissionRecords?: CommissionRecord[];
     error?: string;
   }> {
-    const { databases } = await createAdminClient();
-
     try {
       const validation = await this.validateOrderData(orderData);
       if (!validation.valid) {
@@ -153,12 +157,7 @@ export class OrderModel extends BaseModel<Orders> {
       );
 
       if (totalCommission > 0) {
-        await databases.updateDocument<Orders>(
-          DATABASE_ID,
-          ORDERS_COLLECTION_ID,
-          orderId,
-          { totalCommission }
-        );
+        await this.updatePartial(orderId, { totalCommission });
         orderRecord.totalCommission = totalCommission;
       }
 
@@ -184,6 +183,10 @@ export class OrderModel extends BaseModel<Orders> {
     }
   }
 
+  /**
+   * Find orders by store (virtual or physical)
+   * Uses BaseModel.findMany with proper filters
+   */
   async findOrdersByStore(
     storeId: string,
     storeType: "virtual" | "physical",
@@ -204,17 +207,19 @@ export class OrderModel extends BaseModel<Orders> {
     total: number;
     hasMore: boolean;
   }> {
-    const { databases } = await createAdminClient();
-
     try {
-      const queries: any[] = [];
+      const filters: QueryFilter[] = [];
 
       // Store filter based on type
       if (storeType === "virtual") {
-        queries.push(Query.equal("virtualStoreId", storeId));
+        filters.push({
+          field: "virtualStoreId",
+          operator: "equal",
+          value: storeId,
+        });
       } else {
-        // For physical stores, we need to find orders with their items
-        // This requires querying fulfillment records first
+        // For physical stores, get order IDs from fulfillment records
+        const { databases } = await createAdminClient();
         const fulfillmentRecords =
           await databases.listDocuments<OrderFullfilmentRecords>(
             DATABASE_ID,
@@ -230,54 +235,64 @@ export class OrderModel extends BaseModel<Orders> {
           return { orders: [], total: 0, hasMore: false };
         }
 
-        queries.push(Query.equal("$id", orderIds));
+        filters.push({
+          field: "$id",
+          operator: "in",
+          values: orderIds,
+        });
       }
 
+      // Add additional filters
       if (options.status && options.status.length > 0) {
-        queries.push(Query.equal("orderStatus", options.status));
-      }
-
-      if (options.search) {
-        queries.push(Query.search("orderNumber", options.search));
+        filters.push({
+          field: "orderStatus",
+          operator: "in",
+          values: options.status,
+        });
       }
 
       if (options.customerId) {
-        queries.push(Query.equal("customerId", options.customerId));
+        filters.push({
+          field: "customerId",
+          operator: "equal",
+          value: options.customerId,
+        });
       }
 
       if (options.customerEmail) {
-        queries.push(Query.equal("customerEmail", options.customerEmail));
+        filters.push({
+          field: "customerEmail",
+          operator: "equal",
+          value: options.customerEmail,
+        });
       }
 
       if (options.dateRange) {
-        queries.push(
-          Query.greaterThanEqual(
-            "$createdAt",
-            options.dateRange.from.toISOString()
-          )
-        );
-        queries.push(
-          Query.lessThanEqual("$createdAt", options.dateRange.to.toISOString())
-        );
+        filters.push({
+          field: "$createdAt",
+          operator: "greaterThanEqual",
+          value: options.dateRange.from.toISOString(),
+        });
+        filters.push({
+          field: "$createdAt",
+          operator: "lessThanEqual",
+          value: options.dateRange.to.toISOString(),
+        });
       }
 
       const limit = options.limit || 25;
       const offset = ((options.page || 1) - 1) * limit;
-      queries.push(Query.limit(limit));
-      queries.push(Query.offset(offset));
 
-      const sortField = options.sortBy || "$createdAt";
-      const sortType = options.sortOrder === "asc" ? "ASC" : "DESC";
-      queries.push(Query.orderDesc(sortField));
-
-      const response = await databases.listDocuments<Orders>(
-        DATABASE_ID,
-        ORDERS_COLLECTION_ID,
-        queries
-      );
+      const result = await this.findMany({
+        filters,
+        limit,
+        offset,
+        orderBy: options.sortBy || "$createdAt",
+        orderType: options.sortOrder || "desc",
+      });
 
       const ordersWithRelations = await Promise.all(
-        response.documents.map(async (order) => {
+        result.documents.map(async (order) => {
           const [items, fulfillmentRecords, commissionRecords] =
             await Promise.all([
               this.orderItemsModel.findByOrder(order.$id),
@@ -299,8 +314,8 @@ export class OrderModel extends BaseModel<Orders> {
 
       return {
         orders: ordersWithRelations,
-        total: response.total,
-        hasMore: response.total > offset + limit,
+        total: result.total,
+        hasMore: result.hasMore,
       };
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -324,41 +339,41 @@ export class OrderModel extends BaseModel<Orders> {
     total: number;
     hasMore: boolean;
   }> {
-    const { databases } = await createSessionClient();
-
     try {
-      const queries: any[] = [Query.equal("customerId", customerId)];
+      const filters: QueryFilter[] = [
+        { field: "customerId", operator: "equal", value: customerId },
+      ];
 
       if (options.status && options.status.length > 0) {
-        queries.push(Query.equal("orderStatus", options.status));
+        filters.push({
+          field: "orderStatus",
+          operator: "in",
+          values: options.status,
+        });
       }
 
       const limit = options.limit || 10;
       const offset = ((options.page || 1) - 1) * limit;
-      queries.push(Query.limit(limit));
-      queries.push(Query.offset(offset));
-      queries.push(Query.orderDesc("$createdAt"));
 
-      const response = await databases.listDocuments<Orders>(
-        DATABASE_ID,
-        ORDERS_COLLECTION_ID,
-        queries
-      );
+      const result = await this.findMany({
+        filters,
+        limit,
+        offset,
+        orderBy: "$createdAt",
+        orderType: "desc",
+      });
 
       const ordersWithItems = await Promise.all(
-        response.documents.map(async (order) => {
+        result.documents.map(async (order) => {
           const items = await this.orderItemsModel.findByOrder(order.$id);
-          return {
-            ...order,
-            items,
-          };
+          return { ...order, items };
         })
       );
 
       return {
         orders: ordersWithItems,
-        total: response.total,
-        hasMore: response.total > offset + limit,
+        total: result.total,
+        hasMore: result.hasMore,
       };
     } catch (error) {
       console.error("Error fetching customer orders:", error);
@@ -370,16 +385,23 @@ export class OrderModel extends BaseModel<Orders> {
     }
   }
 
+  async findByOrderNumber(orderNumber: string): Promise<Orders | null> {
+    return this.findOneByField("orderNumber", orderNumber);
+  }
+
   async updateOrderStatus(
     orderId: string,
     status: OrderStatus,
     updatedBy: string,
     cancellationReason?: string
   ): Promise<{ success: boolean; error?: string }> {
-    const { databases } = await createSessionClient();
-
     try {
-      const updateData: any = {
+      const currentOrder = await this.findById(orderId, {});
+      if (!currentOrder) {
+        return { success: false, error: "Order not found" };
+      }
+
+      const updateData: Partial<Orders> = {
         orderStatus: status,
       };
 
@@ -390,32 +412,23 @@ export class OrderModel extends BaseModel<Orders> {
         updateData.deliveredAt = new Date().toISOString();
       }
 
-      const currentOrder = await this.findById(orderId, {});
+      const currentHistory = currentOrder.statusHistory
+        ? JSON.parse(currentOrder.statusHistory)
+        : [];
 
-      if (currentOrder) {
-        const currentHistory = currentOrder.statusHistory
-          ? JSON.parse(currentOrder.statusHistory)
-          : [];
+      const newHistoryEntry = {
+        status,
+        timestamp: new Date().toISOString(),
+        updatedBy,
+        reason: cancellationReason || null,
+      };
 
-        const newHistoryEntry = {
-          status,
-          timestamp: new Date().toISOString(),
-          updatedBy,
-          reason: cancellationReason || null,
-        };
+      updateData.statusHistory = JSON.stringify([
+        ...currentHistory,
+        newHistoryEntry,
+      ]);
 
-        updateData.statusHistory = JSON.stringify([
-          ...currentHistory,
-          newHistoryEntry,
-        ]);
-      }
-
-      const order = await databases.updateDocument<Orders>(
-        DATABASE_ID,
-        ORDERS_COLLECTION_ID,
-        orderId,
-        updateData
-      );
+      const order = await this.updatePartial(orderId, updateData);
 
       await this.notificationService.sendOrderStatusUpdateNotification(order);
 
@@ -428,6 +441,13 @@ export class OrderModel extends BaseModel<Orders> {
           error instanceof Error ? error.message : "Failed to update status",
       };
     }
+  }
+
+  async updateOrderPaymentStatus(
+    orderId: string,
+    paymentStatus: "pending" | "confirmed" | "failed"
+  ): Promise<Orders> {
+    return this.updatePartial(orderId, { paymentStatus });
   }
 
   async updateFulfillmentStatus(
@@ -499,11 +519,7 @@ export class OrderModel extends BaseModel<Orders> {
         };
       }
 
-      const updatePromises = orderIds.map((orderId) =>
-        this.update(orderId, updates)
-      );
-
-      await Promise.all(updatePromises);
+      await this.batchUpdate(orderIds, updates);
 
       return { success: true };
     } catch (error) {
@@ -521,7 +537,7 @@ export class OrderModel extends BaseModel<Orders> {
     dateRange?: { from: Date; to: Date }
   ) {
     try {
-      const filters: any[] = [];
+      const filters: QueryFilter[] = [];
 
       if (storeType === "virtual") {
         filters.push({
@@ -590,7 +606,6 @@ export class OrderModel extends BaseModel<Orders> {
         return acc;
       }, {} as Record<string, number>);
 
-      // Add missing statuses with 0 count
       Object.values(OrderStatus).forEach((status) => {
         if (!statusBreakdown[status]) statusBreakdown[status] = 0;
       });
@@ -631,6 +646,121 @@ export class OrderModel extends BaseModel<Orders> {
     } catch (error) {
       console.error("Error fetching fulfillment records:", error);
       return [];
+    }
+  }
+
+  async getCommissionRecords(orderId: string): Promise<CommissionRecord[]> {
+    const { databases } = await createSessionClient();
+
+    try {
+      const response = await databases.listDocuments<CommissionRecord>(
+        DATABASE_ID,
+        COMMISSION_RECORDS_COLLECTION_ID,
+        [Query.equal("orderId", orderId)]
+      );
+
+      return response.documents;
+    } catch (error) {
+      console.error("Error fetching commission records:", error);
+      return [];
+    }
+  }
+
+  async calculateAndRecordCommissions(orderId: string): Promise<{
+    success: boolean;
+    commissions?: CommissionRecord[];
+    error?: string;
+  }> {
+    try {
+      const { databases } = await createAdminClient();
+
+      const order = await this.findById(orderId, {});
+      if (!order) {
+        return { success: false, error: "Order not found" };
+      }
+
+      const orderItems = await this.orderItemsModel.findByOrder(orderId);
+      if (!orderItems.documents.length) {
+        return { success: false, error: "No order items found" };
+      }
+
+      const virtualStoreModel = new VirtualStore();
+      const virtualStore = await virtualStoreModel.findById(
+        order.virtualStoreId,
+        {}
+      );
+
+      if (!virtualStore) {
+        return { success: false, error: "Virtual store not found" };
+      }
+
+      const commissions: CommissionRecord[] = [];
+      let totalCommission = 0;
+
+      for (const item of orderItems.documents) {
+        const affiliateProduct = await this.affiliateProductModel.findById(
+          item.virtualProductId,
+          {}
+        );
+
+        if (!affiliateProduct) {
+          console.warn(`Affiliate product not found for item: ${item.$id}`);
+          continue;
+        }
+
+        const priceMarkup = item.sellingPrice - affiliateProduct.basePrice;
+        const itemCommission = priceMarkup * (item.quantity || 1);
+
+        if (itemCommission > 0) {
+          const commissionRecord =
+            await databases.createDocument<CommissionRecord>(
+              DATABASE_ID,
+              COMMISSION_RECORDS_COLLECTION_ID,
+              ID.unique(),
+              {
+                orderId,
+                orderItemId: item.$id,
+                virtualStoreId: order.virtualStoreId,
+                influencerId: virtualStore.ownerId,
+                originalProductId: affiliateProduct.originalProductId,
+                virtualProductId: item.virtualProductId,
+                basePrice: affiliateProduct.basePrice,
+                sellingPrice: item.sellingPrice,
+                quantity: item.quantity || 1,
+                commissionAmount: itemCommission,
+                currency: order.currency,
+                commissionStatus: "pending",
+                calculatedAt: new Date().toISOString(),
+              }
+            );
+
+          commissions.push(commissionRecord);
+          totalCommission += itemCommission;
+        }
+      }
+
+      if (totalCommission > 0) {
+        await this.updatePartial(orderId, { totalCommission });
+      }
+
+      console.log(`Commissions calculated for order ${orderId}:`, {
+        totalCommission,
+        commissionRecords: commissions.length,
+      });
+
+      return {
+        success: true,
+        commissions,
+      };
+    } catch (error) {
+      console.error("Error calculating commissions:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to calculate commissions",
+      };
     }
   }
 
@@ -697,7 +827,7 @@ export class OrderModel extends BaseModel<Orders> {
       const { databases } = await createAdminClient();
 
       const itemsByPhysicalStore = items.reduce((acc, item) => {
-        const storeId = item.physicalStoreId || 'unknown';
+        const storeId = item.physicalStoreId || "unknown";
         if (!acc[storeId]) {
           acc[storeId] = [];
         }
@@ -705,7 +835,7 @@ export class OrderModel extends BaseModel<Orders> {
         return acc;
       }, {} as Record<string, OrderItemCreateData[]>);
 
-       const fulfillmentRecords = await Promise.all(
+      const fulfillmentRecords = await Promise.all(
         Object.entries(itemsByPhysicalStore).map(
           async ([physicalStoreId, storeItems]) => {
             const recordId = ID.unique();
@@ -739,27 +869,8 @@ export class OrderModel extends BaseModel<Orders> {
 
       return fulfillmentRecords;
     } catch (error) {
-      console.log("error creating fullfillment records: ", error);
+      console.log("Error creating fulfillment records:", error);
       return null;
-    }
-  }
-
-  async getCommissionRecords(
-    orderId: string
-  ): Promise<CommissionRecord[]> {
-    const { databases } = await createSessionClient();
-
-    try {
-      const response = await databases.listDocuments<CommissionRecord>(
-        DATABASE_ID,
-        COMMISSION_RECORDS_COLLECTION_ID,
-        [Query.equal("orderId", orderId)]
-      );
-
-      return response.documents;
-    } catch (error) {
-      console.error("Error fetching commission records:", error);
-      return [];
     }
   }
 
@@ -813,24 +924,38 @@ export class OrderModel extends BaseModel<Orders> {
 
     for (const item of orderData.orderItems) {
       if (item.quantity <= 0) {
-        return { valid: false, error: `Invalid quantity for item: ${item.productName}` };
-      }
-      
-      if (item.sellingPrice <= 0) {
-        return { valid: false, error: `Invalid price for item: ${item.productName}` };
-      }
-      
-      if (Math.abs(item.subtotal - (item.sellingPrice * item.quantity)) > 0.01) {
-        return { valid: false, error: `Subtotal mismatch for item: ${item.productName}` };
+        return {
+          valid: false,
+          error: `Invalid quantity for item: ${item.productName}`,
+        };
       }
 
-      // Validate commission is reasonable (not negative, not greater than selling price)
+      if (item.sellingPrice <= 0) {
+        return {
+          valid: false,
+          error: `Invalid price for item: ${item.productName}`,
+        };
+      }
+
+      if (Math.abs(item.subtotal - item.sellingPrice * item.quantity) > 0.01) {
+        return {
+          valid: false,
+          error: `Subtotal mismatch for item: ${item.productName}`,
+        };
+      }
+
       if (item.commission < 0) {
-        return { valid: false, error: `Invalid commission for item: ${item.productName}` };
+        return {
+          valid: false,
+          error: `Invalid commission for item: ${item.productName}`,
+        };
       }
 
       if (item.commission > item.sellingPrice) {
-        return { valid: false, error: `Commission cannot exceed selling price for item: ${item.productName}` };
+        return {
+          valid: false,
+          error: `Commission cannot exceed selling price for item: ${item.productName}`,
+        };
       }
     }
 

@@ -14,6 +14,11 @@ export enum ApplicationStatus {
   REJECTED = "rejected",
 }
 
+export enum PaymentProvider {
+    PAWAPAY_MTN = "PAWAPAY_MTN",
+    PAWAPAY_AIRTEL = "PAWAPAY_AIRTEL"
+}
+
 export enum Status {
   ACTIVE = "active",
   DRAFT = "draft",
@@ -24,6 +29,16 @@ export enum Status {
   FLAGGED = "flagged",
   RESOLVED = "resolved",
   DISMISSED = "dismissed",
+}
+
+export enum TransactionStatus {
+    EXPIRED = "expired",
+    CANCELLED = "cancelled",
+    FAILED = "failed",
+    COMPLETED = "completed",
+    PROCESSING = "processing",
+    SUBMITTED = "submitted",
+    PENDING = "pending"
 }
 
 export enum InputType {
@@ -82,9 +97,11 @@ export enum OrderStatus {
 }
 
 export enum PaymentStatus {
-  PENDING = "pending",
-  CONFIRMED = "confirmed",
-  FAILED = "failed",
+    PENDING = "PENDING",
+    ACCEPTED = "ACCEPTED",
+    COMPLETED = "COMPLETED",
+    FAILED = "FAILED",
+    REJECTED = "REJECTED"
 }
 
 export enum CommissionStatus {
@@ -772,3 +789,26 @@ export type ReturnPolicies = Models.Document & {
   requiresReceipt: boolean;
   shippingCostResponsibility: string | null;
 };
+
+export type PaymentTransactions = Models.Document & {
+    orderId: string;
+    customerId: string;
+    virtualStoreId: string;
+    paymentProvider: PaymentProvider;
+    paymentMethod: string;
+    amount: number;
+    currency: string;
+    phoneNumber: string;
+    pawapayDepositId: string | null;
+    pawapayTransactionId: string | null;
+    transactionStatus: TransactionStatus;
+    paymentStatus: PaymentStatus;
+    failureReason: string | null;
+    metadata: string | null;
+    initiatedAt: string;
+    completedAt: string | null;
+    expiresAt: string | null;
+    webhookReceived: boolean;
+    webhookData: string | null;
+    retryCount: number;
+}

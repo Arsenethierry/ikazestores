@@ -14,7 +14,7 @@ import {
   StorePermissions,
   StoreRoles,
   StoreStaff,
-} from "../types/appwrite/appwrite";
+} from "../types/appwrite-types";
 import {
   CreateCustomRoleTypes,
   CreateInvitationTypes,
@@ -23,7 +23,7 @@ import {
   UpdateStaffTypes,
 } from "../schemas/staff-schemas";
 import { StoreRole } from "../constants";
-import crypto from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import { isUserStoreOwner } from "../helpers/store-permission-helper";
 
 export interface EnrichedStaffMember extends StoreStaff {
@@ -175,7 +175,7 @@ export class StorePermissionsModel extends BaseModel<StorePermissions> {
       const permission = await databases.createDocument<StorePermissions>(
         DATABASE_ID,
         this.collectionId,
-        crypto.randomUUID(),
+        randomUUID(),
         {
           ...data,
           isGlobal: false,
@@ -725,7 +725,7 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
   }
 
   private generateInvitationToken(): string {
-    return crypto.randomBytes(32).toString("hex");
+    return randomBytes(32).toString("hex");
   }
 
   private getExpiryDate(): Date {
