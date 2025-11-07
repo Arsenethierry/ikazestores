@@ -258,6 +258,18 @@ export const PriceBreakdownSchema = z.object({
   ),
 });
 
+export const AssignProductsToDiscountSchema = z.object({
+  discountId: z.string().min(1, "Discount ID is required"),
+  productIds: z.array(z.string()).min(1, "At least one product required"),
+  storeId: z.string().min(1, "Store ID is required"),
+});
+
+export const RemoveProductsFromDiscountSchema = z.object({
+  discountId: z.string().min(1, "Discount ID is required"),
+  productIds: z.array(z.string()).min(1, "At least one product required"),
+  storeId: z.string().min(1, "Store ID is required"),
+});
+
 export type CreateDiscountInput = z.infer<typeof CreateDiscountSchema>;
 export type UpdateDiscountInput = z.infer<typeof UpdateDiscountSchema>;
 export type CreateCouponCodeInput = z.infer<typeof CreateCouponCodeSchema>;

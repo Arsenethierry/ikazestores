@@ -9,6 +9,7 @@ import {
 import { ProductBadgeModel } from "../models/ProductBadgeModel";
 import { ReturnPolicyModel } from "../models/ReturnPolicyModel";
 import {
+  AssignProductsToDiscountSchema,
   BulkCreateBadgesSchema,
   BulkUpdateDiscountStatusSchema,
   CalculateDiscountSchema,
@@ -16,6 +17,7 @@ import {
   CreateDiscountSchema,
   CreateProductBadgeSchema,
   CreateReturnPolicySchema,
+  RemoveProductsFromDiscountSchema,
   UpdateDiscountSchema,
   UpdateProductBadgeSchema,
   UpdateReturnPolicySchema,
@@ -30,6 +32,7 @@ import {
   MARKETING_PERMISSIONS,
   STORE_PERMISSIONS,
 } from "../helpers/permissions";
+import { ProductModel } from "../models/ProductModel";
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -170,6 +173,142 @@ export const deleteDiscountAction = action
     };
   });
 
+export const assignProductsToDiscountAction = action
+  .use(authMiddleware)
+  .schema(AssignProductsToDiscountSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { discountId, productIds, storeId } = parsedInput;
+
+    const hasPermission = await checkStoreAccess(
+      user.$id,
+      storeId,
+      MARKETING_PERMISSIONS.UPDATE_DISCOUNTS,
+      "physical"
+    );
+
+    if (!hasPermission) {
+      return {
+        error: "Access denied: You don't have permission to manage discounts",
+      };
+    }
+
+    try {
+      const discount = await discountModel.getDiscountById(discountId);
+      if (!discount) {
+        return { error: "Discount not found" };
+      }
+
+      if (discount.storeId !== storeId) {
+        return { error: "Discount does not belong to this store" };
+      }
+
+      if (discount.applicableTo !== "products") {
+        return {
+          error: "Can only assign products to product-specific discounts",
+        };
+      }
+
+      const existingTargetIds = discount.targetIds || [];
+      const newTargetIds = [...new Set([...existingTargetIds, ...productIds])];
+
+      const result = await discountModel.updateDiscount(discountId, {
+        targetIds: newTargetIds,
+      });
+
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      revalidatePath("/admin/*/marketing/discounts");
+      revalidateTag(`discount-${discountId}`);
+      revalidateTag(`discounts-${storeId}`);
+
+      return {
+        success: true,
+        message: `Successfully assigned ${productIds.length} product(s) to discount`,
+        data: result,
+      };
+    } catch (error) {
+      console.error("assignProductsToDiscount error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to assign products to discount",
+      };
+    }
+  });
+
+export const removeProductsFromDiscountAction = action
+  .use(authMiddleware)
+  .schema(RemoveProductsFromDiscountSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { discountId, productIds, storeId } = parsedInput;
+
+    const hasPermission = await checkStoreAccess(
+      user.$id,
+      storeId,
+      MARKETING_PERMISSIONS.UPDATE_DISCOUNTS,
+      "physical"
+    );
+
+    if (!hasPermission) {
+      return {
+        error: "Access denied: You don't have permission to manage discounts",
+      };
+    }
+
+    try {
+      const discount = await discountModel.getDiscountById(discountId);
+      if (!discount) {
+        return { error: "Discount not found" };
+      }
+
+      if (discount.storeId !== storeId) {
+        return { error: "Discount does not belong to this store" };
+      }
+
+      if (discount.applicableTo !== "products") {
+        return {
+          error: "Can only remove products from product-specific discounts",
+        };
+      }
+
+      const existingTargetIds = discount.targetIds || [];
+      const newTargetIds = existingTargetIds.filter(
+        (id) => !productIds.includes(id)
+      );
+
+      const result = await discountModel.updateDiscount(discountId, {
+        targetIds: newTargetIds,
+      });
+
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      revalidatePath("/admin/*/marketing/discounts");
+      revalidateTag(`discount-${discountId}`);
+      revalidateTag(`discounts-${storeId}`);
+
+      return {
+        success: true,
+        message: `Successfully removed ${productIds.length} product(s) from discount`,
+        data: result,
+      };
+    } catch (error) {
+      console.error("removeProductsFromDiscount error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to remove products from discount",
+      };
+    }
+  });
+
 export const bulkUpdateDiscountStatusAction = action
   .use(authMiddleware)
   .schema(BulkUpdateDiscountStatusSchema)
@@ -200,6 +339,60 @@ export const bulkUpdateDiscountStatusAction = action
       message: `Updated ${result.success} discounts successfully`,
       data: result,
     };
+  });
+
+export const getDiscountProductsAction = action
+  .use(authMiddleware)
+  .schema(
+    z.object({
+      discountId: z.string().min(1),
+      storeId: z.string().min(1),
+    })
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { discountId, storeId } = parsedInput;
+
+    try {
+      const discount = await discountModel.getDiscountById(discountId);
+      if (!discount) {
+        return { error: "Discount not found" };
+      }
+
+      if (discount.applicableTo !== "products" || !discount.targetIds?.length) {
+        return {
+          success: true,
+          data: { products: [], total: 0 },
+        };
+      }
+
+      const { ProductModel } = await import("../models/ProductModel");
+      const productModel = new ProductModel();
+
+      const products = await productModel.findMany({
+        filters: [
+          { field: "$id", operator: "equal", value: discount.targetIds },
+          { field: "physicalStoreId", operator: "equal", value: storeId },
+        ],
+        limit: 100,
+      });
+
+      return {
+        success: true,
+        data: {
+          products: products.documents,
+          total: products.total,
+        },
+      };
+    } catch (error) {
+      console.error("getDiscountProducts error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch discount products",
+      };
+    }
   });
 
 export const createCouponCodeAction = action
@@ -632,4 +825,81 @@ export const getApplicablePolicyAction = action
       success: true,
       data: policy,
     };
+  });
+
+export const getStoreProductsForDiscountAction = action
+  .use(authMiddleware)
+  .schema(
+    z.object({
+      storeId: z.string().min(1, "Store ID is required"),
+      search: z.string().optional(),
+      page: z.number().default(1),
+      limit: z.number().default(50),
+    })
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    const { storeId, search, page, limit } = parsedInput;
+
+    try {
+      // Check permissions
+      const hasPermission = await checkStoreAccess(
+        user.$id,
+        storeId,
+        MARKETING_PERMISSIONS.VIEW_DISCOUNTS,
+        "physical"
+      );
+
+      if (!hasPermission) {
+        return {
+          error: "Access denied: You don't have permission to view products",
+        };
+      }
+
+      const productModel = new ProductModel();
+      const offset = (page - 1) * limit;
+
+      const filters = [
+        { field: "physicalStoreId", operator: "equal", value: storeId },
+        { field: "status", operator: "equal", value: "active" },
+      ];
+
+      // Fetch products (with search if provided)
+      const result = search
+        ? await productModel.searchProducts(search, {
+            filters,
+            limit,
+            offset,
+            orderBy: "$createdAt",
+            orderType: "desc",
+          })
+        : await productModel.findMany({
+            filters,
+            limit,
+            offset,
+            orderBy: "$createdAt",
+            orderType: "desc",
+          });
+
+      const totalPages = Math.ceil(result.total / limit);
+
+      return {
+        success: true,
+        data: {
+          products: result.documents,
+          total: result.total,
+          currentPage: page,
+          totalPages,
+          hasMore: result.hasMore,
+        },
+      };
+    } catch (error) {
+      console.error("getStoreProductsForDiscount error:", error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch store products",
+      };
+    }
   });

@@ -80,6 +80,7 @@ export const ColorVariantSchema = z.object({
 export const CreateAffiliateImportSchema = z.object({
   virtualStoreId: z.string().min(1, "Virtual store ID is required"),
   productId: z.string().min(1, "Product ID is required"),
+  physicalStoreId: z.string().min(1, "PhysicalStoreId is required"),
   commission: z
     .number()
     .min(0, "Commission must be greater than or equal to 0"),

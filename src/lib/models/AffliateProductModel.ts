@@ -77,62 +77,84 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
     productId: string,
     isAdmin: boolean = false
   ): Promise<VirtualProductTypes | null> {
-    const virtualProduct = await this.findById(productId, {});
-    if (!virtualProduct) return null;
+    try {
+      const virtualProduct = await this.findById(productId, {});
+      if (!virtualProduct) return null;
 
-    const originalProduct = await this.originalProduct.findProductWithColors(
-      virtualProduct.productId
-    );
-    if (!originalProduct) return null;
+      const originalProduct = await this.originalProduct.findProductWithColors(
+        virtualProduct.productId
+      );
+      if (!originalProduct) return null;
 
-    const virtualStoreData = await this.virtualStore.findById(
-      virtualProduct.virtualStoreId,
-      {}
-    );
-    if (!virtualStoreData) return null;
+      const virtualStoreData = await this.virtualStore.findById(
+        virtualProduct.virtualStoreId,
+        {}
+      );
+      if (!virtualStoreData) return null;
 
-    const discount = await this.discountModel.getActiveDiscountForProduct(
-      virtualProduct.productId,
-      virtualProduct.physicalStoreId
-    );
+      // Get best discount for this product
+      const discount = await this.discountModel.getBestDiscountForProduct(
+        virtualProduct.productId,
+        virtualProduct.physicalStoreId,
+        originalProduct.basePrice
+      );
 
-    const priceBreakdown = DiscountCalculator.calculatePrice(
-      originalProduct.basePrice,
-      virtualProduct.commission,
-      discount
-    );
+      // Calculate price with discount
+      const priceBreakdown = DiscountCalculator.calculatePrice(
+        originalProduct.basePrice,
+        virtualProduct.commission,
+        discount
+      );
 
-    return {
-      ...virtualProduct,
-      name: originalProduct.name,
-      description: originalProduct.description,
-      shortDescription: originalProduct.shortDescription || undefined,
-      sku: originalProduct.sku,
-      images: originalProduct.images || [],
-      tags: originalProduct.tags?.length ? originalProduct.tags : null,
-      price: virtualProduct.commission + originalProduct.basePrice,
-      basePrice: isAdmin
-        ? originalProduct.basePrice
-        : virtualProduct.commission,
-      priceBreakdown,
-      finalPrice: priceBreakdown.finalPrice,
-      originalPrice: priceBreakdown.originalPriceWithCommission,
-      savings: priceBreakdown.totalSavings,
-      hasDiscount: priceBreakdown.hasDiscount,
-      currency: originalProduct.currency,
-      status: originalProduct.status,
-      hasVariants: originalProduct.hasVariants,
-      virtualStore: virtualStoreData,
-      // combinations: combinations.length > 0 ? combinations : undefined,
-      colors: originalProduct.colors.length > 0 ? originalProduct.colors : null,
-      categoryId: originalProduct.categoryId,
-      subcategoryId: originalProduct.subcategoryId,
-      productTypeId: originalProduct.productTypeId,
-      physicalStoreCountry: originalProduct.storeCountry,
-      physicalStoreLatitude: originalProduct.storeLatitude,
-      physicalStoreLongitude: originalProduct.storeLongitude,
-      physicalStoreId: originalProduct.physicalStoreId,
-    } as VirtualProductTypes;
+      return {
+        ...virtualProduct,
+        name: originalProduct.name,
+        description: originalProduct.description,
+        shortDescription: originalProduct.shortDescription || undefined,
+        sku: originalProduct.sku,
+        images: originalProduct.images || [],
+        tags: originalProduct.tags?.length ? originalProduct.tags : null,
+
+        // Price information
+        price: priceBreakdown.finalPrice,
+        basePrice: isAdmin
+          ? originalProduct.basePrice
+          : virtualProduct.commission,
+        commission: virtualProduct.commission,
+
+        // Discount breakdown
+        priceBreakdown: {
+          originalPrice: priceBreakdown.originalPriceWithCommission,
+          finalPrice: priceBreakdown.finalPrice,
+          discountAmount: priceBreakdown.discountAmount,
+          discountPercentage: priceBreakdown.discountPercentage,
+          hasDiscount: priceBreakdown.hasDiscount,
+          activeDiscount: priceBreakdown.activeDiscount,
+        },
+        finalPrice: priceBreakdown.finalPrice,
+        originalPrice: priceBreakdown.originalPriceWithCommission,
+        savings: priceBreakdown.totalSavings,
+        hasDiscount: priceBreakdown.hasDiscount,
+        discount: discount || undefined,
+
+        currency: originalProduct.currency,
+        status: originalProduct.status,
+        hasVariants: originalProduct.hasVariants,
+        virtualStore: virtualStoreData,
+        colors:
+          originalProduct.colors.length > 0 ? originalProduct.colors : null,
+        categoryId: originalProduct.categoryId,
+        subcategoryId: originalProduct.subcategoryId,
+        productTypeId: originalProduct.productTypeId,
+        physicalStoreCountry: originalProduct.storeCountry,
+        physicalStoreLatitude: originalProduct.storeLatitude,
+        physicalStoreLongitude: originalProduct.storeLongitude,
+        physicalStoreId: originalProduct.physicalStoreId,
+      } as VirtualProductTypes;
+    } catch (error) {
+      console.error("findVirtualProductById error:", error);
+      return null;
+    }
   }
 
   async getVirtualStoreProducts(
@@ -146,22 +168,43 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
       );
 
       if (virtualProducts.documents.length === 0) {
-        return { documents: [], total: 0, hasMore: false, limit: 25, offset: 0 };
+        return {
+          documents: [],
+          total: 0,
+          hasMore: false,
+          limit: 25,
+          offset: 0,
+        };
       }
 
       const productIds = [
         ...new Set(virtualProducts.documents.map((vp) => vp.productId)),
       ];
+
       const physicalStoreIds = [
         ...new Set(virtualProducts.documents.map((vp) => vp.physicalStoreId)),
       ];
 
-      const [originalProductsMap, discountsMap, virtualStoreData] =
-        await Promise.all([
-          this.fetchOriginalProductsMap(productIds),
-          this.fetchDiscountsForStores(physicalStoreIds, productIds),
-          this.virtualStore.findById(virtualStoreId, {}),
-        ]);
+      const originalProductsMap = await this.fetchOriginalProductsMap(
+        productIds
+      );
+
+      const productPrices = new Map<string, number>();
+      originalProductsMap.forEach((product, productId) => {
+        productPrices.set(productId, product.basePrice);
+      });
+
+      const [discountsMap, virtualStoreData] = await Promise.all([
+        this.fetchDiscountsForStores(
+          physicalStoreIds,
+          productIds,
+          productPrices
+        ),
+        this.virtualStore.findById(virtualStoreId, {}),
+      ]);
+
+
+      console.log("dddddD: ,", discountsMap)
 
       const enrichedProducts = virtualProducts.documents
         .map((virtualProduct) => {
@@ -186,26 +229,39 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
             sku: originalProduct.sku,
             images: originalProduct.images || [],
             tags: originalProduct.tags?.length ? originalProduct.tags : null,
+
+            // Price fields
+            price: priceBreakdown.finalPrice,
             basePrice: originalProduct.basePrice,
             commission: virtualProduct.commission,
-            discount,
-            priceBreakdown,
+
+            priceBreakdown: {
+              originalPrice: priceBreakdown.originalPriceWithCommission,
+              finalPrice: priceBreakdown.finalPrice,
+              discountAmount: priceBreakdown.discountAmount,
+              discountPercentage: priceBreakdown.discountPercentage,
+              hasDiscount: priceBreakdown.hasDiscount,
+              activeDiscount: priceBreakdown.activeDiscount,
+            },
             finalPrice: priceBreakdown.finalPrice,
             originalPrice: priceBreakdown.originalPriceWithCommission,
             savings: priceBreakdown.totalSavings,
             hasDiscount: priceBreakdown.hasDiscount,
+            discount: discount || undefined,
+
             currency: originalProduct.currency,
             status: originalProduct.status,
             hasVariants: originalProduct.hasVariants,
-            colors:
-              originalProduct.colors.length > 0
-                ? originalProduct.colors
-                : undefined,
             virtualStore: virtualStoreData,
+            colors:
+              originalProduct.colors.length > 0 ? originalProduct.colors : null,
             categoryId: originalProduct.categoryId,
-            categoryName: originalProduct.categoryName,
             subcategoryId: originalProduct.subcategoryId,
-            subcategoryName: originalProduct.subcategoryName,
+            productTypeId: originalProduct.productTypeId,
+            physicalStoreCountry: originalProduct.storeCountry,
+            physicalStoreLatitude: originalProduct.storeLatitude,
+            physicalStoreLongitude: originalProduct.storeLongitude,
+            physicalStoreId: originalProduct.physicalStoreId,
           } as VirtualProductTypes;
         })
         .filter((p): p is VirtualProductTypes => p !== null);
@@ -680,19 +736,33 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
 
   private async fetchDiscountsForStores(
     physicalStoreIds: string[],
-    productIds: string[]
+    productIds: string[],
+    productPrices: Map<string, number>
   ): Promise<Map<string, Discounts | null>> {
     const allDiscounts = new Map<string, Discounts | null>();
 
     await Promise.all(
       physicalStoreIds.map(async (storeId) => {
         const storeDiscounts =
-          await this.discountModel.getActiveDiscountsForProducts(
+          await this.discountModel.getBestDiscountsForProducts(
             productIds,
-            storeId
+            storeId,
+            productPrices
           );
+
         storeDiscounts.forEach((discount, productId) => {
-          allDiscounts.set(productId, discount);
+          const existingDiscount = allDiscounts.get(productId);
+          if (!existingDiscount) {
+            allDiscounts.set(productId, discount);
+          } else if (discount) {
+            const basePrice = productPrices.get(productId) || 0;
+            const bestDiscount = DiscountCalculator.getBestDiscount(
+              basePrice,
+              existingDiscount,
+              discount
+            );
+            allDiscounts.set(productId, bestDiscount);
+          }
         });
       })
     );

@@ -21,7 +21,6 @@ import {
   updateVirtualStoreFormSchema,
 } from "./schemas/stores-schema";
 import { PhysicalStore } from "@/lib/types/appwrite/appwrite";
-import { VirtualProductSchema } from "./schemas/products-schems";
 import { PriceBreakdown } from "./helpers/discount-calculator";
 
 export type SignInParams = {
@@ -72,19 +71,19 @@ export type AdminDashboardType =
   | undefined;
 
 export interface CartItem {
-    id: string;
-    productId: string;
-    name: string;
-    price: number;
-    originalPrice?: number;
-    quantity: number;
-    image: string;
-    productCurrency: string;
-    sku?: string;
-    virtualProductId?: string;
-    virtualStoreId?: string;
-    physicalStoreId?: string;
-    commission?: number;
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  quantity: number;
+  image: string;
+  productCurrency: string;
+  sku?: string;
+  virtualProductId?: string;
+  virtualStoreId?: string;
+  physicalStoreId?: string;
+  commission?: number;
 }
 
 export interface Cart {
@@ -144,34 +143,60 @@ export interface ProductCombinationTypes extends Models.Document {
   images?: string[];
 }
 export interface VirtualProductTypes extends AffiliateProductImports {
+  // Basic product info from original product
   name: string;
   description: string;
-  sku: string;
-  price: number;
-  basePrice: number;
-  currency: string;
-  status: Status;
-  hasVariants: boolean;
-  categoryId: string;
-  subcategoryId: string;
-  productTypeId: string;
-  tags: string[] | null;
-  images: string[] | null;
-  colors: ProductColors[] | null;
-  physicalStoreLatitude: number;
-  physicalStoreLongitude: number;
-  physicalStoreCountry: string;
   shortDescription?: string;
+  sku: string;
+  images: string[];
+  tags: string[] | null;
+
+  // Price information
+  price: number; // Final price customer pays
+  basePrice: number; // Original product base price
+  commission: number; // Influencer commission
+  currency: string;
+
+  // Discount breakdown - NEW
+  priceBreakdown?: {
+    originalPrice: number; // Original price + commission (for strikethrough)
+    finalPrice: number; // Final price after discount
+    discountAmount: number; // Absolute discount amount
+    discountPercentage: number; // Percentage saved (for badge)
+    hasDiscount: boolean; // Whether discount is active
+    activeDiscount?: {
+      // Active discount details
+      id: string;
+      name: string;
+      type: string; // "percentage" | "fixed_amount"
+      amount: number;
+      expiresAt?: string;
+    };
+  };
+
+  // Convenience fields (for backward compatibility)
+  finalPrice: number; // Same as priceBreakdown.finalPrice
+  originalPrice: number; // Same as priceBreakdown.originalPrice
+  savings: number; // Same as priceBreakdown.discountAmount
+  hasDiscount: boolean; // Same as priceBreakdown.hasDiscount
+  discount?: Discounts; // Full discount object if applicable
+
+  // Product metadata
+  status: string;
+  hasVariants: boolean;
+  colors: ProductColors[] | null;
+
+  // Category info
+  categoryId: string;
+  subcategoryId?: string;
+  productTypeId?: string;
+
+  // Store info
+  virtualStore?: VirtualStoreTypes;
   physicalStoreId: string;
-  virtualStore: VirtualStoreTypes
-  discount?: Discounts | null;
-  priceBreakdown: PriceBreakdown;
-  finalPrice: number;
-  originalPrice: number;
-  savings: number;
-  hasDiscount: boolean;
-  categoryName: string;
-  subcategoryName: string;
+  physicalStoreCountry?: string;
+  physicalStoreLatitude?: number;
+  physicalStoreLongitude?: number;
 }
 
 export type VirtualStoreTypes = VirtualStore;
@@ -252,7 +277,7 @@ export interface ProductFilters {
   userLng?: number;
   radiusKm?: number;
   combinations?: ProductCombination[];
-  view: string
+  view: string;
 }
 
 export type CreateVirtualStoreTypes = z.infer<
@@ -265,4 +290,3 @@ export type CreatePhysicalStoreTypes = z.infer<
   typeof createPhysicalStoreFormSchema
 >;
 export type PhysicalStoreTypes = PhysicalStore;
-export type CreateVirtualProductTypes = z.infer<typeof VirtualProductSchema>;

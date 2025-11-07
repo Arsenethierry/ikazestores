@@ -34,6 +34,25 @@ import { getAuthState } from "../user-permission";
 import { ProductsStorageService } from "./storage-models";
 import { extractFileIdFromUrl } from "../utils";
 import { ColorVariantsModel } from "./ColorVariantsModel";
+import { DiscountModel } from "./DiscountModel";
+import { DiscountCalculator } from "../helpers/discount-calculator";
+
+export interface ProductWithDiscount extends Products {
+  priceBreakdown?: {
+    originalPrice: number;
+    finalPrice: number;
+    discountAmount: number;
+    discountPercentage: number;
+    hasDiscount: boolean;
+    activeDiscount?: {
+      id: string;
+      name: string;
+      type: string;
+      amount: number;
+      expiresAt?: string;
+    };
+  };
+}
 
 export class ProductModel extends BaseModel<Products> {
   constructor() {
@@ -54,6 +73,187 @@ export class ProductModel extends BaseModel<Products> {
 
   async findProductById(productId: string): Promise<Products | null> {
     return await this.findById(productId, {});
+  }
+
+  async findProductsWithDiscounts(
+    storeId: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<ProductWithDiscount>> {
+    const productsResult = await this.findByPhysicalStore(storeId, options);
+    try {
+      if (productsResult.documents.length === 0) {
+        return {
+          documents: [],
+          total: 0,
+          hasMore: false,
+          limit: options.limit || 25,
+          offset: options.offset || 0,
+        };
+      }
+
+      // Get product IDs and prices
+      const productIds = productsResult.documents.map((p) => p.$id);
+      const productPrices = new Map(
+        productsResult.documents.map((p) => [p.$id, p.basePrice])
+      );
+
+      // Fetch best discounts for all products in batch
+      const discountModel = new DiscountModel();
+      const discountsMap = await discountModel.getBestDiscountsForProducts(
+        productIds,
+        storeId,
+        productPrices
+      );
+
+      const enrichedProducts: ProductWithDiscount[] =
+        productsResult.documents.map((product) => {
+          const discount = discountsMap.get(product.$id);
+          const priceBreakdown = DiscountCalculator.calculatePrice(
+            product.basePrice,
+            0, // No commission for physical store products
+            discount
+          );
+
+          return {
+            ...product,
+            priceBreakdown: {
+              originalPrice: priceBreakdown.originalBasePrice,
+              finalPrice: priceBreakdown.finalPrice,
+              discountAmount: priceBreakdown.discountAmount,
+              discountPercentage: priceBreakdown.discountPercentage,
+              hasDiscount: priceBreakdown.hasDiscount,
+              activeDiscount: priceBreakdown.activeDiscount,
+            },
+          };
+        });
+
+      return {
+        documents: enrichedProducts,
+        total: productsResult.total,
+        hasMore: productsResult.hasMore,
+        limit: productsResult.limit,
+        offset: productsResult.offset,
+      };
+    } catch (error) {
+      console.error("findProductsWithDiscounts error:", error);
+      throw error;
+    }
+  }
+
+  async findProductWithDiscount(
+    productId: string
+  ): Promise<ProductWithDiscount | null> {
+    try {
+      const product = await this.findProductById(productId);
+      if (!product) return null;
+
+      // Get best discount for this product
+      const discountModel = new DiscountModel();
+      const discount = await discountModel.getBestDiscountForProduct(
+        productId,
+        product.physicalStoreId,
+        product.basePrice
+      );
+
+      const priceBreakdown = DiscountCalculator.calculatePrice(
+        product.basePrice,
+        0,
+        discount
+      );
+
+      return {
+        ...product,
+        priceBreakdown: {
+          originalPrice: priceBreakdown.originalBasePrice,
+          finalPrice: priceBreakdown.finalPrice,
+          discountAmount: priceBreakdown.discountAmount,
+          discountPercentage: priceBreakdown.discountPercentage,
+          hasDiscount: priceBreakdown.hasDiscount,
+          activeDiscount: priceBreakdown.activeDiscount,
+        },
+      };
+    } catch (error) {
+      console.error("findProductWithDiscount error:", error);
+      return null;
+    }
+  }
+
+  async searchProductsWithDiscounts(
+    search: string,
+    storeId: string,
+    options: QueryOptions = {}
+  ): Promise<PaginationResult<ProductWithDiscount>> {
+    try {
+      const filters = [
+        { field: "physicalStoreId", operator: "equal", value: storeId },
+        ...(options.filters || []),
+      ];
+
+      // Search products
+      const productsResult = await this.searchProducts(search, {
+        ...options,
+        // @ts-ignore
+        filters,
+      });
+
+      if (productsResult.documents.length === 0) {
+        return {
+          documents: [],
+          total: 0,
+          hasMore: false,
+          limit: options.limit || 25,
+          offset: options.offset || 0,
+        };
+      }
+
+      // Get product IDs and prices
+      const productIds = productsResult.documents.map((p) => p.$id);
+      const productPrices = new Map(
+        productsResult.documents.map((p) => [p.$id, p.basePrice])
+      );
+
+      // Fetch best discounts
+      const discountModel = new DiscountModel();
+      const discountsMap = await discountModel.getBestDiscountsForProducts(
+        productIds,
+        storeId,
+        productPrices
+      );
+
+      // Enrich with discounts
+      const enrichedProducts: ProductWithDiscount[] =
+        productsResult.documents.map((product) => {
+          const discount = discountsMap.get(product.$id);
+          const priceBreakdown = DiscountCalculator.calculatePrice(
+            product.basePrice,
+            0,
+            discount
+          );
+
+          return {
+            ...product,
+            priceBreakdown: {
+              originalPrice: priceBreakdown.originalBasePrice,
+              finalPrice: priceBreakdown.finalPrice,
+              discountAmount: priceBreakdown.discountAmount,
+              discountPercentage: priceBreakdown.discountPercentage,
+              hasDiscount: priceBreakdown.hasDiscount,
+              activeDiscount: priceBreakdown.activeDiscount,
+            },
+          };
+        });
+
+      return {
+        documents: enrichedProducts,
+        total: productsResult.total,
+        hasMore: productsResult.hasMore,
+        limit: productsResult.limit,
+        offset: productsResult.offset,
+      };
+    } catch (error) {
+      console.error("searchProductsWithDiscounts error:", error);
+      throw error;
+    }
   }
 
   async findProductWithColors(
@@ -677,7 +877,7 @@ export class ProductModel extends BaseModel<Products> {
             // Create new combination
             const result = await this.combinationsModel.createCombination(
               combination,
-              productId,
+              productId
             );
             if ("error" in result) {
               throw new Error(result.error);

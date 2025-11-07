@@ -44,6 +44,7 @@ import {
     Search,
     Eye,
     Loader2,
+    Settings,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -274,6 +275,12 @@ export function DiscountList({ discounts, storeId }: DiscountListProps) {
                             >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => router.push(`/admin/stores/${storeId}/physical-store/marketing/discounts/${discount.$id}/edit`)}
+                            >
+                                <Settings className="mr-2 h-4 w-4" />
+                                Manage
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

@@ -22,6 +22,7 @@ import { CouponCodes, CouponUsage, Discounts } from "../types/appwrite-types";
 import { getAuthState } from "../user-permission";
 import { checkStoreAccess } from "../helpers/store-permission-helper";
 import { MARKETING_PERMISSIONS } from "../helpers/permissions";
+import { DiscountCalculator } from "../helpers/discount-calculator";
 
 export class DiscountModel extends BaseModel<Discounts> {
   constructor() {
@@ -682,6 +683,180 @@ export class DiscountModel extends BaseModel<Discounts> {
     }
 
     return null;
+  }
+
+  async getBestDiscountForProduct(
+    productId: string,
+    physicalStoreId: string,
+    basePrice: number
+  ): Promise<Discounts | null> {
+    try {
+      const now = new Date().toISOString();
+
+      const result = await this.findMany({
+        filters: [
+          { field: "storeId", operator: "equal", value: physicalStoreId },
+          { field: "storeType", operator: "equal", value: "physical" },
+          { field: "isActive", operator: "equal", value: true },
+          { field: "startDate", operator: "lessThanEqual", value: now },
+        ],
+        limit: 100,
+        orderBy: "priority",
+        orderType: "desc",
+      });
+
+      const applicableDiscounts = result.documents.filter((discount) => {
+        if (discount.endDate && new Date(discount.endDate) < new Date()) {
+          return false;
+        }
+
+        if (
+          discount.usageLimit &&
+          discount.currentUsageCount &&
+          discount.currentUsageCount >= discount.usageLimit
+        ) {
+          return false;
+        }
+
+        if (discount.applicableTo === "store_wide") return true;
+        if (
+          discount.applicableTo === "products" &&
+          discount.targetIds?.includes(productId)
+        ) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (applicableDiscounts.length === 0) return null;
+
+      let bestDiscount = applicableDiscounts[0];
+      let maxSavings = DiscountCalculator.calculatePrice(
+        basePrice,
+        0,
+        bestDiscount
+      ).discountAmount;
+
+      for (let i = 1; i < applicableDiscounts.length; i++) {
+        const discount = applicableDiscounts[i];
+        const savings = DiscountCalculator.calculatePrice(
+          basePrice,
+          0,
+          discount
+        ).discountAmount;
+
+        if (savings > maxSavings) {
+          maxSavings = savings;
+          bestDiscount = discount;
+        } else if (
+          savings === maxSavings &&
+          discount.priority > bestDiscount.priority
+        ) {
+          bestDiscount = discount;
+        }
+      }
+
+      return bestDiscount;
+    } catch (error) {
+      console.error("getBestDiscountForProduct error:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get best discounts for multiple products (batch operation)
+   * Returns a Map of productId -> best discount
+   */
+  async getBestDiscountsForProducts(
+    productIds: string[],
+    physicalStoreId: string,
+    productPrices: Map<string, number> // Map of productId -> basePrice
+  ): Promise<Map<string, Discounts | null>> {
+    try {
+      const now = new Date().toISOString();
+
+      const result = await this.findMany({
+        filters: [
+          { field: "storeId", operator: "equal", value: physicalStoreId },
+          { field: "storeType", operator: "equal", value: "physical" },
+          { field: "isActive", operator: "equal", value: true },
+          { field: "startDate", operator: "lessThanEqual", value: now },
+        ],
+        limit: 100,
+        orderBy: "priority",
+        orderType: "desc",
+      });
+
+      const validDiscounts = result.documents.filter((discount) => {
+        if (discount.endDate && new Date(discount.endDate) < new Date()) {
+          return false;
+        }
+        if (
+          discount.usageLimit &&
+          discount.currentUsageCount &&
+          discount.currentUsageCount >= discount.usageLimit
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      const discountMap = new Map<string, Discounts | null>();
+
+      productIds.forEach((productId) => {
+        const basePrice = productPrices.get(productId) || 0;
+
+        const applicable = validDiscounts.filter((discount) => {
+          if (discount.applicableTo === "store_wide") return true;
+          if (
+            discount.applicableTo === "products" &&
+            discount.targetIds?.includes(productId)
+          ) {
+            return true;
+          }
+          return false;
+        });
+
+        if (applicable.length === 0) {
+          discountMap.set(productId, null);
+          return;
+        }
+
+        let bestDiscount = applicable[0];
+        let maxSavings = DiscountCalculator.calculatePrice(
+          basePrice,
+          0,
+          bestDiscount
+        ).discountAmount;
+
+        for (let i = 1; i < applicable.length; i++) {
+          const discount = applicable[i];
+          const savings = DiscountCalculator.calculatePrice(
+            basePrice,
+            0,
+            discount
+          ).discountAmount;
+
+          if (savings > maxSavings) {
+            maxSavings = savings;
+            bestDiscount = discount;
+          } else if (
+            savings === maxSavings &&
+            discount.priority > bestDiscount.priority
+          ) {
+            bestDiscount = discount;
+          }
+        }
+
+        discountMap.set(productId, bestDiscount);
+      });
+
+      return discountMap;
+    } catch (error) {
+      console.error("getBestDiscountsForProducts error:", error);
+      return new Map();
+    }
   }
 
   async calculateFinalPrice(

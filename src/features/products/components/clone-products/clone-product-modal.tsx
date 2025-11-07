@@ -169,6 +169,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                 virtualStoreId: virtualStoreId,
                 productId: product.$id,
                 commission: values.commission,
+                physicalStoreId: product.physicalStoreId,
                 selectedCombinations: values.selectedCombinations,
                 customCombinationPricing: filteredCustomPricing && filteredCustomPricing.length > 0
                     ? filteredCustomPricing
