@@ -1,11 +1,10 @@
 "use server";
 
-import { Query } from "node-appwrite";
 import { createVirtualStoreFormSchema } from "../schemas/stores-schema";
 import { VirtualStore } from "../models/virtual-store";
 import { CreateVirtualStoreTypes, UpdateVirtualStoreTypes, VirtualProductTypes, VirtualStoreTypes } from "../types";
 import { getAuthState } from "../user-permission";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { PaginationResult } from "../core/database";
 import { getVirtualStoreProducts } from "./affiliate-product-actions";
 import { getUserLocale } from "./auth.action";
@@ -42,6 +41,27 @@ export async function createVirtualStoreAction(formData: CreateVirtualStoreTypes
         };
     }
 }
+
+export const getCachedStoreBySubdomain = unstable_cache(
+  async (subdomain: string) => {
+    try {
+      const { getVirtualStoreByDomain } = await import(
+        "@/lib/actions/virtual-store.action"
+      );
+
+      const store = await getVirtualStoreByDomain(subdomain);
+      return store;
+    } catch (error) {
+      console.error("[Middleware Cache] Error fetching store:", error);
+      return null;
+    }
+  },
+  ["store-subdomain"],
+  {
+    revalidate: 300,
+    tags: ["store-data"],
+  }
+);
 
 export async function updateVirtualStore(
     storeId: string,

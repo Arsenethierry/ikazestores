@@ -539,6 +539,7 @@ export type VirtualStore = Models.Document & {
     commissionEarned: number | null;
     isActive: boolean;
     rating: number | null;
+    templateId?: string | null;
 }
 
 export type PhysicalStore = Models.Document & {

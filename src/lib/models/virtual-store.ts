@@ -208,7 +208,7 @@ export class VirtualStore extends BaseModel<VirtualStoreTypes> {
         storeBio: data.storeBio,
         virtualProductsIds: [],
         operatingCountry: data.operatingCountry,
-        countryCurrency: data.countryCurrency
+        countryCurrency: data.countryCurrency,
       };
 
       const newVirtualStore = await databases.createDocument<VirtualStoreTypes>(
@@ -340,8 +340,25 @@ export class VirtualStore extends BaseModel<VirtualStoreTypes> {
       console.error("Update virtual store error:", error);
       await rollback.rollback();
       throw error instanceof Error
-        ? error
+      ? error
         : new Error("Failed to update virtual store");
+    }
+  }
+
+  async updateTemplate(
+    storeId: string,
+    templateId: string
+  ): Promise<VirtualStoreTypes> {
+    try {
+      const updated = await this.update(storeId, { templateId });
+
+      this.clearCache();
+      this.clearCache();
+
+      return updated;
+    } catch (error) {
+      console.error("Error updating store template:", error);
+      throw error;
     }
   }
 

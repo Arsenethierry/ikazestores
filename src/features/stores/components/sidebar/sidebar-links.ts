@@ -177,6 +177,10 @@ export const getSidebarLinks = (storeId: string | null) => ({
       icon: Settings2,
       items: [
         {
+          title: "Sites Tempalates",
+          url: `/admin/stores/${storeId}/virtual-store/settings/templates`,
+        },
+        {
           title: "Return Policies",
           url: `/admin/stores/${storeId}/virtual-store/settings/policies`,
         },

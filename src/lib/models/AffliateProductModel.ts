@@ -204,8 +204,6 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
       ]);
 
 
-      console.log("dddddD: ,", discountsMap)
-
       const enrichedProducts = virtualProducts.documents
         .map((virtualProduct) => {
           const originalProduct = originalProductsMap.get(
