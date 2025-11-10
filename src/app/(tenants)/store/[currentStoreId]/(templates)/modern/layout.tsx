@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getVirtualStoreById } from '@/lib/actions/virtual-store.action';
-import { TenantStoreNavbar } from '@/components/navbars/tenant/tenant-store-navbar';
+import { ModernNavbar, ModernNavbarSkeleton } from './_components/modern-navbar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default async function ModernLayout({
     children,
@@ -16,12 +17,16 @@ export default async function ModernLayout({
     if (!store) notFound();
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-            <TenantStoreNavbar currentStoreId={currentStoreId} />
+        <div className="min-h-screen bg-background">
+            <Suspense fallback={<ModernNavbarSkeleton/>}>
+                <ModernNavbar
+                    currentStoreId={currentStoreId}
+                    storeName={store.storeName}
+                    storeLogo={store.logoUrl}
+                />
+            </Suspense>
 
-            <main className="container mx-auto px-4 py-6">
-                {children}
-            </main>
+            <main>{children}</main>
 
             <footer className="bg-slate-900 text-white py-8 mt-16">
                 <div className="container mx-auto px-4 text-center">

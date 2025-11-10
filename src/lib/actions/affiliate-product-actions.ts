@@ -13,6 +13,28 @@ import { revalidatePath } from "next/cache";
 import z from "zod";
 import { PRODUCT_PERMISSIONS } from "../helpers/permissions";
 import { checkStoreAccess } from "../helpers/store-permission-helper";
+import { createSessionClient } from "../appwrite";
+import {
+  DATABASE_ID,
+  ORDER_ITEMS_COLLECTION_ID,
+  PRODUCT_REVIEWS_COLLECTION_ID,
+} from "../env-config";
+import { Query } from "node-appwrite";
+import { OrderItemsModel } from "../models/OrderItemsModel";
+import { cache } from "react";
+import { OrderItems } from "../types/appwrite-types";
+
+export interface BestProduct {
+  id: string;
+  name: string;
+  imageUrl: string;
+  rating: number;
+  reviewCount: number;
+  price: number;
+  originalPrice?: number;
+  currency: string;
+  salesCount: number;
+}
 
 const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -42,7 +64,7 @@ export const importProductAction = action
           "Access denied: You don't have permission to import products"
         );
       }
-      
+
       const result = await affiliateProductModel.importProduct(data);
 
       if ("error" in result) {
@@ -343,7 +365,7 @@ export async function getVirtualStoreProducts(
 
     const result = await affiliateProductModel.getVirtualStoreProducts(
       virtualStoreId,
-      queryOptions,
+      queryOptions
       // isAdmin
     );
 
@@ -588,3 +610,130 @@ export async function getVirtualProductById(productId: string) {
     return null;
   }
 }
+
+export const getBestProducts = cache(
+  async (
+    storeId: string,
+    limit: number = 4
+  ): Promise<{ products: BestProduct[]; isFallback: boolean }> => {
+    try {
+      const { databases } = await createSessionClient();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Step 1: Get order items from last 30 days for this store
+      const orderItems = await databases.listDocuments<OrderItems>(
+        DATABASE_ID,
+        ORDER_ITEMS_COLLECTION_ID,
+        [
+          Query.equal("virtualStoreId", storeId),
+          Query.greaterThanEqual("$createdAt", thirtyDaysAgo.toISOString()),
+          Query.limit(1000), // Get recent orders
+        ]
+      );
+
+      const salesByProduct = new Map<string, number>();
+      orderItems.documents.forEach((item) => {
+        const currentCount = salesByProduct.get(item.affiliateProductId) || 0;
+        salesByProduct.set(
+          item.affiliateProductId,
+          currentCount + (item.quantity || 0)
+        );
+      });
+
+      // Step 3: Sort by sales and get top product IDs
+      const sortedProducts = Array.from(salesByProduct.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([productId]) => productId);
+
+      let isFallback = false;
+      let products;
+
+      if (sortedProducts.length === 0) {
+        // Fallback: Get newest products
+        isFallback = true;
+        const result = await affiliateProductModel.findByVirtualStore(storeId, {
+          limit,
+          orderBy: "$createdAt",
+          orderType: "desc",
+          filters: [{ field: "isActive", operator: "equal", value: true }],
+        });
+        products = result.documents;
+      } else {
+        // Get the best selling products
+        const result = await affiliateProductModel.findMany({
+          limit,
+          filters: [
+            { field: "$id", operator: "equal", value: sortedProducts },
+            { field: "isActive", operator: "equal", value: true },
+          ],
+        });
+        products = result.documents;
+
+        // Sort by sales count (maintain order from sortedProducts)
+        products.sort((a, b) => {
+          const aIndex = sortedProducts.indexOf(a.$id);
+          const bIndex = sortedProducts.indexOf(b.$id);
+          return aIndex - bIndex;
+        });
+      }
+
+      // Step 4: Format products for display
+      const formattedProducts: BestProduct[] = products.map((product) => {
+        const salesCount = salesByProduct.get(product.$id) || 0;
+
+        return {
+          id: product.$id,
+          name: product.productName || "Unnamed Product",
+          imageUrl:
+            product.imageUrls?.[0] ||
+            "https://images.pexels.com/photos/90946/pexels-photo-90946.jpeg",
+          rating: Math.round(product.averageRating || 0),
+          reviewCount: product.reviewCount || 0,
+          price: product.finalPrice || product.pricePerUnit || 0,
+          originalPrice: product.originalPrice || undefined,
+          currency: product.currency || "RWF",
+          salesCount,
+        };
+      });
+
+      return { products: formattedProducts, isFallback };
+    } catch (error) {
+      console.error("[getBestProducts] Error:", error);
+      return { products: [], isFallback: true };
+    }
+  }
+);
+
+export const getStoreCategoriesForProducts = cache(
+  async (storeId: string, limit: number = 12) => {
+    try {
+      // Get all active products for this store
+      const products = await affiliateProductModel.findByVirtualStore(storeId, {
+        limit: 1000,
+        filters: [{ field: "isActive", operator: "equal", value: true }],
+      });
+
+      // Count products per category
+      const categoryCount = new Map<string, number>();
+      products.documents.forEach((product) => {
+        if (product.categoryId) {
+          const count = categoryCount.get(product.categoryId) || 0;
+          categoryCount.set(product.categoryId, count + 1);
+        }
+      });
+
+      // Sort categories by product count and return top N
+      const topCategories = Array.from(categoryCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([categoryId]) => categoryId);
+
+      return { categoryIds: topCategories };
+    } catch (error) {
+      console.error("[getStoreCategoriesForProducts] Error:", error);
+      return { categoryIds: [] };
+    }
+  }
+);
