@@ -1,10 +1,11 @@
 "use server";
 
 import { createSafeActionClient } from "next-safe-action";
-import { PaginationResult, QueryOptions } from "../core/database";
+import { PaginationResult, QueryFilter, QueryOptions } from "../core/database";
 import { AffiliateProductModel } from "../models/AffliateProductModel";
 import {
   CreateAffiliateImportSchema,
+  LoadMoreSchema,
   UpdateAffiliateImportSchema,
 } from "../schemas/products-schems";
 import { VirtualProductTypes } from "../types";
@@ -737,3 +738,87 @@ export const getStoreCategoriesForProducts = cache(
     }
   }
 );
+
+export const loadMoreProductsAction = action
+  .schema(LoadMoreSchema)
+  .action(async ({ parsedInput }) => {
+    const { storeId, page, limit, filters } = parsedInput;
+
+    // Build query filters
+    const queryFilters: QueryFilter[] = [];
+
+    if (filters.category) {
+      queryFilters.push({
+        field: "categoryId",
+        operator: "equal",
+        value: filters.category,
+      });
+    }
+
+    if (filters.productType) {
+      queryFilters.push({
+        field: "productTypeId",
+        operator: "equal",
+        value: filters.productType,
+      });
+    }
+
+    if (filters.minPrice) {
+      queryFilters.push({
+        field: "basePrice",
+        operator: "greaterThanEqual",
+        value: parseInt(filters.minPrice),
+      });
+    }
+
+    if (filters.maxPrice) {
+      queryFilters.push({
+        field: "basePrice",
+        operator: "lessThanEqual",
+        value: parseInt(filters.maxPrice),
+      });
+    }
+
+    // Determine sort options
+    let orderBy = "$createdAt";
+    let orderType: "asc" | "desc" = "desc";
+
+    switch (filters.sortBy) {
+      case "price_asc":
+        orderBy = "basePrice";
+        orderType = "asc";
+        break;
+      case "price_desc":
+        orderBy = "basePrice";
+        orderType = "desc";
+        break;
+      case "newest":
+        orderBy = "$createdAt";
+        orderType = "desc";
+        break;
+      case "popular":
+        orderBy = "popularity";
+        orderType = "desc";
+        break;
+      case "rating":
+        orderBy = "rating";
+        orderType = "desc";
+        break;
+    }
+
+    const queryOptions: QueryOptions = {
+      limit,
+      offset: (page - 1) * limit,
+      filters: queryFilters,
+      orderBy,
+      orderType,
+    };
+
+    try {
+      const result = await getVirtualStoreProducts(storeId, queryOptions);
+      return result;
+    } catch (error) {
+      console.error("Error in loadMoreProductsAction:", error);
+      throw new Error("Failed to load more products");
+    }
+  });

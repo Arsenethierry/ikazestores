@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getVirtualStoreById } from "@/lib/actions/virtual-store.action";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HotCategoriesSection, HotCategoriesSkeleton } from "./_components/hot-categories-section";
-import { HeroCollectionsServerWrapper, DualHeroSkeleton } from "./_components/hero-collections-server-wrapper";
-import { BestProductsServerWrapper, BestPicksSkeleton } from "./_components/best-products-server-wrapper";
+import { HotCategoriesSection, HotCategoriesSkeleton } from "./_components/home/hot-categories-section";
+import { HeroCollectionsServerWrapper, DualHeroSkeleton } from "./_components/home/hero-collections-server-wrapper";
+import { BestProductsServerWrapper, BestPicksSkeleton } from "./_components/home/best-products-server-wrapper";
 import { getStoreUrls } from "@/features/stores/store-domain-helper";
 
 export const revalidate = 43200;

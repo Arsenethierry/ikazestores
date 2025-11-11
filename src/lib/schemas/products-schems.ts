@@ -95,6 +95,20 @@ export const CreateAffiliateImportSchema = z.object({
     .optional(),
 });
 
+export const LoadMoreSchema = z.object({
+  storeId: z.string(),
+  page: z.number().min(1),
+  limit: z.number().min(1).max(50),
+  filters: z.object({
+    category: z.string().optional(),
+    productType: z.string().optional(),
+    search: z.string().optional(),
+    minPrice: z.string().optional(),
+    maxPrice: z.string().optional(),
+    sortBy: z.string().optional(),
+  }),
+});
+
 export const UpdateAffiliateImportSchema = z.object({
   commission: z.number().min(0).optional(),
   isActive: z.boolean().optional(),
@@ -354,9 +368,13 @@ export const UpdateProductSchema = z.object({
   tags: z.array(z.string()).optional(),
   hasVariants: z.boolean().optional(),
   variants: z.array(VariantSchema).optional(),
-  productCombinations: z.array(ProductCombinationSchema.extend({
-  $id: z.string().optional(),
-})).optional(),
+  productCombinations: z
+    .array(
+      ProductCombinationSchema.extend({
+        $id: z.string().optional(),
+      })
+    )
+    .optional(),
   images: z.array(z.instanceof(File)).optional(),
   enableColors: z.boolean().optional(),
   hasColorVariants: z.boolean().optional(),
@@ -381,15 +399,15 @@ export const DeleteProductSchema = z.object({
 });
 
 export const VirtualStoreProductFiltersSchema = z.object({
-    search: z.string().optional(),
-    categoryId: z.string().optional(),
-    subcategoryId: z.string().optional(),
-    minFinalPrice: z.number().min(0).optional(),
-    maxFinalPrice: z.number().min(0).optional(),
-    minCommission: z.number().min(0).max(100).optional(),
-    maxCommission: z.number().min(0).max(100).optional(),
-    featured: z.boolean().optional(),
-    tags: z.array(z.string()).optional()
+  search: z.string().optional(),
+  categoryId: z.string().optional(),
+  subcategoryId: z.string().optional(),
+  minFinalPrice: z.number().min(0).optional(),
+  maxFinalPrice: z.number().min(0).optional(),
+  minCommission: z.number().min(0).max(100).optional(),
+  maxCommission: z.number().min(0).max(100).optional(),
+  featured: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
 });
 // ============================================
 // Color Variant Schemas
@@ -441,9 +459,18 @@ export const RemoveSavedItemSchema = z.object({
 export const createReviewSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
   virtualStoreId: z.string().min(1, "Virtual store ID is required"),
-  rating: z.number().min(1, "Rating must be at least 1").max(5, "Rating cannot exceed 5"),
-  title: z.string().min(5, "Title must be at least 5 characters").max(100, "Title too long"),
-  comment: z.string().min(20, "Review must be at least 20 characters").max(2000, "Review too long"),
+  rating: z
+    .number()
+    .min(1, "Rating must be at least 1")
+    .max(5, "Rating cannot exceed 5"),
+  title: z
+    .string()
+    .min(5, "Title must be at least 5 characters")
+    .max(100, "Title too long"),
+  comment: z
+    .string()
+    .min(20, "Review must be at least 20 characters")
+    .max(2000, "Review too long"),
   pros: z.array(z.string()).optional(),
   cons: z.array(z.string()).optional(),
   orderId: z.string().optional(),
@@ -460,20 +487,24 @@ export const voteOnReviewSchema = z.object({
   voteType: z.nativeEnum(VoteType),
 });
 
-
 export type CreateProductSchema = z.infer<typeof CreateProductSchema>;
 export type UpdateProductSchema = z.infer<typeof UpdateProductSchema>;
 export type DeleteProductSchema = z.infer<typeof DeleteProductSchema>;
 export type VariantSchema = z.infer<typeof VariantSchema>;
 export type VariantValueSchema = z.infer<typeof VariantValueSchema>;
 export type ProductCombinationSchema = z.infer<typeof ProductCombinationSchema>;
-export interface UpdateCombinationData extends Partial<Omit<ProductCombinationSchema, "$id">> {}
+export interface UpdateCombinationData
+  extends Partial<Omit<ProductCombinationSchema, "$id">> {}
 export type ColorVariantSchema = z.infer<typeof ColorVariantSchema>;
 export type CreateColorVariantData = z.infer<typeof CreateColorVariantData>;
 export type UpdateColorVariantData = z.infer<typeof UpdateColorVariantData>;
 export type ColorVariantUpdateSchema = z.infer<typeof ColorVariantUpdateSchema>;
-export type VirtualStoreProductFilters = z.infer<typeof ColorVariantUpdateSchema>;
-export type CreateAffiliateImportSchema = z.infer<typeof CreateAffiliateImportSchema>;
+export type VirtualStoreProductFilters = z.infer<
+  typeof ColorVariantUpdateSchema
+>;
+export type CreateAffiliateImportSchema = z.infer<
+  typeof CreateAffiliateImportSchema
+>;
 
 // Step schemas
 export type BasicInfoStepSchema = z.infer<typeof BasicInfoStepSchema>;
