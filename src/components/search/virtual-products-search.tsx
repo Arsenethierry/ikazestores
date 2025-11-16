@@ -47,6 +47,7 @@ export const ProductSearchField = (): JSX.Element => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const { currentStoreId } = useParams();
+
   const router = useRouter();
   const storeId = Array.isArray(currentStoreId)
     ? currentStoreId[0]
@@ -81,7 +82,6 @@ export const ProductSearchField = (): JSX.Element => {
     const thisRequest = ++requestVersionRef.current;
     setIsLoading(true);
 
-    // Call server action with correct parameter structure
     searchVirtualStoreProducts(storeId, {
       search: q,
       limit,

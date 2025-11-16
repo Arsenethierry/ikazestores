@@ -6,12 +6,13 @@ import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAuthState } from '@/lib/user-permission';
 import { CartNavbarWrapper } from './cart-navbar-wrapper';
-import { ModernSearchBar } from './modern-search-bar';
+import { CurrentStoreLogo } from '@/components/navbars/tenant/store-logo';
+import { ProductSearchField } from '@/components/search/virtual-products-search';
 
 interface ModernNavbarProps {
     currentStoreId: string;
     storeName: string;
-    storeLogo?: string;
+    storeLogo?: string | null;
 }
 
 export const ModernNavbar = async ({
@@ -56,29 +57,11 @@ export const ModernNavbar = async ({
             {/* Main Navbar */}
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-20 gap-6">
-                    {/* Logo */}
-                    <Link href={`/store/${currentStoreId}`} className="flex items-center gap-2 flex-shrink-0">
-                        {storeLogo ? (
-                            <img
-                                src={storeLogo}
-                                alt={storeName}
-                                className="h-10 w-auto object-contain"
-                            />
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                                    <span className="text-xl font-bold text-white">
-                                        {storeName.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                                <span className="text-xl font-bold">{storeName}</span>
-                            </div>
-                        )}
-                    </Link>
+                    <CurrentStoreLogo currentStoreId={currentStoreId} />
 
                     {/* Search Bar */}
                     <div className="flex-1 max-w-2xl">
-                        <ModernSearchBar storeId={currentStoreId} />
+                        <ProductSearchField />
                     </div>
 
                     {/* Right Actions */}
@@ -109,7 +92,7 @@ export const ModernNavbar = async ({
 
                         {/* Account */}
                         <Button variant="ghost" className="hover:bg-slate-800 gap-2" asChild>
-                            <Link href={isAuthenticated ? "/admin" : "/auth/login"}>
+                            <Link href={isAuthenticated ? "/profile" : "/sign-in"}>
                                 <User className="h-5 w-5" />
                                 <span className="hidden md:inline">
                                     {isAuthenticated ? "Account" : "Login / Register"}

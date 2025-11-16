@@ -686,7 +686,7 @@ export const getBestProducts = cache(
 
         return {
           id: product.$id,
-          name: product.productName || "Unnamed Product",
+          name: product.virtualStoreName || "Unnamed Product",
           imageUrl:
             product.imageUrls?.[0] ||
             "https://images.pexels.com/photos/90946/pexels-photo-90946.jpeg",

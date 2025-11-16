@@ -17,6 +17,8 @@ export async function BestProductsServerWrapper({
         return null;
     }
 
+    console.log("^^^^^^^^^^^^^^^^^^^^: ", products)
+
     const sectionTitle = isFallback ? "Newly Added Products" : "Best of the month";
 
     return (
@@ -24,7 +26,7 @@ export async function BestProductsServerWrapper({
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-bold">{sectionTitle}</h2>
                 <a
-                    href={`/store/${storeId}/products`}
+                    href={`/products`}
                     className="text-sm font-medium hover:underline text-primary"
                 >
                     Shop More

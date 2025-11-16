@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getVirtualStoreById } from '@/lib/actions/virtual-store.action';
-import { ModernNavbar, ModernNavbarSkeleton } from './_components/home/modern-navbar';
+import { ModernNavbar, ModernNavbarSkeleton } from '../_components/home/modern-navbar';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default async function ModernLayout({
@@ -22,7 +22,7 @@ export default async function ModernLayout({
                 <ModernNavbar
                     currentStoreId={currentStoreId}
                     storeName={store.storeName}
-                    storeLogo={store.logoUrl}
+                    storeLogo={store.storeLogoUrl}
                 />
             </Suspense>
 

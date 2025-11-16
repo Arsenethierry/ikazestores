@@ -31,7 +31,7 @@ export const createOrderAction = action
   .use(authMiddleware)
   .action(async ({ parsedInput: validatedData, ctx }) => {
     const { user } = ctx;
-    console.log("%%%%%: ", validatedData);
+
     try {
       if (validatedData.customerId !== user.$id) {
         throw new Error(

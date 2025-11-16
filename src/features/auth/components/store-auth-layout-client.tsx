@@ -142,7 +142,7 @@ export const StoreAuthLayoutClient = ({ children, store }: StoreAuthLayoutClient
                         <p>Operating in {store.operatingCountry}</p>
                         <p className="mt-1">
                             Powered by{' '}
-                            <Link href="https://ikazestores.com" className="underline hover:opacity-80">
+                            <Link href="https://ikazestores.com" target='_blank' className="underline hover:opacity-80">
                                 IkazeStores
                             </Link>
                         </p>

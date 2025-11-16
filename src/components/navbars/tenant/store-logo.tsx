@@ -16,18 +16,20 @@ export const CurrentStoreLogo = async ({ currentStoreId }: { currentStoreId: str
     }
 
     if (storeData.storeLogoUrl) {
-        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <div className="relative h-10 w-40">
-                <Image
-                    src={storeData.storeLogoUrl}
-                    alt={`${storeData.storeName} logo`}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 160px"
-                    priority
-                />
-            </div>
-        </Link>
+        return (
+            <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+                <div className="relative h-10 w-40">
+                    <Image
+                        src={storeData.storeLogoUrl}
+                        alt={`${storeData.storeName} logo`}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, 160px"
+                        priority
+                    />
+                </div>
+            </Link>
+        )
     }
 
     const { firstInitial, secondInitial } = getStoreLogoInitials(storeData.storeName);

@@ -23,7 +23,6 @@ import {
   UpdateStaffTypes,
 } from "../schemas/staff-schemas";
 import { StoreRole } from "../constants";
-import { randomBytes, randomUUID } from "crypto";
 import { isUserStoreOwner } from "../helpers/store-permission-helper";
 
 export interface EnrichedStaffMember extends StoreStaff {
@@ -35,6 +34,18 @@ export interface EnrichedStaffMember extends StoreStaff {
   roleDescription?: string;
   rolePriority?: number | null;
   isCustomRole?: boolean;
+}
+
+function generateRandomToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    ""
+  );
+}
+
+function generateUUID(): string {
+  return crypto.randomUUID();
 }
 
 export class StorePermissionsModel extends BaseModel<StorePermissions> {
@@ -175,7 +186,7 @@ export class StorePermissionsModel extends BaseModel<StorePermissions> {
       const permission = await databases.createDocument<StorePermissions>(
         DATABASE_ID,
         this.collectionId,
-        randomUUID(),
+        generateUUID(),
         {
           ...data,
           isGlobal: false,
@@ -232,21 +243,17 @@ export class StoreRolesModel extends BaseModel<StoreRoles> {
   async getStoreRoles(storeId: string): Promise<StoreRoles[]> {
     try {
       const { databases } = await createSessionClient();
-      
+
       const response = await databases.listDocuments<StoreRoles>(
         DATABASE_ID,
         this.collectionId,
         [
-          Query.or([
-            Query.isNull("storeId"),
-            Query.equal("storeId", storeId),
-          ]),
+          Query.or([Query.isNull("storeId"), Query.equal("storeId", storeId)]),
           Query.equal("isActive", true),
           Query.orderAsc("priority"),
           Query.limit(100),
         ]
       );
-
 
       return response.documents;
     } catch (error) {
@@ -358,7 +365,9 @@ export class StoreRolesModel extends BaseModel<StoreRoles> {
 
       // Can't update global roles
       if (!role.storeId || role.storeId === null) {
-        throw new Error("Cannot update global roles. Only store-specific roles can be modified.");
+        throw new Error(
+          "Cannot update global roles. Only store-specific roles can be modified."
+        );
       }
 
       const updatedRole = await databases.updateDocument<StoreRoles>(
@@ -589,7 +598,7 @@ export class StoreStaffModel extends BaseModel<StoreStaff> {
         staffId
       );
 
-      if(!staff.storeId) return;
+      if (!staff.storeId) return;
 
       // Remove from Appwrite team
       try {
@@ -725,7 +734,7 @@ export class StaffInvitationsModel extends BaseModel<StaffInvitations> {
   }
 
   private generateInvitationToken(): string {
-    return randomBytes(32).toString("hex");
+    return generateRandomToken();
   }
 
   private getExpiryDate(): Date {

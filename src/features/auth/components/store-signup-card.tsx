@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 import { signupSchema } from '@/lib/schemas/user-schema';
 import { CheckCircle, Mail, Bell } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { subscribeUserToStore } from '@/lib/actions/store-subscribers.action';
+import { subscribeToStoreAction } from '@/lib/actions/store-subscribers.action';
 import { VirtualStoreTypes } from '@/lib/types';
 import { generateColorFromName } from '@/lib/utils';
 
@@ -66,7 +66,7 @@ export const StoreSignUpCard = ({ store }: StoreSignUpCardProps) => {
                 // Subscribe user to store
                 if (subscribeToMarketing) {
                     try {
-                        await subscribeUserToStore(store.$id, newUserId, newUserEmail);
+                        await subscribeToStoreAction({ storeId: store.$id });
                     } catch (error) {
                         console.error('Failed to subscribe to store:', error);
                         // Don't block signup flow if subscription fails
