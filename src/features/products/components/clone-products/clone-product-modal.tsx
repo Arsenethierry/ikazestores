@@ -99,7 +99,7 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
             selectedCombinations: [],
             customCombinationPricing: [],
             productId: product.$id,
-            virtualStoreId: virtualStoreId
+            virtualStoreId,
         },
         mode: "onChange",
     });
@@ -175,6 +175,8 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                     ? filteredCustomPricing
                     : undefined
             };
+
+            console.log("gggggggg: ", importData);
 
             importProduct(importData);
         } catch (error) {
@@ -318,15 +320,16 @@ export const CloneProductModal = ({ currentUser, product, virtualStoreId }: Clon
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
-                                                    <div className="flex justify-between items-center pt-2 px-3 py-2 bg-gray-50 rounded-md border">
-                                                        <span className="text-sm text-gray-600">
-                                                            Base: {product.basePrice} {product.currency}
-                                                        </span>
-                                                        <span className="text-sm font-semibold text-green-600">
-                                                            Final: {finalPrice.toFixed(2)} {product.currency}
-                                                        </span>
-                                                    </div>
+                                                    Set your commission markup for this product
                                                 </FormDescription>
+                                                <div className="flex justify-between items-center pt-2 px-3 py-2 bg-gray-50 rounded-md border mt-2">
+                                                    <span className="text-sm text-gray-600">
+                                                        Base: {product.basePrice} {product.currency}
+                                                    </span>
+                                                    <span className="text-sm font-semibold text-green-600">
+                                                        Final: {finalPrice.toFixed(2)} {product.currency}
+                                                    </span>
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

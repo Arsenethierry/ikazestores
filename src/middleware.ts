@@ -157,7 +157,6 @@ export async function middleware(request: NextRequest) {
     }
 
     const subdomain = parseSubdomain(hostname);
-    console.log("subdomainsubdomain: ", subdomain)
 
     if (
       !subdomain ||

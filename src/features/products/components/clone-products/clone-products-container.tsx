@@ -1,8 +1,8 @@
 import { parseSearchParams } from "@/lib/searchParamsCache";
 import { CurrentUserType, VirtualStoreTypes } from "@/lib/types";
 import { ProductsPagination } from "./products-pagination";
-import { ProductsGrid } from "./products-grid";
 import { getFilteredProducts } from "@/lib/actions/original-products-actions";
+import { CloningProductsGrid } from "./cloning-products-grid";
 
 interface CloneProductsContainerProps {
     storeData: VirtualStoreTypes;
@@ -19,17 +19,20 @@ export async function CloneProductsContainer({
     const { products, total, hasMore, currentPage } = await getFilteredProducts(filters, storeData.operatingCountry);
 
     return (
-        <>
-            <ProductsGrid
+        <div className="space-y-6">
+            <CloningProductsGrid
                 products={products}
                 virtualStoreId={storeData.$id}
                 user={user}
             />
-            <ProductsPagination
-                currentPage={currentPage}
-                hasMore={hasMore}
-                total={total}
-            />
-        </>
+            
+            {total > 0 && (
+                <ProductsPagination
+                    currentPage={currentPage}
+                    hasMore={hasMore}
+                    total={total}
+                />
+            )}
+        </div>
     );
 }

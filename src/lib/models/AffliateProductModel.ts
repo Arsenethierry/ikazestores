@@ -408,6 +408,7 @@ export class AffiliateProductModel extends BaseModel<AffiliateProductImports> {
         virtualStoreName: storeData.storeName,
         importedAt: new Date().toISOString(),
         lastSyncedAt: new Date().toISOString(),
+        physicalStoreId: data.physicalStoreId
       };
 
       const newImport = await databases.createDocument(
